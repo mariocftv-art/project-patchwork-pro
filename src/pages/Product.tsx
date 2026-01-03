@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import ShareButton from '@/components/ShareButton';
+import ShippingCalculator from '@/components/ShippingCalculator';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Product() {
@@ -142,24 +143,9 @@ export default function Product() {
               </p>
             </div>
 
-            {/* Shipping */}
-            <div className="bg-secondary rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <Truck className={`w-5 h-5 mt-0.5 ${hasFreeShipping ? 'text-ml-green' : 'text-ml-gray'}`} />
-                <div>
-                  {hasFreeShipping ? (
-                    <>
-                      <p className="text-ml-green font-semibold">Frete grátis</p>
-                      <p className="text-sm text-ml-gray">para todo o Brasil</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-foreground font-medium">Calcular frete</p>
-                      <p className="text-sm text-ml-gray">Adicione R$ {(79 - product.price).toFixed(2)} para frete grátis</p>
-                    </>
-                  )}
-                </div>
-              </div>
+            {/* Shipping Calculator */}
+            <div className="mb-4">
+              <ShippingCalculator productPrice={product.price} />
             </div>
 
             {/* Description */}
