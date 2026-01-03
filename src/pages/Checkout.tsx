@@ -344,7 +344,7 @@ export default function Checkout() {
                     <CreditCard className="h-6 w-6 text-ml-blue" />
                     <div>
                       <p className="font-medium">Cartão de Crédito</p>
-                      <p className="text-sm text-muted-foreground">Em até 12x sem juros</p>
+                      <p className="text-sm text-muted-foreground">Em até 8x sem juros</p>
                     </div>
                   </Label>
                 </div>
@@ -413,7 +413,7 @@ export default function Checkout() {
                 </div>
                 {formData.paymentMethod === "credit" && (
                   <p className="text-sm text-muted-foreground text-center">
-                    ou 12x de R$ {(total / 12).toFixed(2)} sem juros
+                    ou 8x de R$ {(total / 8).toFixed(2)} sem juros
                   </p>
                 )}
               </div>
