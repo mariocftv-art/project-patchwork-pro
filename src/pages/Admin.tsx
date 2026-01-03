@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
 import SiteContentForm from '@/components/admin/SiteContentForm';
@@ -12,6 +12,7 @@ import HelpForm from '@/components/admin/HelpForm';
 import AboutForm from '@/components/admin/AboutForm';
 import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
 import CategoriesForm from '@/components/admin/CategoriesForm';
+import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -91,7 +92,11 @@ export default function Admin() {
           </TabsTrigger>
           <TabsTrigger value="services" className="flex items-center gap-2">
             <Camera className="w-4 h-4" />
-            Serviços
+            Fotos Serviços
+          </TabsTrigger>
+          <TabsTrigger value="installations" className="flex items-center gap-2">
+            <Wrench className="w-4 h-4" />
+            Instalações
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -242,6 +247,16 @@ export default function Admin() {
               Fotos de Serviços Realizados
             </h2>
             <ServicePhotosForm />
+          </div>
+        </TabsContent>
+
+        {/* Installations Tab */}
+        <TabsContent value="installations">
+          <div className="max-w-3xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Gerenciar Serviços de Instalação
+            </h2>
+            <InstallationServicesForm />
           </div>
         </TabsContent>
 

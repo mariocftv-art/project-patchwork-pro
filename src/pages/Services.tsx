@@ -13,52 +13,30 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Shield, Zap, Lock, Wifi, Phone, CheckCircle } from 'lucide-react';
+import { Camera, Shield, Zap, Lock, Wifi, Phone, CheckCircle, Wrench, Settings, Home, Eye, type LucideIcon } from 'lucide-react';
 
-const services = [
-  {
-    id: 'cameras',
-    title: 'Instalação de Câmeras CFTV',
-    description: 'Sistema completo de monitoramento com acesso remoto pelo celular.',
-    icon: Camera,
-    features: ['Câmeras HD/4K', 'Acesso pelo celular', 'Gravação em nuvem', 'Visão noturna'],
-  },
-  {
-    id: 'cerca',
-    title: 'Cerca Elétrica',
-    description: 'Proteção perimetral com cerca elétrica de alta tensão.',
-    icon: Zap,
-    features: ['Alta voltagem', 'Alarme integrado', 'Bateria backup', 'Sinalização'],
-  },
-  {
-    id: 'alarme',
-    title: 'Alarme Monitorado',
-    description: 'Sistema de alarme com monitoramento 24 horas.',
-    icon: Shield,
-    features: ['Sensores de presença', 'Sirene potente', 'App de controle', 'Monitoramento 24h'],
-  },
-  {
-    id: 'controle-acesso',
-    title: 'Controle de Acesso',
-    description: 'Fechaduras eletrônicas e controle de entrada.',
-    icon: Lock,
-    features: ['Biometria', 'Senha numérica', 'Cartão RFID', 'Registro de acessos'],
-  },
-  {
-    id: 'automacao',
-    title: 'Automação Residencial',
-    description: 'Automatize portões, iluminação e dispositivos.',
-    icon: Wifi,
-    features: ['Portões automáticos', 'Iluminação smart', 'Controle por app', 'Integração Alexa'],
-  },
-  {
-    id: 'interfone',
-    title: 'Interfone e Vídeo Porteiro',
-    description: 'Comunicação segura na entrada do seu imóvel.',
-    icon: Phone,
-    features: ['Vídeo em tempo real', 'Áudio bidirecional', 'Abertura remota', 'Múltiplos pontos'],
-  },
-];
+interface InstallationService {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  features: string[];
+  display_order: number;
+  active: boolean;
+}
+
+const iconMap: Record<string, LucideIcon> = {
+  Camera,
+  Shield,
+  Zap,
+  Lock,
+  Wifi,
+  Phone,
+  Wrench,
+  Settings,
+  Home,
+  Eye,
+};
 
 export default function Services() {
   const { toast } = useToast();
@@ -70,6 +48,19 @@ export default function Services() {
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['installation-services-public'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('installation_services')
+        .select('*')
+        .eq('active', true)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      return data as InstallationService[];
+    },
+  });
 
   const { data: servicePhotos = [] } = useQuery({
     queryKey: ['service-photos'],
@@ -138,30 +129,33 @@ export default function Services() {
           O que oferecemos
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <div
-              key={service.id}
-              className="bg-card border border-border rounded-xl p-6 hover:shadow-lg hover:border-primary/50 transition-all"
-            >
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <service.icon className="w-6 h-6 text-primary" />
+          {services.map((service) => {
+            const IconComponent = iconMap[service.icon] || Camera;
+            return (
+              <div
+                key={service.id}
+                className="bg-card border border-border rounded-xl p-6 hover:shadow-lg hover:border-primary/50 transition-all"
+              >
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <IconComponent className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {service.title}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {service.description}
+                </p>
+                <ul className="space-y-2">
+                  {service.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle className="w-4 h-4 text-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {service.title}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {service.description}
-              </p>
-              <ul className="space-y-2">
-                {service.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle className="w-4 h-4 text-primary" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

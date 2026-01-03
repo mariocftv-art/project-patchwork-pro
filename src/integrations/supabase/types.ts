@@ -71,6 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      installation_services: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          features: string[] | null
+          icon: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          features?: string[] | null
+          icon?: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          features?: string[] | null
+          icon?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
