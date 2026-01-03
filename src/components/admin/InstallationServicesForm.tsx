@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Save, Edit2, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, Edit2, X, GripVertical, Upload, ImageIcon } from 'lucide-react';
 import { Camera, Shield, Zap, Lock, Wifi, Phone, Wrench, Settings, Home, Eye } from 'lucide-react';
 
 interface InstallationService {
@@ -22,6 +22,7 @@ interface InstallationService {
   title: string;
   description: string | null;
   icon: string;
+  image_url: string | null;
   features: string[];
   display_order: number;
   active: boolean;
@@ -53,6 +54,50 @@ export default function InstallationServicesForm() {
     features: '',
   });
   const [editData, setEditData] = useState<Partial<InstallationService> & { featuresText?: string }>({});
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('service-photos')
+      .upload(fileName, file);
+    
+    if (uploadError) throw uploadError;
+    
+    const { data } = supabase.storage
+      .from('service-photos')
+      .getPublicUrl(fileName);
+    
+    return data.publicUrl;
+  };
+
+  const handleNewImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setNewImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setEditImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['installation-services'],
@@ -67,7 +112,7 @@ export default function InstallationServicesForm() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (service: { title: string; description: string; icon: string; features: string[] }) => {
+    mutationFn: async (service: { title: string; description: string; icon: string; features: string[]; image_url?: string }) => {
       const maxOrder = services.length > 0 ? Math.max(...services.map(s => s.display_order)) : 0;
       const { error } = await supabase.from('installation_services').insert({
         ...service,
@@ -78,6 +123,8 @@ export default function InstallationServicesForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['installation-services'] });
       setNewService({ title: '', description: '', icon: 'Camera', features: '' });
+      setNewImageFile(null);
+      setNewImagePreview(null);
       toast({ title: 'Serviço adicionado!', description: 'O serviço foi criado com sucesso.' });
     },
     onError: () => {
@@ -115,18 +162,32 @@ export default function InstallationServicesForm() {
     },
   });
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newService.title.trim()) {
       toast({ title: 'Erro', description: 'O título é obrigatório.', variant: 'destructive' });
       return;
     }
-    const features = newService.features.split(',').map(f => f.trim()).filter(Boolean);
-    createMutation.mutate({
-      title: newService.title,
-      description: newService.description,
-      icon: newService.icon,
-      features,
-    });
+    
+    setIsUploading(true);
+    try {
+      let image_url: string | undefined;
+      if (newImageFile) {
+        image_url = await uploadImage(newImageFile);
+      }
+      
+      const features = newService.features.split(',').map(f => f.trim()).filter(Boolean);
+      createMutation.mutate({
+        title: newService.title,
+        description: newService.description,
+        icon: newService.icon,
+        features,
+        image_url,
+      });
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Não foi possível fazer upload da imagem.', variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleEdit = (service: InstallationService) => {
@@ -135,19 +196,37 @@ export default function InstallationServicesForm() {
       ...service,
       featuresText: service.features.join(', '),
     });
+    setEditImagePreview(service.image_url || null);
+    setEditImageFile(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId || !editData.title?.trim()) return;
-    const features = editData.featuresText?.split(',').map(f => f.trim()).filter(Boolean) || [];
-    updateMutation.mutate({
-      id: editingId,
-      title: editData.title,
-      description: editData.description,
-      icon: editData.icon,
-      features,
-      active: editData.active,
-    });
+    
+    setIsUploading(true);
+    try {
+      let image_url = editData.image_url;
+      if (editImageFile) {
+        image_url = await uploadImage(editImageFile);
+      }
+      
+      const features = editData.featuresText?.split(',').map(f => f.trim()).filter(Boolean) || [];
+      updateMutation.mutate({
+        id: editingId,
+        title: editData.title,
+        description: editData.description,
+        icon: editData.icon,
+        image_url,
+        features,
+        active: editData.active,
+      });
+      setEditImageFile(null);
+      setEditImagePreview(null);
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Não foi possível fazer upload da imagem.', variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleToggleActive = (id: string, active: boolean) => {
@@ -226,9 +305,50 @@ export default function InstallationServicesForm() {
               placeholder="Câmeras HD, Acesso remoto, Suporte 24h"
             />
           </div>
-          <Button onClick={handleCreate} disabled={createMutation.isPending} className="btn-security">
+          <div>
+            <Label>Foto do Serviço (opcional)</Label>
+            <div className="flex items-center gap-4 mt-2">
+              <input
+                type="file"
+                ref={newFileInputRef}
+                onChange={handleNewImageChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => newFileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Escolher Foto
+              </Button>
+              {newImagePreview && (
+                <div className="relative w-20 h-20">
+                  <img
+                    src={newImagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 w-6 h-6"
+                    onClick={() => {
+                      setNewImageFile(null);
+                      setNewImagePreview(null);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          <Button onClick={handleCreate} disabled={createMutation.isPending || isUploading} className="btn-security">
             <Plus className="w-4 h-4 mr-2" />
-            {createMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço'}
+            {isUploading ? 'Enviando foto...' : createMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço'}
           </Button>
         </div>
       </div>
@@ -289,6 +409,49 @@ export default function InstallationServicesForm() {
                       onChange={(e) => setEditData({ ...editData, featuresText: e.target.value })}
                     />
                   </div>
+                  <div>
+                    <Label>Foto do Serviço</Label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <input
+                        type="file"
+                        ref={editFileInputRef}
+                        onChange={handleEditImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editFileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {editImagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
+                      </Button>
+                      {editImagePreview && (
+                        <div className="relative w-16 h-16">
+                          <img
+                            src={editImagePreview}
+                            alt="Preview"
+                            className="w-full h-full object-cover rounded-lg border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 w-5 h-5"
+                            onClick={() => {
+                              setEditImageFile(null);
+                              setEditImagePreview(null);
+                              setEditData({ ...editData, image_url: null });
+                            }}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <Switch
@@ -298,13 +461,13 @@ export default function InstallationServicesForm() {
                       <Label>Ativo</Label>
                     </div>
                     <div className="flex gap-2 ml-auto">
-                      <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingId(null); setEditImageFile(null); setEditImagePreview(null); }}>
                         <X className="w-4 h-4 mr-1" />
                         Cancelar
                       </Button>
-                      <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending}>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending || isUploading}>
                         <Save className="w-4 h-4 mr-1" />
-                        Salvar
+                        {isUploading ? 'Enviando...' : 'Salvar'}
                       </Button>
                     </div>
                   </div>
@@ -320,9 +483,15 @@ export default function InstallationServicesForm() {
                 }`}
               >
                 <GripVertical className="w-4 h-4 text-muted-foreground" />
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <IconComponent className="w-5 h-5 text-primary" />
-                </div>
+                {service.image_url ? (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                    <img src={service.image_url} alt={service.title} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-primary" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-foreground truncate">{service.title}</h4>
                   <p className="text-sm text-muted-foreground truncate">{service.description}</p>
