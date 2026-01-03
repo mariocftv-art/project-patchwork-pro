@@ -1,21 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { productsApi, settingsApi } from '@/lib/supabaseApi';
 import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, Trash2, ShoppingCart, Truck, Shield } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Truck, Shield } from 'lucide-react';
 
 export default function Cart() {
-  const { cartItems, updateQuantity, removeFromCart, clearCart, isLoading: cartLoading } = useCart();
+  const navigate = useNavigate();
+  const { cartItems, updateQuantity, removeFromCart, isLoading: cartLoading } = useCart();
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => productsApi.list(),
     staleTime: 1000 * 60 * 5,
   });
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
-    queryFn: () => base44.entities.StoreSettings.getSettings(),
+    queryFn: () => settingsApi.get(),
   });
 
   const cartWithProducts = cartItems.map((item) => ({
@@ -28,7 +29,8 @@ export default function Cart() {
     0
   );
 
-  const shippingFee = settings && subtotal >= settings.free_shipping_min ? 0 : settings?.shipping_fee || 0;
+  const freeShippingMin = settings?.free_shipping_min || 199;
+  const shippingFee = subtotal >= freeShippingMin ? 0 : settings?.shipping_fee || 15;
   const total = subtotal + shippingFee;
 
   if (cartLoading) {
@@ -73,7 +75,7 @@ export default function Cart() {
                 <div className="flex gap-4">
                   <Link to={`/produto/${item.product?.id}`}>
                     <img
-                      src={item.product?.image_url}
+                      src={item.product?.image_url || '/placeholder.svg'}
                       alt={item.product?.title}
                       className="w-20 h-20 object-contain rounded border border-border"
                     />
@@ -169,9 +171,9 @@ export default function Cart() {
               </span>
             </div>
 
-            {settings && subtotal < settings.free_shipping_min && (
+            {subtotal < freeShippingMin && (
               <p className="text-xs text-ml-blue">
-                Adicione R$ {(settings.free_shipping_min - subtotal).toFixed(2)} para frete grátis!
+                Adicione R$ {(freeShippingMin - subtotal).toFixed(2)} para frete grátis!
               </p>
             )}
 
@@ -186,7 +188,10 @@ export default function Cart() {
             </div>
           </div>
 
-          <button className="w-full ml-btn-primary mt-4">
+          <button 
+            onClick={() => navigate('/checkout')}
+            className="w-full ml-btn-primary mt-4"
+          >
             Continuar compra
           </button>
 

@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { productsApi } from '@/lib/supabaseApi';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useCart } from '@/hooks/useCart';
-import { Heart, ShoppingCart, Trash2, Truck } from 'lucide-react';
+import { Heart, Trash2, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Wishlist() {
@@ -13,7 +13,7 @@ export default function Wishlist() {
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => productsApi.list(),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -81,7 +81,7 @@ export default function Wishlist() {
                 <Link to={`/produto/${item.product?.id}`}>
                   <div className="aspect-square rounded overflow-hidden bg-white mb-3">
                     <img
-                      src={item.product?.image_url}
+                      src={item.product?.image_url || '/placeholder.svg'}
                       alt={item.product?.title}
                       className="w-full h-full object-contain"
                     />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { productsApi, promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Tag, Settings, Plus, FileText } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
@@ -15,31 +15,46 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Admin() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [promotionDialogOpen, setPromotionDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const { toast } = useToast();
 
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => productsApi.list(),
   });
 
   const { data: promotions = [], refetch: refetchPromotions } = useQuery({
     queryKey: ['promotions'],
-    queryFn: () => base44.entities.Promotion.list(),
+    queryFn: () => promotionsApi.list(),
   });
 
-  const handleEditProduct = (product: any) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setProductDialogOpen(true);
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este produto?')) {
-      await base44.entities.Product.delete(id);
-      refetchProducts();
+      try {
+        await productsApi.delete(id);
+        await adminLogsApi.log('delete_product', 'product', id);
+        refetchProducts();
+        toast({
+          title: 'Produto excluído',
+          description: 'O produto foi excluído com sucesso.',
+        });
+      } catch (error) {
+        toast({
+          title: 'Erro ao excluir',
+          description: 'Não foi possível excluir o produto. Verifique suas permissões.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -109,7 +124,7 @@ export default function Admin() {
                 className="admin-card flex items-center gap-4"
               >
                 <img
-                  src={product.image_url}
+                  src={product.image_url || '/placeholder.svg'}
                   alt={product.title}
                   className="w-16 h-16 object-cover rounded-lg"
                 />
@@ -190,7 +205,7 @@ export default function Admin() {
                     <div>
                       <h3 className="font-semibold text-foreground">{promo.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {promo.discount_percent}% de desconto • {promo.product_ids.length} produtos
+                        {promo.discount_percent}% de desconto • {promo.product_ids?.length || 0} produtos
                       </p>
                     </div>
                     <span

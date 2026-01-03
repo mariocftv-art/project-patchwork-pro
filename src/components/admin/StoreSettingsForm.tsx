@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { settingsApi, adminLogsApi } from '@/lib/supabaseApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,7 @@ export default function StoreSettingsForm() {
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
-    queryFn: () => base44.entities.StoreSettings.getSettings(),
+    queryFn: () => settingsApi.get(),
   });
 
   const {
@@ -50,18 +50,21 @@ export default function StoreSettingsForm() {
   useEffect(() => {
     if (settings) {
       reset({
-        shipping_fee: settings.shipping_fee,
-        free_shipping_min: settings.free_shipping_min,
-        pix_enabled: settings.pix_enabled,
-        card_enabled: settings.card_enabled,
-        boleto_enabled: settings.boleto_enabled,
+        shipping_fee: settings.shipping_fee || 0,
+        free_shipping_min: settings.free_shipping_min || 0,
+        pix_enabled: settings.pix_enabled ?? true,
+        card_enabled: settings.credit_card_enabled ?? true,
+        boleto_enabled: settings.boleto_enabled ?? true,
       });
     }
   }, [settings, reset]);
 
   const updateSettings = useMutation({
-    mutationFn: (data: SettingsFormData) =>
-      base44.entities.StoreSettings.updateSettings(data),
+    mutationFn: async (data: SettingsFormData) => {
+      const result = await settingsApi.update(data as any);
+      await adminLogsApi.log('update_settings', 'settings');
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       toast({ title: 'Configurações salvas com sucesso!' });

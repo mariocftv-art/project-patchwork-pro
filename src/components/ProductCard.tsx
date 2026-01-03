@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Heart, Truck } from 'lucide-react';
-import { Product } from '@/api/base44Client';
+import { Product } from '@/lib/supabaseApi';
 import { useWishlist } from '@/hooks/useWishlist';
 
 interface ProductCardProps {
@@ -35,7 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="relative mb-3">
           <div className="aspect-square overflow-hidden rounded">
             <img 
-              src={product.image_url} 
+              src={product.image_url || '/placeholder.svg'} 
               alt={product.title} 
               className="w-full h-full object-contain bg-white"
             />
