@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Tag, Settings, Plus } from 'lucide-react';
+import { Package, Tag, Settings, Plus, FileText } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import PromotionForm from '@/components/admin/PromotionForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
+import SiteContentForm from '@/components/admin/SiteContentForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,7 +50,7 @@ export default function Admin() {
       </h1>
 
       <Tabs defaultValue="products" className="space-y-6">
-        <TabsList className="bg-muted p-1 rounded-lg">
+        <TabsList className="bg-muted p-1 rounded-lg flex-wrap">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Produtos
@@ -57,6 +58,10 @@ export default function Admin() {
           <TabsTrigger value="promotions" className="flex items-center gap-2">
             <Tag className="w-4 h-4" />
             Promoções
+          </TabsTrigger>
+          <TabsTrigger value="content" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Conteúdo
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -202,6 +207,16 @@ export default function Admin() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Content Tab */}
+        <TabsContent value="content">
+          <div className="max-w-xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Gerenciar Conteúdo do Site
+            </h2>
+            <SiteContentForm />
+          </div>
         </TabsContent>
 
         {/* Settings Tab */}
