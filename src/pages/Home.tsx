@@ -13,6 +13,8 @@ const categories = [
   { id: 'cercas', name: 'Cercas Elétricas', count: 0 },
   { id: 'automação', name: 'Automação', count: 0 },
   { id: 'proteção', name: 'Proteção', count: 0 },
+  { id: 'ofertas', name: 'Ofertas', count: 0 },
+  { id: 'instalações em geral', name: 'Instalações em Geral', count: 0 },
 ];
 
 const priceRanges = [
