@@ -88,12 +88,34 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.phone || !formData.cep || 
-        !formData.street || !formData.number || !formData.neighborhood || 
-        !formData.city || !formData.state) {
+    // Validar campos obrigatórios
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.cep.trim() || 
+        !formData.street.trim() || !formData.number.trim() || !formData.neighborhood.trim() || 
+        !formData.city.trim() || !formData.state.trim()) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, insira um email válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar se há itens no carrinho
+    if (cartProducts.length === 0) {
+      toast({
+        title: "Carrinho vazio",
+        description: "Adicione produtos ao carrinho antes de finalizar.",
         variant: "destructive",
       });
       return;
@@ -105,18 +127,20 @@ export default function Checkout() {
       const orderNumber = generateOrderNumber();
       
       const orderItems = cartProducts.map(item => ({
-        name: item.product?.title || '',
+        name: item.product?.title || 'Produto',
         quantity: item.quantity,
         price: item.product?.price || 0,
       }));
 
-      // Store order securely in database (not localStorage)
+      const finalTotal = formData.paymentMethod === 'pix' ? total * 0.95 : total;
+
+      // Store order securely in database
       await ordersApi.create({
         order_number: orderNumber,
-        customer_name: formData.name,
-        customer_email: formData.email,
-        customer_phone: formData.phone,
-        customer_cpf: formData.cpf || null,
+        customer_name: formData.name.trim(),
+        customer_email: formData.email.trim().toLowerCase(),
+        customer_phone: formData.phone.trim(),
+        customer_cpf: formData.cpf.trim() || null,
         shipping_address: {
           cep: formData.cep,
           street: formData.street,
@@ -129,7 +153,7 @@ export default function Checkout() {
         items: orderItems,
         subtotal,
         shipping_fee: shipping,
-        total: formData.paymentMethod === 'pix' ? total * 0.95 : total,
+        total: finalTotal,
         payment_method: formData.paymentMethod,
         status: 'pending'
       });
@@ -137,21 +161,22 @@ export default function Checkout() {
       // Store minimal non-sensitive data in sessionStorage for confirmation page only
       sessionStorage.setItem(`order_confirm_${orderNumber}`, JSON.stringify({
         orderNumber,
-        customerName: formData.name,
+        customerName: formData.name.trim(),
         items: orderItems,
-        total: formData.paymentMethod === 'pix' ? total * 0.95 : total,
+        total: finalTotal,
       }));
       
+      // Limpar carrinho e navegar
       clearCart.mutate();
-      
       navigate(`/pedido-confirmado/${orderNumber}`);
     } catch (error) {
       console.error("Erro ao processar pedido:", error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao processar seu pedido. Tente novamente.",
+        title: "Erro ao processar pedido",
+        description: "Verifique os dados e tente novamente.",
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
