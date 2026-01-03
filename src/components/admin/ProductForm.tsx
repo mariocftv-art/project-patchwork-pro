@@ -34,7 +34,7 @@ interface ProductFormProps {
   onSuccess: () => void;
 }
 
-const categories = ['câmeras', 'dvr', 'cercas', 'automação', 'proteção'];
+const categories = ['câmeras', 'dvr', 'cercas', 'automação', 'proteção', 'ofertas', 'instalação grande são paulo'];
 
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const { toast } = useToast();
