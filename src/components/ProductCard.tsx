@@ -21,8 +21,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Math.round((1 - product.price / product.original_price) * 100) 
     : 0;
 
-  // Calculate installments (12x sem juros)
-  const installmentValue = (product.price / 12).toFixed(2);
+  // Calculate installments (8x sem juros)
+  const installmentValue = (product.price / 8).toFixed(2);
   const [reais, centavos] = product.price.toFixed(2).split('.');
 
   // Free shipping for products above R$79
@@ -83,7 +83,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Installments */}
           <p className="ml-installments mt-1">
-            em 12x R$ {installmentValue}
+            em 8x R$ {installmentValue}
           </p>
 
           {/* Free Shipping */}

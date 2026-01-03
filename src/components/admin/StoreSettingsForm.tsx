@@ -138,7 +138,7 @@ export default function StoreSettingsForm() {
             <div>
               <Label htmlFor="card_enabled" className="text-foreground">Cartão de Crédito</Label>
               <p className="text-sm text-muted-foreground">
-                Parcelamento em até 12x
+                Parcelamento em até 8x
               </p>
             </div>
             <Switch
