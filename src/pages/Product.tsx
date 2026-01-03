@@ -244,10 +244,6 @@ export default function Product() {
               {/* Benefits */}
               <div className="mt-6 pt-4 border-t border-border space-y-3">
                 <div className="flex items-center gap-2 text-sm text-ml-gray">
-                  <RotateCcw className="w-4 h-4 text-ml-green" />
-                  <span>Devolução grátis em 7 dias</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-ml-gray">
                   <Shield className="w-4 h-4 text-ml-green" />
                   <span>Compra garantida</span>
                 </div>

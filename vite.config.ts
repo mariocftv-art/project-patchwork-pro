@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "Segurança Máxima - CNPJ: 45.858.215/0001-86",
-        short_name: "Segurança Máxima",
-        description: "Loja de equipamentos de segurança: câmeras, DVR, cercas elétricas e automação. CNPJ: 45.858.215/0001-86",
+        name: "Segurança Máxima",
+        short_name: "Seg. Máxima",
+        description: "CNPJ: 45.858.215/0001-86 - Loja de equipamentos de segurança: câmeras, DVR, cercas elétricas e automação",
         theme_color: "#FFD700",
         background_color: "#ffffff",
         display: "standalone",
