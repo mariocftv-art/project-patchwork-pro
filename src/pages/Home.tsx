@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { productsApi, Product } from '@/lib/supabaseApi';
 import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
+import ServiceGallery from '@/components/ServiceGallery';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X } from 'lucide-react';
 import { useState } from 'react';
@@ -228,6 +229,9 @@ export default function Home() {
         )}
       </div>
       </div>
+
+      {/* Service Gallery - only show on main page without filters */}
+      {!selectedCategory && !searchQuery && <ServiceGallery />}
     </div>
   );
 }

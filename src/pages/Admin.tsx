@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Tag, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info } from 'lucide-react';
+import { Package, Tag, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import PromotionForm from '@/components/admin/PromotionForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
@@ -11,6 +11,7 @@ import PaymentSettingsForm from '@/components/admin/PaymentSettingsForm';
 import ContactForm from '@/components/admin/ContactForm';
 import HelpForm from '@/components/admin/HelpForm';
 import AboutForm from '@/components/admin/AboutForm';
+import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -93,6 +94,10 @@ export default function Admin() {
           <TabsTrigger value="about" className="flex items-center gap-2">
             <Info className="w-4 h-4" />
             Sobre
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Camera className="w-4 h-4" />
+            Serviços
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -281,6 +286,16 @@ export default function Admin() {
               Sobre a Empresa
             </h2>
             <AboutForm />
+          </div>
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services">
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Fotos de Serviços Realizados
+            </h2>
+            <ServicePhotosForm />
           </div>
         </TabsContent>
 
