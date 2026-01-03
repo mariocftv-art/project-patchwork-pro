@@ -108,6 +108,13 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </Link>
 
+            {/* Motivational Message */}
+            <div className="hidden lg:flex flex-1 max-w-md px-4">
+              <p className="text-xs text-ml-gray italic leading-relaxed">
+                "No Brasil de hoje, esperar não é opção. Ou você se protege, ou fica vulnerável. Com Deus à frente e a força da tecnologia, a MR Segurança Máxima protege sua família, seu patrimônio e sua tranquilidade."
+              </p>
+            </div>
+
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="flex-1 max-w-xs">
               <div className="relative ml-search flex items-center">
