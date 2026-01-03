@@ -5,7 +5,7 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
-import SalesChat from './SalesChat';
+
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -392,8 +392,6 @@ export default function Layout({ children }: LayoutProps) {
         <span className="text-sm font-medium">Fale conosco pelo WhatsApp</span>
       </a>
 
-      {/* Sales Chat */}
-      <SalesChat />
     </div>
   );
 }
