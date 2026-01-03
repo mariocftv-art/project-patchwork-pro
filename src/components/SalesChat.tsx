@@ -24,8 +24,8 @@ export default function SalesChat() {
       {isOpen && (
         <div className="fixed bottom-24 right-6 z-50 w-80 bg-white rounded-lg shadow-2xl border border-border overflow-hidden">
           <div className="bg-ml-green text-white p-4">
-            <h3 className="font-medium">Chat de Atendimento</h3>
-            <p className="text-sm opacity-90">Estamos online</p>
+            <h3 className="font-medium">MR Segurança Máxima</h3>
+            <p className="text-sm opacity-90">Pergunte para MR Segurança Máxima</p>
           </div>
           
           <div className="h-64 p-4 overflow-y-auto bg-secondary/30">
