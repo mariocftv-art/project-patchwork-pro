@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Tag, Settings, Plus, FileText } from 'lucide-react';
+import { Package, Tag, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import PromotionForm from '@/components/admin/PromotionForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
 import SiteContentForm from '@/components/admin/SiteContentForm';
+import PaymentSettingsForm from '@/components/admin/PaymentSettingsForm';
+import ContactForm from '@/components/admin/ContactForm';
+import HelpForm from '@/components/admin/HelpForm';
+import AboutForm from '@/components/admin/AboutForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -65,7 +69,7 @@ export default function Admin() {
       </h1>
 
       <Tabs defaultValue="products" className="space-y-6">
-        <TabsList className="bg-muted p-1 rounded-lg flex-wrap">
+        <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Produtos
@@ -73,6 +77,22 @@ export default function Admin() {
           <TabsTrigger value="promotions" className="flex items-center gap-2">
             <Tag className="w-4 h-4" />
             Promoções
+          </TabsTrigger>
+          <TabsTrigger value="payment" className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            Pagamento
+          </TabsTrigger>
+          <TabsTrigger value="contact" className="flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Contato
+          </TabsTrigger>
+          <TabsTrigger value="help" className="flex items-center gap-2">
+            <HelpCircle className="w-4 h-4" />
+            Ajuda
+          </TabsTrigger>
+          <TabsTrigger value="about" className="flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            Sobre
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -222,6 +242,46 @@ export default function Admin() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Payment Tab */}
+        <TabsContent value="payment">
+          <div className="max-w-xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Configurações de Pagamento
+            </h2>
+            <PaymentSettingsForm />
+          </div>
+        </TabsContent>
+
+        {/* Contact Tab */}
+        <TabsContent value="contact">
+          <div className="max-w-xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Informações de Contato
+            </h2>
+            <ContactForm />
+          </div>
+        </TabsContent>
+
+        {/* Help Tab */}
+        <TabsContent value="help">
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Central de Ajuda
+            </h2>
+            <HelpForm />
+          </div>
+        </TabsContent>
+
+        {/* About Tab */}
+        <TabsContent value="about">
+          <div className="max-w-xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Sobre a Empresa
+            </h2>
+            <AboutForm />
+          </div>
         </TabsContent>
 
         {/* Content Tab */}
