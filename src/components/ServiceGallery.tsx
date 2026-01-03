@@ -40,28 +40,31 @@ export default function ServiceGallery() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="group relative aspect-square rounded-lg overflow-hidden bg-muted shadow-md hover:shadow-xl transition-shadow"
+              className="group bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
             >
-              <img
-                src={photo.image_url}
-                alt={photo.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <h3 className="text-white font-semibold text-sm line-clamp-1">
-                    {photo.title}
-                  </h3>
-                  {photo.description && (
-                    <p className="text-white/80 text-xs line-clamp-2 mt-1">
-                      {photo.description}
-                    </p>
-                  )}
-                </div>
+              {/* Image Container */}
+              <div className="aspect-square overflow-hidden bg-muted">
+                <img
+                  src={photo.image_url}
+                  alt={photo.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              
+              {/* Description - Outside the image */}
+              <div className="p-4">
+                <h3 className="font-semibold text-foreground text-sm line-clamp-1">
+                  {photo.title}
+                </h3>
+                {photo.description && (
+                  <p className="text-muted-foreground text-xs line-clamp-2 mt-1">
+                    {photo.description}
+                  </p>
+                )}
               </div>
             </div>
           ))}
