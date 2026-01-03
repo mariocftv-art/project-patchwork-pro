@@ -158,9 +158,9 @@ export default function Layout({ children }: LayoutProps) {
               {isAdmin ? (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="hidden sm:flex items-center gap-1 p-2 text-ml-blue transition-colors text-sm">
+                    <Button variant="ghost" size="icon" className="hidden sm:flex text-ml-blue">
                       <Shield className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3" align="end">
                     <div className="space-y-3">
@@ -188,9 +188,9 @@ export default function Layout({ children }: LayoutProps) {
               ) : user ? (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="hidden sm:flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm">
+                    <Button variant="ghost" size="icon" className="hidden sm:flex text-ml-dark-gray hover:text-ml-blue">
                       <User className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3" align="end">
                     <div className="space-y-3">
