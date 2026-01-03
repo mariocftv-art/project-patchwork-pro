@@ -7,6 +7,8 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Product from "./pages/Product";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import Wishlist from "./pages/Wishlist";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/produto/:id" element={<Product />} />
             <Route path="/carrinho" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/pedido-confirmado/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
