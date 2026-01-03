@@ -136,16 +136,16 @@ export default function Checkout() {
 
       localStorage.setItem(`order_${orderNumber}`, JSON.stringify(orderData));
       
-      await clearCart.mutateAsync();
+      clearCart.mutate();
       
       navigate(`/pedido-confirmado/${orderNumber}`);
     } catch (error) {
+      console.error("Erro ao processar pedido:", error);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao processar seu pedido. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
