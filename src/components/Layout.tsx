@@ -43,24 +43,29 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <div className="flex items-center gap-1">
-                <div className="w-10 h-10 bg-white rounded flex items-center justify-center">
-                  <span className="text-ml-blue font-bold text-xl">MR</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <div className="w-10 h-10 bg-white rounded flex items-center justify-center">
+                    <span className="text-ml-blue font-bold text-xl">MR</span>
+                  </div>
+                  <span className="text-sm font-bold text-ml-dark-gray ml-1">
+                    MR Segurança Máxima
+                  </span>
                 </div>
-                <span className="hidden sm:block text-sm font-medium text-ml-dark-gray ml-1">
-                  Segurança
+                <span className="text-[10px] text-ml-gray ml-11">
+                  CNPJ: 45.858.215/0001-86
                 </span>
               </div>
             </Link>
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+            <form onSubmit={handleSearch} className="flex-1 max-w-xs">
               <div className="relative ml-search flex items-center">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar produtos, marcas e muito mais..."
+                  placeholder="Buscar produtos..."
                   className="w-full px-4 py-2.5 pr-12 text-sm rounded-sm outline-none"
                 />
                 <button
