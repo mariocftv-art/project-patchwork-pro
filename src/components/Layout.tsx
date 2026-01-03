@@ -33,7 +33,7 @@ interface SiteContent {
 }
 
 const defaultContent: SiteContent = {
-  categories: ['Câmeras', 'DVR', 'Cercas', 'Automação', 'Proteção', 'Ofertas'],
+  categories: ['Câmeras', 'DVR', 'Cercas', 'Automação', 'Proteção', 'Instalações', 'Ofertas'],
   contact: {
     phone: '(11) 96257-9428',
     email: 'contato@mrseguranca.com',
