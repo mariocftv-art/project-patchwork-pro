@@ -14,6 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          customer_cpf: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          items: Json
+          order_number: string
+          payment_method: string | null
+          shipping_address: Json | null
+          shipping_fee: number
+          status: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          created_at?: string | null
+          customer_cpf?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          items: Json
+          order_number: string
+          payment_method?: string | null
+          shipping_address?: Json | null
+          shipping_fee?: number
+          status?: string | null
+          subtotal: number
+          total: number
+        }
+        Update: {
+          created_at?: string | null
+          customer_cpf?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          order_number?: string
+          payment_method?: string | null
+          shipping_address?: Json | null
+          shipping_fee?: number
+          status?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          featured: boolean | null
+          id: string
+          image_url: string | null
+          original_price: number | null
+          price: number
+          stock: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          featured?: boolean | null
+          id?: string
+          image_url?: string | null
+          original_price?: number | null
+          price?: number
+          stock?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          featured?: boolean | null
+          id?: string
+          image_url?: string | null
+          original_price?: number | null
+          price?: number
+          stock?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          discount_percent: number
+          end_date: string | null
+          id: string
+          name: string
+          product_ids: string[] | null
+          start_date: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          discount_percent?: number
+          end_date?: string | null
+          id?: string
+          name: string
+          product_ids?: string[] | null
+          start_date?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          discount_percent?: number
+          end_date?: string | null
+          id?: string
+          name?: string
+          product_ids?: string[] | null
+          start_date?: string | null
+        }
+        Relationships: []
+      }
+      store_settings: {
+        Row: {
+          boleto_enabled: boolean | null
+          credit_card_enabled: boolean | null
+          free_shipping_min: number | null
+          id: string
+          pix_enabled: boolean | null
+          shipping_fee: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          boleto_enabled?: boolean | null
+          credit_card_enabled?: boolean | null
+          free_shipping_min?: number | null
+          id?: string
+          pix_enabled?: boolean | null
+          shipping_fee?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          boleto_enabled?: boolean | null
+          credit_card_enabled?: boolean | null
+          free_shipping_min?: number | null
+          id?: string
+          pix_enabled?: boolean | null
+          shipping_fee?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
