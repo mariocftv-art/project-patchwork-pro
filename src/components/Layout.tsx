@@ -220,7 +220,7 @@ export default function Layout({ children }: LayoutProps) {
               )}
 
               {/* Motivational Message */}
-              <div className="hidden xl:flex max-w-xs pl-4 border-l border-border ml-2">
+              <div className="hidden xl:flex max-w-md pl-4 border-l border-border ml-2">
                 <p className="text-xs text-ml-gray italic leading-relaxed">
                   "No Brasil de hoje, esperar não é opção. Ou você se protege, ou fica vulnerável. Com Deus à frente e a força da tecnologia, a MR Segurança Máxima protege sua família, seu patrimônio e sua tranquilidade."
                 </p>
