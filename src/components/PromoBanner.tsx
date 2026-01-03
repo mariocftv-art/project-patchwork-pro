@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -41,7 +41,7 @@ const banners = [
   }
 ];
 
-export default function PromoBanner() {
+const PromoBanner = forwardRef<HTMLDivElement>(function PromoBanner(_, ref) {
   const [current, setCurrent] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -65,7 +65,7 @@ export default function PromoBanner() {
   const next = () => goTo((current + 1) % banners.length);
 
   return (
-    <div className="relative w-full mb-6 group">
+    <div ref={ref} className="relative w-full mb-6 group">
       {/* Main Banner */}
       <div className="relative overflow-hidden rounded-lg">
         <div 
@@ -146,4 +146,6 @@ export default function PromoBanner() {
       </div>
     </div>
   );
-}
+});
+
+export default PromoBanner;
