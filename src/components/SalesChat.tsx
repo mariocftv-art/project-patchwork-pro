@@ -1,15 +1,16 @@
-import { MessageCircle, X } from 'lucide-react';
+import { MessageCircle, X, Send } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SalesChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState('');
 
   return (
     <>
       {/* Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="floating-button"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-ml-green rounded-full shadow-lg flex items-center justify-center text-white cursor-pointer hover:bg-green-600 transition-colors"
         aria-label="Abrir chat de vendas"
       >
         {isOpen ? (
@@ -21,29 +22,32 @@ export default function SalesChat() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-fade-in">
-          <div className="bg-primary text-primary-foreground p-4">
-            <h3 className="font-semibold">Chat de Vendas</h3>
-            <p className="text-sm opacity-90">Como podemos ajudar?</p>
+        <div className="fixed bottom-24 right-6 z-50 w-80 bg-white rounded-lg shadow-2xl border border-border overflow-hidden">
+          <div className="bg-ml-green text-white p-4">
+            <h3 className="font-medium">Chat de Atendimento</h3>
+            <p className="text-sm opacity-90">Estamos online</p>
           </div>
           
-          <div className="h-64 p-4 overflow-y-auto bg-muted/30">
-            <div className="bg-primary/10 text-foreground p-3 rounded-lg rounded-tl-none max-w-[80%]">
+          <div className="h-64 p-4 overflow-y-auto bg-secondary/30">
+            <div className="bg-white text-foreground p-3 rounded-lg rounded-tl-none max-w-[85%] shadow-sm border border-border">
               <p className="text-sm">
-                Olá! 👋 Bem-vindo à MR Segurança Máxima. Como posso ajudar você hoje?
+                Olá! 👋 Como posso ajudar você hoje?
               </p>
+              <span className="text-[10px] text-ml-gray mt-1 block">14:30</span>
             </div>
           </div>
           
-          <div className="p-4 border-t border-border">
+          <div className="p-3 border-t border-border">
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Digite sua mensagem..."
-                className="form-input flex-1 text-sm py-2"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Escreva sua mensagem..."
+                className="flex-1 px-3 py-2 border border-border rounded text-sm outline-none focus:border-ml-blue"
               />
-              <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-                Enviar
+              <button className="bg-ml-blue text-white px-3 py-2 rounded hover:bg-ml-blue-dark transition-colors">
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>

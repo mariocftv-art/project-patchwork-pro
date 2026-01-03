@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCart } from '@/hooks/useCart';
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Minus, Plus, Trash2, ShoppingCart, Truck, Shield } from 'lucide-react';
 
 export default function Cart() {
   const { cartItems, updateQuantity, removeFromCart, clearCart, isLoading: cartLoading } = useCart();
@@ -35,158 +34,178 @@ export default function Cart() {
   if (cartLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-ml-blue border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <div className="text-center py-16">
-        <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-          Seu carrinho está vazio
+      <div className="bg-white rounded-lg p-8 text-center">
+        <ShoppingCart className="w-16 h-16 text-ml-light-gray mx-auto mb-4" />
+        <h2 className="text-xl text-foreground mb-2">
+          O carrinho está vazio
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Adicione produtos ao carrinho para continuar comprando.
+        <p className="text-ml-gray mb-6 text-sm">
+          Não sabe o que comprar? Milhares de produtos te esperam!
         </p>
-        <Link to="/">
-          <Button className="btn-security">
-            Continuar Comprando
-          </Button>
+        <Link to="/" className="ml-btn-primary inline-block">
+          Descobrir produtos
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Continuar comprando
-      </Link>
+    <div className="grid lg:grid-cols-3 gap-6">
+      {/* Cart Items */}
+      <div className="lg:col-span-2">
+        <div className="bg-white rounded-lg">
+          <div className="p-4 border-b border-border">
+            <h1 className="text-xl font-light text-foreground">
+              Carrinho ({cartWithProducts.length} {cartWithProducts.length === 1 ? 'produto' : 'produtos'})
+            </h1>
+          </div>
 
-      <h1 className="font-display text-3xl font-bold text-foreground mb-8">
-        Carrinho de Compras
-      </h1>
+          <div className="divide-y divide-border">
+            {cartWithProducts.map((item) => (
+              <div key={item.id} className="p-4">
+                <div className="flex gap-4">
+                  <Link to={`/produto/${item.product?.id}`}>
+                    <img
+                      src={item.product?.image_url}
+                      alt={item.product?.title}
+                      className="w-20 h-20 object-contain rounded border border-border"
+                    />
+                  </Link>
+                  
+                  <div className="flex-1 min-w-0">
+                    <Link 
+                      to={`/produto/${item.product?.id}`}
+                      className="text-sm text-foreground hover:text-ml-blue line-clamp-2"
+                    >
+                      {item.product?.title}
+                    </Link>
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={() => removeFromCart.mutate(item.id)}
+                        className="text-ml-blue text-sm hover:underline"
+                      >
+                        Excluir
+                      </button>
+                      <span className="text-ml-gray">|</span>
+                      <button className="text-ml-blue text-sm hover:underline">
+                        Salvar
+                      </button>
+                    </div>
+                  </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-4">
-          {cartWithProducts.map((item) => (
-            <div
-              key={item.id}
-              className="security-card p-4 flex gap-4"
-            >
-              <img
-                src={item.product?.image_url}
-                alt={item.product?.title}
-                className="w-24 h-24 object-cover rounded-lg"
-              />
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-1">
-                  {item.product?.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {item.product?.category}
-                </p>
-                <p className="text-primary font-bold">
-                  R$ {item.product?.price.toFixed(2)}
-                </p>
-              </div>
-              <div className="flex flex-col items-end justify-between">
-                <button
-                  onClick={() => removeFromCart.mutate(item.id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                  <button
-                    onClick={() =>
-                      updateQuantity.mutate({
-                        id: item.id,
-                        quantity: item.quantity - 1,
-                      })
-                    }
-                    className="p-1 hover:bg-background rounded transition-colors"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-8 text-center font-semibold text-sm">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() =>
-                      updateQuantity.mutate({
-                        id: item.id,
-                        quantity: item.quantity + 1,
-                      })
-                    }
-                    className="p-1 hover:bg-background rounded transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  <div className="text-right">
+                    <p className="text-lg font-light text-foreground">
+                      R$ {((item.product?.price || 0) * item.quantity).toFixed(2)}
+                    </p>
+                    
+                    <div className="flex items-center border border-border rounded mt-2">
+                      <button
+                        onClick={() =>
+                          updateQuantity.mutate({
+                            id: item.id,
+                            quantity: item.quantity - 1,
+                          })
+                        }
+                        className="px-2 py-1 text-ml-blue hover:bg-secondary"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="px-3 py-1 text-sm border-x border-border">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() =>
+                          updateQuantity.mutate({
+                            id: item.id,
+                            quantity: item.quantity + 1,
+                          })
+                        }
+                        className="px-2 py-1 text-ml-blue hover:bg-secondary"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
 
-          <button
-            onClick={() => clearCart.mutate()}
-            className="text-sm text-destructive hover:underline"
-          >
-            Limpar carrinho
-          </button>
+                {/* Free shipping message */}
+                {(item.product?.price || 0) >= 79 && (
+                  <div className="flex items-center gap-2 mt-3 text-sm text-ml-green">
+                    <Truck className="w-4 h-4" />
+                    <span>Frete grátis</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
 
-        {/* Order Summary */}
-        <div className="lg:col-span-1">
-          <div className="security-card p-6 sticky top-24">
-            <h2 className="font-display text-xl font-bold text-foreground mb-4">
-              Resumo do Pedido
-            </h2>
+      {/* Order Summary */}
+      <div className="lg:col-span-1">
+        <div className="bg-white rounded-lg p-4 sticky top-24">
+          <h2 className="text-lg font-medium text-foreground mb-4">
+            Resumo da compra
+          </h2>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-foreground font-medium">
-                  R$ {subtotal.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Frete</span>
-                <span className={shippingFee === 0 ? 'text-success font-medium' : 'text-foreground'}>
-                  {shippingFee === 0 ? 'Grátis' : `R$ ${shippingFee.toFixed(2)}`}
-                </span>
-              </div>
-              {settings && subtotal < settings.free_shipping_min && (
-                <p className="text-xs text-muted-foreground">
-                  Faltam R$ {(settings.free_shipping_min - subtotal).toFixed(2)} para frete grátis!
-                </p>
-              )}
-              <div className="border-t border-border pt-3">
-                <div className="flex justify-between text-lg font-bold">
-                  <span className="text-foreground">Total</span>
-                  <span className="text-primary">R$ {total.toFixed(2)}</span>
-                </div>
-              </div>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-ml-gray">Produtos ({cartWithProducts.reduce((s, i) => s + i.quantity, 0)})</span>
+              <span className="text-foreground">R$ {subtotal.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-ml-gray">Frete</span>
+              <span className={shippingFee === 0 ? 'text-ml-green font-medium' : 'text-foreground'}>
+                {shippingFee === 0 ? 'Grátis' : `R$ ${shippingFee.toFixed(2)}`}
+              </span>
             </div>
 
-            <Button className="w-full btn-security mt-6">
-              Finalizar Compra
-            </Button>
+            {settings && subtotal < settings.free_shipping_min && (
+              <p className="text-xs text-ml-blue">
+                Adicione R$ {(settings.free_shipping_min - subtotal).toFixed(2)} para frete grátis!
+              </p>
+            )}
 
-            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-              <p className="flex items-center gap-2">
-                <span>💳</span> Até 12x sem juros no cartão
+            <div className="border-t border-border pt-3">
+              <div className="flex justify-between">
+                <span className="text-foreground font-medium">Total</span>
+                <span className="text-xl text-foreground">R$ {total.toFixed(2)}</span>
+              </div>
+              <p className="text-sm text-ml-green mt-1">
+                em 12x R$ {(total / 12).toFixed(2)} sem juros
               </p>
-              <p className="flex items-center gap-2">
-                <span>📱</span> 5% de desconto no PIX
-              </p>
+            </div>
+          </div>
+
+          <button className="w-full ml-btn-primary mt-4">
+            Continuar compra
+          </button>
+
+          <Link 
+            to="/" 
+            className="block text-center text-sm text-ml-blue mt-3 hover:underline"
+          >
+            Continuar comprando
+          </Link>
+
+          {/* Security badges */}
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="flex items-center gap-2 text-xs text-ml-gray mb-2">
+              <Shield className="w-4 h-4 text-ml-green" />
+              <span>Compra 100% segura</span>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <span className="text-xs text-ml-gray">💳 12x sem juros</span>
+              <span className="text-xs text-ml-gray">📱 5% no PIX</span>
             </div>
           </div>
         </div>

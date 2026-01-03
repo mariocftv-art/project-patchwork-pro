@@ -2,7 +2,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Bell } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
 export default function NotificationsPopover() {
@@ -24,25 +23,22 @@ export default function NotificationsPopover() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative p-2 text-foreground/70 hover:text-primary transition-colors">
+        <button className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors">
           <Bell className="w-5 h-5" />
           {notifications.length > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs"
-            >
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-ml-blue text-white text-[10px] font-bold rounded-full flex items-center justify-center">
               {notifications.length}
-            </Badge>
+            </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-popover border shadow-xl" align="end">
-        <div className="p-4 border-b border-border">
-          <h3 className="font-semibold text-foreground">Notificações</h3>
+      <PopoverContent className="w-80 p-0 bg-white border shadow-lg" align="end">
+        <div className="p-3 border-b border-border">
+          <h3 className="font-medium text-foreground text-sm">Notificações</h3>
         </div>
-        <div className="max-h-80 overflow-y-auto">
+        <div className="max-h-72 overflow-y-auto">
           {notifications.length === 0 ? (
-            <p className="p-4 text-center text-muted-foreground">
+            <p className="p-4 text-center text-ml-gray text-sm">
               Nenhuma notificação
             </p>
           ) : (
@@ -51,10 +47,10 @@ export default function NotificationsPopover() {
                 key={n.id}
                 to={n.link}
                 onClick={() => markAsRead.mutate(n.id)}
-                className="block p-4 hover:bg-muted/50 transition-colors border-b border-border last:border-0"
+                className="block p-3 hover:bg-secondary transition-colors border-b border-border last:border-0"
               >
                 <p className="font-medium text-foreground text-sm">{n.title}</p>
-                <p className="text-muted-foreground text-xs mt-1">{n.message}</p>
+                <p className="text-ml-gray text-xs mt-1">{n.message}</p>
               </Link>
             ))
           )}

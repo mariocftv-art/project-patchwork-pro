@@ -1,134 +1,139 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Menu, Shield, Settings } from 'lucide-react';
+import { ReactNode, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import NotificationsPopover from './NotificationsPopover';
 import SalesChat from './SalesChat';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const navLinks = [
-  { name: 'Início', path: '/' },
+const categories = [
   { name: 'Câmeras', path: '/?categoria=câmeras' },
   { name: 'DVR', path: '/?categoria=dvr' },
   { name: 'Cercas', path: '/?categoria=cercas' },
   { name: 'Automação', path: '/?categoria=automação' },
   { name: 'Proteção', path: '/?categoria=proteção' },
+  { name: 'Ofertas', path: '/?ofertas=true' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { totalItems: cartCount } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?busca=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+      <header className="ml-header sticky top-0 z-50">
+        {/* Top Header */}
+        <div className="container mx-auto px-4 py-2">
+          <div className="flex items-center gap-4">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div className="hidden sm:block">
-                <span className="font-display font-bold text-lg text-foreground">
-                  MR Segurança
-                </span>
-                <span className="block text-xs text-muted-foreground -mt-1">
-                  Máxima Proteção
+            <Link to="/" className="flex-shrink-0">
+              <div className="flex items-center gap-1">
+                <div className="w-10 h-10 bg-white rounded flex items-center justify-center">
+                  <span className="text-ml-blue font-bold text-xl">MR</span>
+                </div>
+                <span className="hidden sm:block text-sm font-medium text-ml-dark-gray ml-1">
+                  Segurança
                 </span>
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`nav-link text-sm ${
-                    location.pathname === link.path ? 'text-primary' : ''
-                  }`}
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+              <div className="relative ml-search flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar produtos, marcas e muito mais..."
+                  className="w-full px-4 py-2.5 pr-12 text-sm rounded-sm outline-none"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-0 top-0 bottom-0 px-4 text-ml-gray hover:text-ml-dark-gray border-l border-border"
                 >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
+            {/* Right Actions */}
+            <div className="flex items-center gap-1 sm:gap-3">
               <NotificationsPopover />
 
               <Link
                 to="/wishlist"
-                className="relative p-2 text-foreground/70 hover:text-primary transition-colors"
+                className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
               >
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs"
-                  >
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-ml-blue text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {wishlistCount}
-                  </Badge>
+                  </span>
                 )}
               </Link>
 
               <Link
                 to="/carrinho"
-                className="relative p-2 text-foreground/70 hover:text-primary transition-colors"
+                className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <Badge
-                    className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs bg-primary"
-                  >
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-ml-blue text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {cartCount}
-                  </Badge>
+                  </span>
                 )}
               </Link>
 
               <Link
                 to="/admin"
-                className="p-2 text-foreground/70 hover:text-primary transition-colors"
+                className="hidden sm:flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm"
               >
-                <Settings className="w-5 h-5" />
+                <User className="w-5 h-5" />
               </Link>
 
               {/* Mobile Menu */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <button className="lg:hidden p-2 text-foreground/70 hover:text-primary transition-colors">
+                  <button className="sm:hidden p-2 text-ml-dark-gray">
                     <Menu className="w-5 h-5" />
                   </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-72 bg-card">
-                  <nav className="flex flex-col gap-4 mt-8">
-                    {navLinks.map((link) => (
+                <SheetContent side="right" className="w-72 bg-white p-0">
+                  <div className="p-4 border-b border-border">
+                    <p className="font-semibold text-foreground">Menu</p>
+                  </div>
+                  <nav className="p-4 space-y-1">
+                    {categories.map((cat) => (
                       <Link
-                        key={link.path}
-                        to={link.path}
-                        className={`text-lg font-medium py-2 border-b border-border ${
-                          location.pathname === link.path
-                            ? 'text-primary'
-                            : 'text-foreground'
-                        }`}
+                        key={cat.path}
+                        to={cat.path}
+                        className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
                       >
-                        {link.name}
+                        {cat.name}
                       </Link>
                     ))}
+                    <hr className="my-3" />
                     <Link
                       to="/admin"
-                      className="text-lg font-medium py-2 border-b border-border text-foreground"
+                      className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
                     >
-                      Administração
+                      Minha Conta
                     </Link>
                   </nav>
                 </SheetContent>
@@ -136,60 +141,75 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </div>
+
+        {/* Categories Bar */}
+        <div className="bg-white border-b border-border">
+          <div className="container mx-auto px-4">
+            <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
+              <Link
+                to="/"
+                className="flex items-center gap-1 text-sm text-ml-gray hover:text-ml-blue whitespace-nowrap"
+              >
+                <Menu className="w-4 h-4" />
+                Categorias
+              </Link>
+              {categories.map((cat) => (
+                <Link
+                  key={cat.path}
+                  to={cat.path}
+                  className="text-sm text-ml-gray hover:text-ml-blue whitespace-nowrap transition-colors"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-security-dark text-white mt-16">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-white border-t border-border mt-8">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <span className="font-display font-bold text-lg">MR Segurança</span>
-              </div>
-              <p className="text-white/70 text-sm">
-                Sua segurança é nossa prioridade. Equipamentos de alta qualidade para proteger o que importa.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Categorias</h4>
-              <ul className="space-y-2 text-sm text-white/70">
-                <li><Link to="/?categoria=câmeras" className="hover:text-white">Câmeras</Link></li>
-                <li><Link to="/?categoria=dvr" className="hover:text-white">DVR</Link></li>
-                <li><Link to="/?categoria=cercas" className="hover:text-white">Cercas</Link></li>
-                <li><Link to="/?categoria=automação" className="hover:text-white">Automação</Link></li>
+              <h4 className="font-semibold text-foreground mb-3 text-sm">Sobre</h4>
+              <ul className="space-y-2 text-sm text-ml-gray">
+                <li><a href="#" className="hover:text-ml-blue">Quem somos</a></li>
+                <li><a href="#" className="hover:text-ml-blue">Trabalhe conosco</a></li>
+                <li><a href="#" className="hover:text-ml-blue">Termos de uso</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Atendimento</h4>
-              <ul className="space-y-2 text-sm text-white/70">
-                <li>📞 (11) 99999-9999</li>
-                <li>📧 contato@mrseguranca.com</li>
-                <li>🕐 Seg-Sex: 8h às 18h</li>
+              <h4 className="font-semibold text-foreground mb-3 text-sm">Ajuda</h4>
+              <ul className="space-y-2 text-sm text-ml-gray">
+                <li><a href="#" className="hover:text-ml-blue">Central de ajuda</a></li>
+                <li><a href="#" className="hover:text-ml-blue">Como comprar</a></li>
+                <li><a href="#" className="hover:text-ml-blue">Garantias</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Pagamento</h4>
-              <ul className="space-y-2 text-sm text-white/70">
+              <h4 className="font-semibold text-foreground mb-3 text-sm">Pagamento</h4>
+              <ul className="space-y-2 text-sm text-ml-gray">
                 <li>💳 Cartão de Crédito</li>
                 <li>📱 PIX</li>
-                <li>📄 Boleto Bancário</li>
+                <li>📄 Boleto</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground mb-3 text-sm">Contato</h4>
+              <ul className="space-y-2 text-sm text-ml-gray">
+                <li>📞 (11) 99999-9999</li>
+                <li>📧 contato@mrseguranca.com</li>
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm text-white/50">
-            © 2024 MR Segurança Máxima. Todos os direitos reservados.
+          <div className="border-t border-border mt-8 pt-6 text-center text-xs text-ml-gray">
+            © 2024 MR Segurança. Todos os direitos reservados.
           </div>
         </div>
       </footer>

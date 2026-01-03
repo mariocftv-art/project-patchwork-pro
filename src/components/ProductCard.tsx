@@ -1,122 +1,111 @@
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart } from 'lucide-react';
+import { Heart, Truck } from 'lucide-react';
 import { Product } from '@/api/base44Client';
-import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
-  const { toast } = useToast();
   const inWishlist = isInWishlist(product.id);
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addToCart.mutate({ product_id: product.id }, {
-      onSuccess: () => {
-        toast({
-          title: 'Produto adicionado!',
-          description: `${product.title} foi adicionado ao carrinho.`,
-        });
-      },
-    });
-  };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleWishlist.mutate(product.id, {
-      onSuccess: (result) => {
-        toast({
-          title: result.action === 'added' ? 'Adicionado aos favoritos!' : 'Removido dos favoritos',
-          description: product.title,
-        });
-      },
-    });
+    toggleWishlist.mutate(product.id);
   };
 
   const discount = product.original_price 
     ? Math.round((1 - product.price / product.original_price) * 100) 
     : 0;
 
+  // Calculate installments (12x sem juros)
+  const installmentValue = (product.price / 12).toFixed(2);
+  const [reais, centavos] = product.price.toFixed(2).split('.');
+
+  // Free shipping for products above R$79
+  const hasFreeShipping = product.price >= 79;
+
   return (
     <Link to={`/produto/${product.id}`} className="block">
-      <div className="product-card group">
-        <div className="relative overflow-hidden rounded-lg mb-3">
-          <img 
-            src={product.image_url} 
-            alt={product.title} 
-            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+      <div className="ml-card p-4 h-full flex flex-col">
+        {/* Image Container */}
+        <div className="relative mb-3">
+          <div className="aspect-square overflow-hidden rounded">
+            <img 
+              src={product.image_url} 
+              alt={product.title} 
+              className="w-full h-full object-contain bg-white"
+            />
+          </div>
           
-          {discount > 0 && (
-            <span className="discount-badge absolute top-2 left-2">
-              -{discount}%
-            </span>
-          )}
-
+          {/* Wishlist Button */}
           <button
             onClick={handleToggleWishlist}
-            className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+            className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
               inWishlist 
-                ? 'bg-destructive text-destructive-foreground' 
-                : 'bg-card/80 text-foreground hover:bg-destructive hover:text-destructive-foreground'
+                ? 'text-ml-blue' 
+                : 'text-ml-gray hover:text-ml-blue'
             }`}
           >
-            <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
+            <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
           </button>
 
-          {product.stock <= 5 && product.stock > 0 && (
-            <span className="absolute bottom-2 left-2 bg-accent text-accent-foreground px-2 py-1 rounded text-xs font-medium">
-              Últimas {product.stock} unidades!
+          {/* Discount Badge */}
+          {discount > 0 && (
+            <span className="absolute top-2 left-2 bg-ml-green text-white text-xs font-semibold px-1.5 py-0.5 rounded">
+              {discount}% OFF
             </span>
-          )}
-
-          {product.stock === 0 && (
-            <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-              <span className="bg-card text-foreground px-4 py-2 rounded-lg font-semibold">
-                Esgotado
-              </span>
-            </div>
           )}
         </div>
 
-        <div className="space-y-2">
-          <span className="security-badge">
-            {product.category}
-          </span>
-          
-          <h3 className="font-semibold text-foreground line-clamp-2 min-h-[2.5rem]">
+        {/* Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Title */}
+          <h3 className="text-sm text-foreground line-clamp-2 mb-2 min-h-[2.5rem]">
             {product.title}
           </h3>
 
-          <div className="flex items-center gap-2">
-            {product.original_price && (
-              <span className="old-price">
-                R$ {product.original_price.toFixed(2)}
-              </span>
-            )}
-            <span className="price-tag">
-              R$ {product.price.toFixed(2)}
-            </span>
-          </div>
+          {/* Original Price (if discounted) */}
+          {product.original_price && (
+            <p className="text-xs text-ml-gray line-through">
+              R$ {product.original_price.toFixed(2)}
+            </p>
+          )}
 
-          <Button
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="w-full btn-security"
-            size="sm"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Adicionar
-          </Button>
+          {/* Price */}
+          <p className="ml-price">
+            R$ {reais}
+            <span className="ml-price-cents">{centavos}</span>
+          </p>
+
+          {/* Installments */}
+          <p className="ml-installments mt-1">
+            em 12x R$ {installmentValue}
+          </p>
+
+          {/* Free Shipping */}
+          {hasFreeShipping && (
+            <p className="ml-free-shipping flex items-center gap-1 mt-2">
+              <Truck className="w-4 h-4" />
+              Frete grátis
+            </p>
+          )}
+
+          {/* Stock Warning */}
+          {product.stock > 0 && product.stock <= 5 && (
+            <p className="text-xs text-orange-500 mt-2">
+              Últimas {product.stock} unidades!
+            </p>
+          )}
+
+          {product.stock === 0 && (
+            <p className="text-xs text-destructive font-medium mt-2">
+              Produto esgotado
+            </p>
+          )}
         </div>
       </div>
     </Link>
