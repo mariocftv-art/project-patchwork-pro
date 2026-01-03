@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
@@ -12,14 +12,39 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const categories = [
-  { name: 'Câmeras', path: '/?categoria=câmeras' },
-  { name: 'DVR', path: '/?categoria=dvr' },
-  { name: 'Cercas', path: '/?categoria=cercas' },
-  { name: 'Automação', path: '/?categoria=automação' },
-  { name: 'Proteção', path: '/?categoria=proteção' },
-  { name: 'Ofertas', path: '/?ofertas=true' },
-];
+interface SiteContent {
+  categories: string[];
+  contact: {
+    phone: string;
+    email: string;
+    whatsapp: string;
+    address: string;
+  };
+  about: {
+    title: string;
+    description: string;
+  };
+  footer: {
+    copyright: string;
+  };
+}
+
+const defaultContent: SiteContent = {
+  categories: ['Câmeras', 'DVR', 'Cercas', 'Automação', 'Proteção', 'Ofertas'],
+  contact: {
+    phone: '(11) 96257-9428',
+    email: 'contato@mrseguranca.com',
+    whatsapp: '5511962579428',
+    address: '',
+  },
+  about: {
+    title: 'MR Segurança Máxima',
+    description: '',
+  },
+  footer: {
+    copyright: '© 2024 MR Segurança. Todos os direitos reservados.',
+  },
+};
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
@@ -27,6 +52,19 @@ export default function Layout({ children }: LayoutProps) {
   const { totalItems: cartCount } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const [searchQuery, setSearchQuery] = useState('');
+  const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('mr_site_content');
+    if (saved) {
+      setSiteContent(JSON.parse(saved));
+    }
+  }, []);
+
+  const categories = siteContent.categories.map(cat => ({
+    name: cat,
+    path: cat.toLowerCase() === 'ofertas' ? '/?ofertas=true' : `/?categoria=${cat.toLowerCase()}`,
+  }));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,13 +249,16 @@ export default function Layout({ children }: LayoutProps) {
             <div>
               <h4 className="font-semibold text-foreground mb-3 text-sm">Contato</h4>
               <ul className="space-y-2 text-sm text-ml-gray">
-                <li>📞 (11) 99999-9999</li>
-                <li>📧 contato@mrseguranca.com</li>
+                <li>📞 {siteContent.contact.phone}</li>
+                <li>📧 {siteContent.contact.email}</li>
+                {siteContent.contact.address && (
+                  <li>📍 {siteContent.contact.address}</li>
+                )}
               </ul>
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-6 text-center text-xs text-ml-gray">
-            © 2024 MR Segurança. Todos os direitos reservados.
+            {siteContent.footer.copyright}
           </div>
         </div>
       </footer>
