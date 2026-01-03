@@ -44,7 +44,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center text-center">
                 <div className="flex items-center gap-2">
                   <img 
                     src={logoMR} 
@@ -55,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
                     Segurança Máxima
                   </span>
                 </div>
-                <span className="text-[10px] text-ml-gray text-center">
+                <span className="text-[10px] text-ml-gray">
                   CNPJ: 45.858.215/0001-86
                 </span>
               </div>
