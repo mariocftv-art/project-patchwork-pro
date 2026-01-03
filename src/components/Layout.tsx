@@ -6,6 +6,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import NotificationsPopover from './NotificationsPopover';
 import SalesChat from './SalesChat';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import logoMR from '@/assets/logo-mr-transparent.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -43,16 +44,18 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1">
-                  <div className="w-10 h-10 bg-white rounded flex items-center justify-center">
-                    <span className="text-ml-blue font-bold text-xl">MR</span>
-                  </div>
-                  <span className="text-sm font-bold text-ml-dark-gray ml-1">
-                    MR Segurança Máxima
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={logoMR} 
+                    alt="MR Segurança Máxima" 
+                    className="w-12 h-12 object-contain"
+                  />
+                  <span className="text-sm font-bold text-ml-dark-gray">
+                    Segurança Máxima
                   </span>
                 </div>
-                <span className="text-[10px] text-ml-gray ml-11">
+                <span className="text-[10px] text-ml-gray text-center">
                   CNPJ: 45.858.215/0001-86
                 </span>
               </div>
