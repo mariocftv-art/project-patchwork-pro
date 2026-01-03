@@ -70,10 +70,15 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, []);
 
-  const categories = siteContent.categories.map(cat => ({
-    name: cat,
-    path: cat.toLowerCase() === 'ofertas' ? '/?ofertas=true' : `/?categoria=${cat.toLowerCase()}`,
-  }));
+  const categories = [
+    ...siteContent.categories
+      .filter(cat => cat.toLowerCase() !== 'instalações')
+      .map(cat => ({
+        name: cat,
+        path: cat.toLowerCase() === 'ofertas' ? '/?ofertas=true' : `/?categoria=${cat.toLowerCase()}`,
+      })),
+    { name: 'Instalações', path: '/servicos' },
+  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

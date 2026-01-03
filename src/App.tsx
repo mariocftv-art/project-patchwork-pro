@@ -10,6 +10,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Wishlist from "./pages/Wishlist";
+import Services from "./pages/Services";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import AdminGuard from "./components/AdminGuard";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/pedido-confirmado/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/servicos" element={<Services />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
