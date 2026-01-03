@@ -11,6 +11,8 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Wishlist from "./pages/Wishlist";
 import Admin from "./pages/Admin";
+import Auth from "./pages/Auth";
+import AdminGuard from "./components/AdminGuard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +31,8 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/pedido-confirmado/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
