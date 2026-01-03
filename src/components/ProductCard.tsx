@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Truck } from 'lucide-react';
 import { Product } from '@/api/base44Client';
@@ -7,7 +8,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+const ProductCard = forwardRef<HTMLAnchorElement, ProductCardProps>(function ProductCard({ product }, ref) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
 
@@ -29,7 +30,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const hasFreeShipping = product.price >= 79;
 
   return (
-    <Link to={`/produto/${product.id}`} className="block">
+    <Link ref={ref} to={`/produto/${product.id}`} className="block">
       <div className="ml-card p-4 h-full flex flex-col">
         {/* Image Container */}
         <div className="relative mb-3">
@@ -110,4 +111,6 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
     </Link>
   );
-}
+});
+
+export default ProductCard;
