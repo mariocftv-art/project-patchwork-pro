@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { servicePhotosApi, ServicePhoto } from '@/lib/servicePhotosApi';
-import { Camera } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 export default function ServiceGallery() {
+  const [selectedPhoto, setSelectedPhoto] = useState<ServicePhoto | null>(null);
+  
   const { data: photos = [], isLoading } = useQuery({
     queryKey: ['service-photos'],
     queryFn: () => servicePhotosApi.list(),
@@ -44,7 +48,8 @@ export default function ServiceGallery() {
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="group bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
+              className="group bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
+              onClick={() => setSelectedPhoto(photo)}
             >
               {/* Image Container */}
               <div className="aspect-square overflow-hidden bg-muted">
@@ -70,6 +75,41 @@ export default function ServiceGallery() {
           ))}
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] p-0 bg-black/95 border-none">
+          <button
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          
+          {selectedPhoto && (
+            <div className="flex flex-col">
+              <div className="relative w-full max-h-[70vh] flex items-center justify-center p-4">
+                <img
+                  src={selectedPhoto.image_url}
+                  alt={selectedPhoto.title}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
+              
+              <div className="p-6 bg-card rounded-b-lg">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {selectedPhoto.title}
+                </h3>
+                {selectedPhoto.description && (
+                  <p className="text-muted-foreground mt-2">
+                    {selectedPhoto.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
