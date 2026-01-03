@@ -46,7 +46,7 @@ export default function Product() {
     ? Math.round((1 - product.price / product.original_price) * 100)
     : 0;
   const hasFreeShipping = product.price >= 79;
-  const installmentValue = (product.price / 12).toFixed(2);
+  const installmentValue = (product.price / 8).toFixed(2);
   const [reais, centavos] = product.price.toFixed(2).split('.');
 
   const handleAddToCart = () => {
@@ -139,7 +139,7 @@ export default function Product() {
                 <span className="text-lg align-top">{centavos}</span>
               </p>
               <p className="text-ml-green text-sm mt-1">
-                em 12x R$ {installmentValue} sem juros
+                em 8x R$ {installmentValue} sem juros
               </p>
             </div>
 
@@ -186,7 +186,7 @@ export default function Product() {
                   R$ {product.price.toFixed(2)}
                 </p>
                 <p className="text-sm text-ml-green">
-                  em 12x R$ {installmentValue}
+                  em 8x R$ {installmentValue}
                 </p>
               </div>
 

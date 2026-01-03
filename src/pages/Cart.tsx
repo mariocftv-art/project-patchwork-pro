@@ -181,7 +181,7 @@ export default function Cart() {
                 <span className="text-xl text-foreground">R$ {total.toFixed(2)}</span>
               </div>
               <p className="text-sm text-ml-green mt-1">
-                em 12x R$ {(total / 12).toFixed(2)} sem juros
+                em 8x R$ {(total / 8).toFixed(2)} sem juros
               </p>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function Cart() {
               <span>Compra 100% segura</span>
             </div>
             <div className="flex gap-2 mt-2">
-              <span className="text-xs text-ml-gray">💳 12x sem juros</span>
+              <span className="text-xs text-ml-gray">💳 8x sem juros</span>
               <span className="text-xs text-ml-gray">📱 5% no PIX</span>
             </div>
           </div>

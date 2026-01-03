@@ -74,7 +74,7 @@ export default function Wishlist() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
           {wishlistWithProducts.map((item) => {
             const hasFreeShipping = (item.product?.price || 0) >= 79;
-            const installmentValue = ((item.product?.price || 0) / 12).toFixed(2);
+            const installmentValue = ((item.product?.price || 0) / 8).toFixed(2);
 
             return (
               <div key={item.id} className="ml-card p-4">
@@ -100,7 +100,7 @@ export default function Wishlist() {
                 </p>
                 
                 <p className="text-sm text-ml-green">
-                  em 12x R$ {installmentValue}
+                  em 8x R$ {installmentValue}
                 </p>
 
                 {hasFreeShipping && (
