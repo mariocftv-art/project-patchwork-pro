@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Tag, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera } from 'lucide-react';
+import { Package, Tag, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import PromotionForm from '@/components/admin/PromotionForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
@@ -12,6 +12,7 @@ import ContactForm from '@/components/admin/ContactForm';
 import HelpForm from '@/components/admin/HelpForm';
 import AboutForm from '@/components/admin/AboutForm';
 import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
+import CategoriesForm from '@/components/admin/CategoriesForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -78,6 +79,10 @@ export default function Admin() {
           <TabsTrigger value="promotions" className="flex items-center gap-2">
             <Tag className="w-4 h-4" />
             Promoções
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" />
+            Categorias
           </TabsTrigger>
           <TabsTrigger value="payment" className="flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
@@ -256,6 +261,16 @@ export default function Admin() {
               Configurações de Pagamento
             </h2>
             <PaymentSettingsForm />
+          </div>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Gerenciar Categorias
+            </h2>
+            <CategoriesForm />
           </div>
         </TabsContent>
 

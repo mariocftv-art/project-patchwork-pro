@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
+import { useQuery } from '@tanstack/react-query';
+import { productsApi, adminLogsApi, Product, categoriesApi } from '@/lib/supabaseApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,11 +35,13 @@ interface ProductFormProps {
   onSuccess: () => void;
 }
 
-const categories = ['câmeras', 'dvr', 'cercas', 'automação', 'proteção', 'ofertas', 'instalações em geral'];
-
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const { toast } = useToast();
-  
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.list(),
+  });
   const {
     register,
     handleSubmit,
@@ -153,8 +156,8 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
             </SelectTrigger>
             <SelectContent className="bg-popover">
               {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                <SelectItem key={cat.id} value={cat.slug}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>

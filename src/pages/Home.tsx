@@ -1,21 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { productsApi, Product } from '@/lib/supabaseApi';
+import { productsApi, Product, categoriesApi } from '@/lib/supabaseApi';
 import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
 import ServiceGallery from '@/components/ServiceGallery';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X } from 'lucide-react';
 import { useState } from 'react';
-
-const categories = [
-  { id: 'câmeras', name: 'Câmeras de Segurança', count: 0 },
-  { id: 'dvr', name: 'DVR / NVR', count: 0 },
-  { id: 'cercas', name: 'Cercas Elétricas', count: 0 },
-  { id: 'automação', name: 'Automação', count: 0 },
-  { id: 'proteção', name: 'Proteção', count: 0 },
-  { id: 'ofertas', name: 'Ofertas', count: 0 },
-  { id: 'instalações em geral', name: 'Instalações em Geral', count: 0 },
-];
 
 const priceRanges = [
   { id: '0-100', label: 'Até R$ 100', min: 0, max: 100 },
@@ -32,16 +22,24 @@ export default function Home() {
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products'],
     queryFn: () => productsApi.list(),
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.list(),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const isLoading = isLoadingProducts || isLoadingCategories;
+
   // Count products per category
   const categoryCounts = categories.map(cat => ({
     ...cat,
-    count: products.filter(p => p.category === cat.id).length
+    count: products.filter(p => p.category === cat.slug).length
   }));
 
   // Filter products
@@ -144,9 +142,9 @@ export default function Home() {
               {categoryCounts.map((cat) => (
                 <li key={cat.id}>
                   <button
-                    onClick={() => handleCategoryClick(cat.id)}
+                    onClick={() => handleCategoryClick(cat.slug)}
                     className={`w-full text-left ml-filter-item flex justify-between items-center ${
-                      selectedCategory === cat.id ? 'ml-filter-item-active' : ''
+                      selectedCategory === cat.slug ? 'ml-filter-item-active' : ''
                     }`}
                   >
                     <span>{cat.name}</span>
@@ -206,7 +204,7 @@ export default function Home() {
           )}
           {selectedCategory && !searchQuery && (
             <h1 className="text-xl font-light text-foreground mb-1">
-              {categoryCounts.find(c => c.id === selectedCategory)?.name}
+              {categoryCounts.find(c => c.slug === selectedCategory)?.name}
             </h1>
           )}
           <p className="text-sm text-ml-gray">
