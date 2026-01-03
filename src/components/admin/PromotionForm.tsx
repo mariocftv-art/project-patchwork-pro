@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
@@ -31,8 +31,7 @@ export default function PromotionForm({ products, onSuccess }: PromotionFormProp
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<PromotionFormData>({
     resolver: zodResolver(promotionSchema),
@@ -132,16 +131,22 @@ export default function PromotionForm({ products, onSuccess }: PromotionFormProp
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="active"
-          checked={watch('active')}
-          onCheckedChange={(checked) => setValue('active', !!checked)}
-        />
-        <Label htmlFor="active" className="cursor-pointer">
-          Promoção ativa
-        </Label>
-      </div>
+      <Controller
+        name="active"
+        control={control}
+        render={({ field }) => (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+            <Label htmlFor="active" className="cursor-pointer">
+              Promoção ativa
+            </Label>
+          </div>
+        )}
+      />
 
       <div>
         <Label className="mb-2 block">Produtos na Promoção</Label>
