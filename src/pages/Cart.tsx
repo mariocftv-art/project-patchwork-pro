@@ -1,12 +1,29 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, settingsApi } from '@/lib/supabaseApi';
 import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, ShoppingCart, Truck, Shield } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Truck, Shield, FileText, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { generateQuotePDF, generateWhatsAppMessage } from '@/lib/generateQuotePDF';
+import { useSiteContent } from '@/components/admin/SiteContentForm';
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, isLoading: cartLoading } = useCart();
+  const siteContent = useSiteContent();
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -32,6 +49,46 @@ export default function Cart() {
   const freeShippingMin = settings?.free_shipping_min || 199;
   const shippingFee = subtotal >= freeShippingMin ? 0 : settings?.shipping_fee || 15;
   const total = subtotal + shippingFee;
+
+  const handleGenerateQuote = () => {
+    const items = cartWithProducts.map(item => ({
+      name: item.product?.title || 'Produto',
+      quantity: item.quantity,
+      price: item.product?.price || 0,
+    }));
+
+    generateQuotePDF(
+      {
+        items,
+        subtotal,
+        shipping: shippingFee,
+        total,
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
+        validityDays: 15,
+      },
+      {
+        name: 'MR Segurança Máxima',
+        cnpj: '00.000.000/0001-00', // Substituir pelo CNPJ real
+        address: siteContent.contact.address || 'São Paulo - SP',
+        phone: siteContent.contact.phone,
+        email: siteContent.contact.email,
+      }
+    );
+    setQuoteDialogOpen(false);
+  };
+
+  const handleWhatsAppPurchase = () => {
+    const items = cartWithProducts.map(item => ({
+      name: item.product?.title || 'Produto',
+      quantity: item.quantity,
+      price: item.product?.price || 0,
+    }));
+
+    const message = generateWhatsAppMessage(items, total, customerName);
+    const whatsappNumber = siteContent.contact.whatsapp || '5511962579428';
+    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+  };
 
   if (cartLoading) {
     return (
@@ -188,12 +245,34 @@ export default function Cart() {
             </div>
           </div>
 
-          <button 
-            onClick={() => navigate('/checkout')}
-            className="w-full ml-btn-primary mt-4"
-          >
-            Continuar compra
-          </button>
+          {/* Botões de ação */}
+          <div className="space-y-3 mt-4">
+            <button 
+              onClick={() => navigate('/checkout')}
+              className="w-full ml-btn-primary"
+            >
+              Finalizar Compra
+            </button>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setQuoteDialogOpen(true)}
+              >
+                <FileText className="w-4 h-4" />
+                Orçamento PDF
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 text-green-600 border-green-600 hover:bg-green-50"
+                onClick={handleWhatsAppPurchase}
+              >
+                <MessageCircle className="w-4 h-4" />
+                WhatsApp
+              </Button>
+            </div>
+          </div>
 
           <Link 
             to="/" 
@@ -215,6 +294,57 @@ export default function Cart() {
           </div>
         </div>
       </div>
+
+      {/* Dialog para gerar orçamento */}
+      <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
+        <DialogContent className="bg-card">
+          <DialogHeader>
+            <DialogTitle>Gerar Orçamento em PDF</DialogTitle>
+            <DialogDescription>
+              Preencha seus dados para personalizar o orçamento (opcional)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="customerName">Nome</Label>
+              <Input
+                id="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Seu nome (opcional)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customerPhone">Telefone</Label>
+              <Input
+                id="customerPhone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="(11) 99999-9999 (opcional)"
+              />
+            </div>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-sm font-medium mb-2">Resumo do orçamento:</p>
+              <ul className="text-sm space-y-1">
+                {cartWithProducts.map((item) => (
+                  <li key={item.id} className="flex justify-between">
+                    <span>{item.product?.title} (x{item.quantity})</span>
+                    <span>R$ {((item.product?.price || 0) * item.quantity).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t mt-2 pt-2 flex justify-between font-medium">
+                <span>Total:</span>
+                <span>R$ {total.toFixed(2)}</span>
+              </div>
+            </div>
+            <Button onClick={handleGenerateQuote} className="w-full btn-security">
+              <FileText className="w-4 h-4 mr-2" />
+              Baixar Orçamento em PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
