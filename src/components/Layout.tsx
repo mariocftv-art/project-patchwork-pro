@@ -1,11 +1,14 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram } from 'lucide-react';
+import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
 import SalesChat from './SalesChat';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import logoMR from '@/assets/logo-mr-transparent.png';
 
 interface LayoutProps {
@@ -51,8 +54,14 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { totalItems: cartCount } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
+  const { user, isAdmin, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('mr_site_content');
@@ -146,12 +155,44 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </Link>
 
-              <Link
-                to="/admin"
-                className="hidden sm:flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm"
-              >
-                <User className="w-5 h-5" />
-              </Link>
+              {isAdmin ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="hidden sm:flex items-center gap-1 p-2 text-ml-blue transition-colors text-sm">
+                      <Shield className="w-5 h-5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3" align="end">
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">Logado como:</div>
+                      <div className="font-medium text-sm truncate">{user?.email}</div>
+                      <hr />
+                      <Link to="/admin">
+                        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                          <User className="w-4 h-4" />
+                          Painel Admin
+                        </Button>
+                      </Link>
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="w-full justify-start gap-2"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <Link
+                  to="/admin"
+                  className="hidden sm:flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm"
+                >
+                  <User className="w-5 h-5" />
+                </Link>
+              )}
 
               {/* Mobile Menu */}
               <Sheet>
@@ -175,12 +216,32 @@ export default function Layout({ children }: LayoutProps) {
                       </Link>
                     ))}
                     <hr className="my-3" />
-                    <Link
-                      to="/admin"
-                      className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
-                    >
-                      Minha Conta
-                    </Link>
+                    {isAdmin ? (
+                      <>
+                        <div className="px-2 py-2 text-xs text-muted-foreground">
+                          Logado: {user?.email}
+                        </div>
+                        <Link
+                          to="/admin"
+                          className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
+                        >
+                          Painel Admin
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full text-left py-3 px-2 text-destructive hover:bg-secondary rounded transition-colors"
+                        >
+                          Sair
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        to="/admin"
+                        className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
+                      >
+                        Minha Conta
+                      </Link>
+                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
