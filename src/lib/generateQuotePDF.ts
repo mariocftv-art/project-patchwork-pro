@@ -23,12 +23,13 @@ interface QuoteData {
   total: number;
   customerName?: string;
   customerPhone?: string;
+  customerAddress?: string;
   validityDays?: number;
 }
 
 const defaultCompanyInfo: CompanyInfo = {
   name: 'MR Segurança Máxima',
-  cnpj: '00.000.000/0001-00', // Será substituído pelo valor real
+  cnpj: '45.858.215/0001-86',
   address: 'São Paulo - SP',
   phone: '(11) 96257-9428',
   email: 'contato@mrseguranca.com',
@@ -87,9 +88,10 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   yPos += 20;
   
   // Dados do cliente (se fornecidos)
-  if (data.customerName || data.customerPhone) {
+  if (data.customerName || data.customerPhone || data.customerAddress) {
+    const clientBoxHeight = data.customerAddress ? 35 : 25;
     doc.setFillColor(245, 247, 250);
-    doc.rect(margin, yPos, pageWidth - margin * 2, 25, 'F');
+    doc.rect(margin, yPos, pageWidth - margin * 2, clientBoxHeight, 'F');
     
     doc.setTextColor(30, 58, 138);
     doc.setFontSize(11);
@@ -105,8 +107,11 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
     if (data.customerPhone) {
       doc.text(`Telefone: ${data.customerPhone}`, margin + 100, yPos + 17);
     }
+    if (data.customerAddress) {
+      doc.text(`Endereço: ${data.customerAddress}`, margin + 5, yPos + 27);
+    }
     
-    yPos += 35;
+    yPos += clientBoxHeight + 10;
   }
   
   // Tabela de produtos

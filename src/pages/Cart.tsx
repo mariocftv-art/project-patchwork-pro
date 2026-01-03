@@ -24,6 +24,7 @@ export default function Cart() {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -65,13 +66,14 @@ export default function Cart() {
         total,
         customerName: customerName || undefined,
         customerPhone: customerPhone || undefined,
-        validityDays: 15,
+        customerAddress: customerAddress || undefined,
+        validityDays: 5,
       },
       {
         name: 'MR Segurança Máxima',
-        cnpj: '00.000.000/0001-00', // Substituir pelo CNPJ real
+        cnpj: '45.858.215/0001-86',
         address: siteContent.contact.address || 'São Paulo - SP',
-        phone: siteContent.contact.phone,
+        phone: '(11) 96257-9428',
         email: siteContent.contact.email,
       }
     );
@@ -320,7 +322,16 @@ export default function Cart() {
                 id="customerPhone"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="(11) 99999-9999 (opcional)"
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customerAddress">Endereço</Label>
+              <Input
+                id="customerAddress"
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                placeholder="Rua, número, bairro, cidade"
               />
             </div>
             <div className="bg-muted p-3 rounded-lg">
