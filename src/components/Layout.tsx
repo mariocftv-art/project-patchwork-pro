@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X } from 'lucide-react';
+import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import NotificationsPopover from './NotificationsPopover';
@@ -221,6 +221,17 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </footer>
+
+      {/* Instagram Button */}
+      <a
+        href="https://instagram.com/mrsegurancamaxima"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-transform"
+      >
+        <Instagram className="w-5 h-5" />
+        <span className="text-sm font-medium">Seguir a página</span>
+      </a>
 
       {/* Sales Chat */}
       <SalesChat />
