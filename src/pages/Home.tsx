@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44, Product } from '@/api/base44Client';
 import ProductCard from '@/components/ProductCard';
+import PromoBanner from '@/components/PromoBanner';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronRight, Filter, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { useState } from 'react';
-
 const categories = [
   { id: 'câmeras', name: 'Câmeras de Segurança', count: 0 },
   { id: 'dvr', name: 'DVR / NVR', count: 0 },
@@ -92,7 +92,11 @@ export default function Home() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div>
+      {/* Promo Banner - only show when no filters active */}
+      {!selectedCategory && !searchQuery && <PromoBanner />}
+
+      <div className="flex gap-6">
       {/* Mobile Filter Button */}
       <button
         onClick={() => setShowMobileFilters(true)}
@@ -221,6 +225,7 @@ export default function Home() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
