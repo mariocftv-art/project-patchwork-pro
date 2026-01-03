@@ -7,15 +7,17 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1rem",
       screens: {
-        "2xl": "1400px",
+        "sm": "640px",
+        "md": "768px",
+        "lg": "1024px",
+        "xl": "1200px",
       },
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -55,12 +57,15 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        security: {
-          dark: "hsl(var(--security-dark))",
-          navy: "hsl(var(--security-navy))",
-          blue: "hsl(var(--security-blue))",
-          "light-blue": "hsl(var(--security-light-blue))",
-          gold: "hsl(var(--security-gold))",
+        ml: {
+          yellow: "#FFE600",
+          "yellow-dark": "#FFCD00",
+          blue: "#3483FA",
+          "blue-dark": "#2968C8",
+          green: "#00A650",
+          gray: "#666666",
+          "light-gray": "#EEEEEE",
+          "dark-gray": "#333333",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -87,24 +92,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "slide-in": {
-          "0%": { opacity: "0", transform: "translateX(-10px)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.3s ease-out",
-        "slide-in": "slide-in 0.3s ease-out",
-      },
-      boxShadow: {
-        'security': '0 10px 40px -10px hsl(var(--primary) / 0.3)',
-        'card-hover': '0 20px 40px -15px hsl(var(--foreground) / 0.1)',
       },
     },
   },
