@@ -1,4 +1,3 @@
-import { forwardRef } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Bell } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
-const NotificationsPopover = forwardRef<HTMLButtonElement>(function NotificationsPopover(_, ref) {
+export default function NotificationsPopover() {
   const queryClient = useQueryClient();
   
   const { data: notifications = [] } = useQuery({
@@ -25,7 +24,7 @@ const NotificationsPopover = forwardRef<HTMLButtonElement>(function Notification
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button ref={ref} variant="ghost" size="icon" className="relative text-ml-dark-gray hover:text-ml-blue">
+        <Button variant="ghost" size="icon" className="relative text-ml-dark-gray hover:text-ml-blue">
           <Bell className="w-5 h-5" />
           {notifications.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-ml-blue text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -60,6 +59,4 @@ const NotificationsPopover = forwardRef<HTMLButtonElement>(function Notification
       </PopoverContent>
     </Popover>
   );
-});
-
-export default NotificationsPopover;
+}
