@@ -73,6 +73,27 @@ export interface WishlistItem {
   product_id: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+  created_at: string;
+}
+
+// Categories API
+export const categoriesApi = {
+  async list(): Promise<Category[]> {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('display_order', { ascending: true });
+    
+    if (error) throw error;
+    return data as Category[] || [];
+  }
+};
+
 // Products API
 export const productsApi = {
   async list(): Promise<Product[]> {
