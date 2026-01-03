@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Heart, ShoppingCart, Minus, Plus, Truck, Shield, RotateCcw, MapPin } from 'lucide-react';
+import { productsApi } from '@/lib/supabaseApi';
+import { Heart, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -18,7 +18,7 @@ export default function Product() {
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
-    queryFn: () => base44.entities.Product.get(id!),
+    queryFn: () => productsApi.get(id!),
     enabled: !!id,
   });
 
@@ -97,7 +97,7 @@ export default function Product() {
             <div className="sticky top-24">
               <div className="aspect-square rounded-lg overflow-hidden bg-white border border-border">
                 <img
-                  src={product.image_url}
+                  src={product.image_url || '/placeholder.svg'}
                   alt={product.title}
                   className="w-full h-full object-contain p-4"
                 />

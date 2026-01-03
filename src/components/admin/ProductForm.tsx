@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { base44, Product } from '@/api/base44Client';
+import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,10 +67,12 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const onSubmit = async (data: ProductFormData) => {
     try {
       if (product) {
-        await base44.entities.Product.update(product.id, data);
+        await productsApi.update(product.id, data);
+        await adminLogsApi.log('update_product', 'product', product.id);
         toast({ title: 'Produto atualizado com sucesso!' });
       } else {
-        await base44.entities.Product.create(data as any);
+        const created = await productsApi.create(data as any);
+        await adminLogsApi.log('create_product', 'product', created.id);
         toast({ title: 'Produto criado com sucesso!' });
       }
       onSuccess();

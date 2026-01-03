@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { base44, Product } from '@/api/base44Client';
+import { productsApi, Product } from '@/lib/supabaseApi';
 import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X } from 'lucide-react';
 import { useState } from 'react';
+
 const categories = [
   { id: 'câmeras', name: 'Câmeras de Segurança', count: 0 },
   { id: 'dvr', name: 'DVR / NVR', count: 0 },
@@ -30,7 +31,7 @@ export default function Home() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => productsApi.list(),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -51,8 +52,8 @@ export default function Home() {
     const query = searchQuery.toLowerCase();
     filteredProducts = filteredProducts.filter(p => 
       p.title.toLowerCase().includes(query) || 
-      p.description.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
+      (p.description?.toLowerCase() || '').includes(query) ||
+      (p.category?.toLowerCase() || '').includes(query)
     );
   }
 

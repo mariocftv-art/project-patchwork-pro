@@ -2,13 +2,34 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-const ADMIN_EMAILS = ['pixmrshop@gmail.com', 'rogeriocftv.mr@gmail.com'];
-
+/**
+ * Authentication hook with server-side admin verification
+ * Admin status is determined by the user_roles table in Supabase, NOT client-side checks
+ */
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      // Check admin status via Supabase RLS-protected query
+      // This uses the has_role function which is SECURITY DEFINER
+      const { data, error } = await supabase
+        .rpc('has_role', { _user_id: userId, _role: 'admin' });
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+      }
+      
+      return data === true;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -17,32 +38,27 @@ export const useAuth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Check admin status
-        if (session?.user?.email) {
-          const adminStatus = ADMIN_EMAILS.includes(session.user.email.toLowerCase());
-          setIsAdmin(adminStatus);
-          
-          // Defer role assignment to avoid deadlock
-          if (adminStatus) {
-            setTimeout(() => {
-              assignAdminRole(session.user.id);
-            }, 0);
-          }
+        // Defer admin check to avoid deadlock
+        if (session?.user) {
+          setTimeout(async () => {
+            const adminStatus = await checkAdminStatus(session.user.id);
+            setIsAdmin(adminStatus);
+            setLoading(false);
+          }, 0);
         } else {
           setIsAdmin(false);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (session?.user?.email) {
-        const adminStatus = ADMIN_EMAILS.includes(session.user.email.toLowerCase());
+      if (session?.user) {
+        const adminStatus = await checkAdminStatus(session.user.id);
         setIsAdmin(adminStatus);
       }
       
@@ -51,26 +67,6 @@ export const useAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const assignAdminRole = async (userId: string) => {
-    try {
-      // Check if role already exists
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (!existingRole) {
-        await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role: 'admin' });
-      }
-    } catch (error) {
-      console.error('Error assigning admin role:', error);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

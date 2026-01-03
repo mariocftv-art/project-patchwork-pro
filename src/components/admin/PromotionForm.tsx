@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { base44, Product } from '@/api/base44Client';
+import { promotionsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,10 +59,11 @@ export default function PromotionForm({ products, onSuccess }: PromotionFormProp
     }
 
     try {
-      await base44.entities.Promotion.create({
+      const created = await promotionsApi.create({
         ...data,
         product_ids: selectedProducts,
       } as any);
+      await adminLogsApi.log('create_promotion', 'promotion', created.id);
       toast({ title: 'Promoção criada com sucesso!' });
       onSuccess();
     } catch (error) {

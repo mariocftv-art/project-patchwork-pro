@@ -1,45 +1,67 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, MessageCircle, Package, Home } from "lucide-react";
 
-export default function OrderConfirmation() {
-  const { orderNumber } = useParams();
-  const navigate = useNavigate();
+interface OrderConfirmData {
+  orderNumber: string;
+  customerName: string;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  total: number;
+}
 
-  const orderData = orderNumber 
-    ? JSON.parse(localStorage.getItem(`order_${orderNumber}`) || "null")
-    : null;
+export default function OrderConfirmation() {
+  const { orderNumber } = useParams<{ orderNumber: string }>();
+  const navigate = useNavigate();
+  const [orderData, setOrderData] = useState<OrderConfirmData | null>(null);
 
   useEffect(() => {
-    if (!orderData) {
+    if (orderNumber) {
+      // Get minimal order data from sessionStorage (non-sensitive only)
+      const stored = sessionStorage.getItem(`order_confirm_${orderNumber}`);
+      if (stored) {
+        try {
+          setOrderData(JSON.parse(stored));
+          // Clean up after reading
+          sessionStorage.removeItem(`order_confirm_${orderNumber}`);
+        } catch {
+          // If parsing fails, still show confirmation with order number
+          setOrderData({
+            orderNumber,
+            customerName: 'Cliente',
+            items: [],
+            total: 0
+          });
+        }
+      } else {
+        // No data found, show basic confirmation
+        setOrderData({
+          orderNumber,
+          customerName: 'Cliente',
+          items: [],
+          total: 0
+        });
+      }
+    } else {
       navigate("/");
     }
-  }, [orderData, navigate]);
+  }, [orderNumber, navigate]);
 
-  if (!orderData) {
+  if (!orderNumber) {
     return null;
   }
 
   const whatsappNumber = "5511962579428";
-  const itemsList = orderData.items
-    .map((item: any) => `• ${item.quantity}x ${item.name}`)
-    .join("%0A");
-  
-  const whatsappMessage = encodeURIComponent(
+  const whatsappMessage = orderData ? encodeURIComponent(
     `🛒 *PEDIDO REALIZADO*\n\n` +
     `📦 *Número do Pedido:* ${orderNumber}\n\n` +
-    `👤 *Cliente:* ${orderData.customer.name}\n` +
-    `📧 *E-mail:* ${orderData.customer.email}\n\n` +
-    `*Itens do Pedido:*\n${orderData.items.map((item: any) => `• ${item.quantity}x ${item.name}`).join("\n")}\n\n` +
-    `💰 *Total:* R$ ${orderData.total.toFixed(2)}\n` +
-    `💳 *Pagamento:* ${orderData.paymentMethod === "pix" ? "PIX" : orderData.paymentMethod === "credit" ? "Cartão de Crédito" : "Boleto"}\n\n` +
-    `📍 *Endereço de Entrega:*\n` +
-    `${orderData.address.street}, ${orderData.address.number}${orderData.address.complement ? ` - ${orderData.address.complement}` : ""}\n` +
-    `${orderData.address.neighborhood} - ${orderData.address.city}/${orderData.address.state}\n` +
-    `CEP: ${orderData.address.cep}\n\n` +
+    `👤 *Cliente:* ${orderData.customerName}\n\n` +
+    (orderData.items.length > 0 ? 
+      `*Itens do Pedido:*\n${orderData.items.map(item => `• ${item.quantity}x ${item.name}`).join("\n")}\n\n` +
+      `💰 *Total:* R$ ${orderData.total.toFixed(2)}\n\n` 
+      : '') +
     `_Aguardando confirmação do pedido._`
-  );
+  ) : '';
 
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
@@ -57,7 +79,7 @@ export default function OrderConfirmation() {
               Pedido Realizado com Sucesso!
             </h1>
             <p className="text-muted-foreground">
-              Obrigado por comprar conosco, {orderData.customer.name.split(" ")[0]}!
+              Obrigado por comprar conosco{orderData?.customerName && orderData.customerName !== 'Cliente' ? `, ${orderData.customerName.split(" ")[0]}` : ''}!
             </p>
           </div>
 
@@ -69,21 +91,23 @@ export default function OrderConfirmation() {
             <p className="text-2xl font-bold text-ml-blue">{orderNumber}</p>
           </div>
 
-          <div className="text-left bg-ml-gray-100 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold mb-3">Resumo do Pedido</h3>
-            <div className="space-y-2 text-sm">
-              {orderData.items.map((item: any, index: number) => (
-                <div key={index} className="flex justify-between">
-                  <span>{item.quantity}x {item.name}</span>
-                  <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+          {orderData && orderData.items.length > 0 && (
+            <div className="text-left bg-ml-gray-100 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold mb-3">Resumo do Pedido</h3>
+              <div className="space-y-2 text-sm">
+                {orderData.items.map((item, index) => (
+                  <div key={index} className="flex justify-between">
+                    <span>{item.quantity}x {item.name}</span>
+                    <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
+                  <span>Total</span>
+                  <span className="text-ml-blue">R$ {orderData.total.toFixed(2)}</span>
                 </div>
-              ))}
-              <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-                <span>Total</span>
-                <span className="text-ml-blue">R$ {orderData.total.toFixed(2)}</span>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
             <h3 className="font-semibold mb-2 text-yellow-800">⚠️ Importante</h3>
@@ -114,7 +138,7 @@ export default function OrderConfirmation() {
 
           <div className="mt-6 pt-6 border-t">
             <p className="text-sm text-muted-foreground">
-              Um resumo do seu pedido também foi salvo. Caso tenha dúvidas, entre em contato conosco pelo WhatsApp.
+              Seus dados estão seguros e protegidos. Não armazenamos informações sensíveis no navegador.
             </p>
           </div>
         </div>

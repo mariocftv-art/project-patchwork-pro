@@ -1,30 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44, CartItem } from '@/api/base44Client';
-
-const USER_EMAIL = 'demo@example.com';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { cartApi, CartItem } from '@/lib/supabaseApi';
 
 export function useCart() {
   const queryClient = useQueryClient();
 
+  // Use query to keep cart items in sync with React Query
   const { data: cartItems = [], isLoading } = useQuery({
     queryKey: ['cart'],
-    queryFn: () => base44.entities.Cart.list({ filter: { user_email: USER_EMAIL } as any }),
+    queryFn: () => cartApi.getItems(),
     staleTime: 1000 * 60 * 5,
   });
 
   const addToCart = useMutation({
     mutationFn: async ({ product_id, quantity = 1 }: { product_id: string; quantity?: number }) => {
-      const existing = cartItems.find(item => item.product_id === product_id);
-      if (existing) {
-        return base44.entities.Cart.update(existing.id, { 
-          quantity: existing.quantity + quantity 
-        });
-      }
-      return base44.entities.Cart.create({
-        product_id,
-        quantity,
-        user_email: USER_EMAIL,
-      } as any);
+      return cartApi.addItem(product_id, quantity);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -33,10 +22,7 @@ export function useCart() {
 
   const updateQuantity = useMutation({
     mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
-      if (quantity <= 0) {
-        return base44.entities.Cart.delete(id);
-      }
-      return base44.entities.Cart.update(id, { quantity });
+      cartApi.updateQuantity(id, quantity);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -44,7 +30,10 @@ export function useCart() {
   });
 
   const removeFromCart = useMutation({
-    mutationFn: (id: string) => base44.entities.Cart.delete(id),
+    mutationFn: (id: string) => {
+      cartApi.removeItem(id);
+      return Promise.resolve();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
@@ -52,9 +41,7 @@ export function useCart() {
 
   const clearCart = useMutation({
     mutationFn: async () => {
-      for (const item of cartItems) {
-        await base44.entities.Cart.delete(item.id);
-      }
+      cartApi.clear();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });

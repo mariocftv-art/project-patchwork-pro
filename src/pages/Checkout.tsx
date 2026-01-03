@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useQuery } from "@tanstack/react-query";
-import { base44, Product } from "@/api/base44Client";
+import { productsApi, ordersApi } from "@/lib/supabaseApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,8 @@ export default function Checkout() {
   const { cartItems, clearCart, isLoading: cartLoading } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
+  // Store order data temporarily in state for confirmation page
+  const [createdOrder, setCreatedOrder] = useState<{orderNumber: string; customerName: string; items: Array<{name: string; quantity: number; price: number}>; total: number} | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +36,7 @@ export default function Checkout() {
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => productsApi.list(),
   });
 
   const cartProducts = cartItems.map((item) => {
@@ -77,17 +79,10 @@ export default function Checkout() {
   };
 
   const generateOrderNumber = () => {
-    const lastOrder = localStorage.getItem("mr_last_order_number");
-    let nextNumber = 1000;
-    
-    if (lastOrder) {
-      const lastNum = parseInt(lastOrder.slice(-4));
-      nextNumber = lastNum + 1;
-    }
-    
-    const orderNumber = `MR03012026${nextNumber}`;
-    localStorage.setItem("mr_last_order_number", orderNumber);
-    return orderNumber;
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0,10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `MR${dateStr}${random}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,21 +104,20 @@ export default function Checkout() {
     try {
       const orderNumber = generateOrderNumber();
       
-      const orderData = {
-        orderNumber,
-        customer: {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        items: cartProducts.map(item => ({
-          name: item.product?.title,
-          quantity: item.quantity,
-          price: item.product?.price,
-        })),
-        total,
-        paymentMethod: formData.paymentMethod,
-        address: {
+      const orderItems = cartProducts.map(item => ({
+        name: item.product?.title || '',
+        quantity: item.quantity,
+        price: item.product?.price || 0,
+      }));
+
+      // Store order securely in database (not localStorage)
+      await ordersApi.create({
+        order_number: orderNumber,
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        customer_cpf: formData.cpf || null,
+        shipping_address: {
           cep: formData.cep,
           street: formData.street,
           number: formData.number,
@@ -132,9 +126,21 @@ export default function Checkout() {
           city: formData.city,
           state: formData.state,
         },
-      };
-
-      localStorage.setItem(`order_${orderNumber}`, JSON.stringify(orderData));
+        items: orderItems,
+        subtotal,
+        shipping_fee: shipping,
+        total: formData.paymentMethod === 'pix' ? total * 0.95 : total,
+        payment_method: formData.paymentMethod,
+        status: 'pending'
+      });
+      
+      // Store minimal non-sensitive data in sessionStorage for confirmation page only
+      sessionStorage.setItem(`order_confirm_${orderNumber}`, JSON.stringify({
+        orderNumber,
+        customerName: formData.name,
+        items: orderItems,
+        total: formData.paymentMethod === 'pix' ? total * 0.95 : total,
+      }));
       
       clearCart.mutate();
       
