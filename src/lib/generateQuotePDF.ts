@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoMREagle from '@/assets/logo-mr-eagle.png';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuoteItem {
   name: string;
@@ -27,6 +28,11 @@ interface QuoteData {
   customerPhone?: string;
   customerAddress?: string;
   validityDays?: number;
+}
+
+interface QuoteResult {
+  pdfUrl: string | null;
+  quoteNumber: string;
 }
 
 const defaultCompanyInfo: CompanyInfo = {
@@ -59,13 +65,15 @@ async function loadImageAsBase64(src: string): Promise<string> {
   });
 }
 
-export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyInfo>): Promise<void> {
+export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyInfo>): Promise<QuoteResult> {
   const company = { ...defaultCompanyInfo, ...companyInfo };
   const doc = new jsPDF();
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   let yPos = 20;
+  
+  const quoteNumber = `ORC-${Date.now().toString().slice(-8)}`;
   
   // Header com logo e dados da empresa
   doc.setFillColor(30, 58, 138); // Azul escuro
@@ -118,7 +126,6 @@ export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<Co
   doc.text('ORÇAMENTO', margin, yPos);
   
   // Número e data
-  const quoteNumber = `ORC-${Date.now().toString().slice(-8)}`;
   const today = new Date().toLocaleDateString('pt-BR');
   const validUntil = new Date(Date.now() + (data.validityDays || 15) * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR');
   
@@ -257,8 +264,36 @@ export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<Co
   doc.setTextColor(255, 255, 255);
   doc.text(`${company.name} | ${company.phone} | ${company.email}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   
-  // Salvar o PDF
+  // Save PDF locally
   doc.save(`orcamento-mr-seguranca-${quoteNumber}.pdf`);
+  
+  // Upload to Supabase Storage and get public URL
+  let pdfUrl: string | null = null;
+  try {
+    const pdfBlob = doc.output('blob');
+    const fileName = `${quoteNumber}-${Date.now()}.pdf`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('quotes')
+      .upload(fileName, pdfBlob, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+      });
+    
+    if (uploadError) {
+      console.error('Erro ao fazer upload do PDF:', uploadError);
+    } else if (uploadData) {
+      const { data: urlData } = supabase.storage
+        .from('quotes')
+        .getPublicUrl(fileName);
+      
+      pdfUrl = urlData.publicUrl;
+    }
+  } catch (e) {
+    console.error('Erro ao salvar PDF no storage:', e);
+  }
+  
+  return { pdfUrl, quoteNumber };
 }
 
 export function generateWhatsAppMessage(items: QuoteItem[], total: number, customerName?: string): string {
