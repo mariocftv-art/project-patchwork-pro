@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoMR from '@/assets/logo-mr.png';
+import logoMREagle from '@/assets/logo-mr-eagle.png';
 
 interface QuoteItem {
   name: string;
@@ -47,38 +47,45 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   
   // Header com logo e dados da empresa
   doc.setFillColor(30, 58, 138); // Azul escuro
-  doc.rect(0, 0, pageWidth, 50, 'F');
+  doc.rect(0, 0, pageWidth, 55, 'F');
   
-  // Adiciona a logo MR
+  // Adiciona a logo MR Eagle
   try {
-    doc.addImage(logoMR, 'PNG', margin, 8, 35, 35);
+    doc.addImage(logoMREagle, 'PNG', margin, 5, 45, 45);
   } catch (e) {
     // Se a logo não carregar, usa texto
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text('MR', margin, 22);
+    doc.text('MR', margin + 10, 30);
   }
   
   // Nome da empresa ao lado da logo
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Segurança Máxima', margin + 40, 25);
+  doc.text('Segurança Máxima', margin + 50, 22);
   
   // Subtítulo
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistemas de Segurança Eletrônica', margin + 40, 35);
+  doc.text('Sistemas de Segurança Eletrônica', margin + 50, 32);
   
-  // Dados da empresa no header (CNPJ abaixo de Segurança Máxima)
+  // Slogan
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Proteção total para você e sua família', margin + 50, 42);
+  
+  // Dados da empresa no header (lado direito)
   doc.setFontSize(9);
-  doc.text(`CNPJ: ${company.cnpj}`, pageWidth - margin, 20, { align: 'right' });
-  doc.text(company.address, pageWidth - margin, 27, { align: 'right' });
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`CNPJ: ${company.cnpj}`, pageWidth - margin, 18, { align: 'right' });
+  doc.text(company.address, pageWidth - margin, 26, { align: 'right' });
   doc.text(`Tel: ${company.phone}`, pageWidth - margin, 34, { align: 'right' });
-  doc.text(company.email, pageWidth - margin, 41, { align: 'right' });
+  doc.text(company.email, pageWidth - margin, 42, { align: 'right' });
   
-  yPos = 60;
+  yPos = 65;
   
   // Título do documento
   doc.setTextColor(30, 58, 138);
