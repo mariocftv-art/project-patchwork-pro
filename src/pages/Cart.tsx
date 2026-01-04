@@ -63,8 +63,8 @@ export default function Cart() {
       imageUrl: item.product?.image_url || undefined,
     }));
 
-    // Generate PDF first
-    await generateQuotePDF(
+    // Generate PDF and upload to storage
+    const result = await generateQuotePDF(
       {
         items,
         subtotal,
@@ -84,7 +84,7 @@ export default function Cart() {
       }
     );
 
-    // Send to customer's WhatsApp
+    // Send to customer's WhatsApp with PDF link
     const cleanPhone = customerPhone.replace(/\D/g, '');
     const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
     
@@ -92,21 +92,26 @@ export default function Cart() {
       `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
     ).join('\n');
     
-    const message = encodeURIComponent(
-      `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n\n` +
+    let message = `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n` +
+      `Nº: ${result.quoteNumber}\n\n` +
       `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado com sucesso! ✅\n\n` +
       `*Itens do Orçamento:*\n${itemsList}\n\n` +
       `💰 *Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
       `🚚 *Frete:* A combinar\n` +
-      `✨ *Total:* R$ ${total.toFixed(2)}\n\n` +
-      `📞 *Para finalizar seu pedido, entre em contato:*\n` +
+      `✨ *Total:* R$ ${total.toFixed(2)}\n\n`;
+    
+    // Add PDF link if available
+    if (result.pdfUrl) {
+      message += `📥 *Baixar PDF do Orçamento:*\n${result.pdfUrl}\n\n`;
+    }
+    
+    message += `📞 *Para finalizar seu pedido, entre em contato:*\n` +
       `WhatsApp: (11) 96257-9428\n\n` +
       `⏰ _Orçamento válido por 5 dias._\n\n` +
-      `🔒 MR Segurança Máxima - Proteção total para você e sua família!`
-    );
+      `🔒 MR Segurança Máxima - Proteção total para você e sua família!`;
     
     // Open WhatsApp with the customer's number
-    window.open(`https://wa.me/${whatsappPhone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
     
     setQuoteDialogOpen(false);
     setCustomerName('');
