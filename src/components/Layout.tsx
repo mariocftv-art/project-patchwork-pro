@@ -45,7 +45,7 @@ const defaultContent: SiteContent = {
     description: '',
   },
   footer: {
-    copyright: '© 2024 MR Segurança. Todos os direitos reservados.',
+    copyright: '© 2011 MR Segurança Máxima - DCIM Segurança. Todos os direitos reservados.',
   },
 };
 
@@ -223,12 +223,6 @@ export default function Layout({ children }: LayoutProps) {
                 </Link>
               )}
 
-              {/* Motivational Message */}
-              <div className="hidden xl:flex max-w-md pl-4 border-l border-border ml-2">
-                <p className="text-xs text-ml-gray italic leading-relaxed">
-                  "No Brasil de hoje, esperar não é opção. Ou você se protege, ou fica vulnerável. Com Deus à frente e a força da tecnologia, a MR Segurança Máxima protege sua família, seu patrimônio e sua tranquilidade."
-                </p>
-              </div>
 
               {/* Mobile Menu */}
               <Sheet>
