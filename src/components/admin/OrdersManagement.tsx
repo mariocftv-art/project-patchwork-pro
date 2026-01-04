@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { adminLogsApi } from '@/lib/supabaseApi';
+import { generateOrderPDF } from '@/lib/generateOrderPDF';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Clock, CheckCircle2, Truck, AlertCircle, Eye, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2 } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Truck, AlertCircle, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -215,9 +216,12 @@ export default function OrdersManagement() {
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-bold text-foreground">
+                      <button
+                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                        className="font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+                      >
                         #{order.order_number}
-                      </h3>
+                      </button>
                       <Badge className={`${getStatusInfo(order.status).color} border`}>
                         <StatusIcon className="w-3 h-3 mr-1" />
                         {getStatusInfo(order.status).label}
@@ -253,6 +257,16 @@ export default function OrdersManagement() {
                         ))}
                       </SelectContent>
                     </Select>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => generateOrderPDF(order)}
+                      title="Imprimir PDF"
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </Button>
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
