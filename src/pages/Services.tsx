@@ -24,6 +24,7 @@ interface InstallationService {
   features: string[];
   display_order: number;
   active: boolean;
+  price: number | null;
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -155,9 +156,18 @@ export default function Services() {
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <IconComponent className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {service.title}
-                    </h3>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {service.title}
+                      </h3>
+                      {service.price ? (
+                        <p className="text-primary font-bold">
+                          A partir de R$ {service.price.toFixed(2).replace('.', ',')}
+                        </p>
+                      ) : (
+                        <p className="text-muted-foreground text-sm italic">Sob consulta</p>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
                     {service.description}
