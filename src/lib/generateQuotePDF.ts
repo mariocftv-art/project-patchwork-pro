@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoMREagle from '@/assets/logo-mr-eagle.png';
+import logoMRTransparent from '@/assets/logo-mr-transparent.png';
 import { supabase } from '@/integrations/supabase/client';
 
 interface QuoteItem {
@@ -81,7 +81,7 @@ export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<Co
   
   // Adiciona a logo MR Eagle
   try {
-    const logoBase64 = await loadImageAsBase64(logoMREagle);
+    const logoBase64 = await loadImageAsBase64(logoMRTransparent);
     doc.addImage(logoBase64, 'PNG', margin, 5, 45, 45);
   } catch (e) {
     console.log('Logo não carregou, usando texto:', e);
