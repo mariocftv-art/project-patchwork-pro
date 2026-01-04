@@ -99,7 +99,7 @@ export default function OrdersManagement() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ orderId, newStatus }: { orderId: string; newStatus: string }) => {
+    mutationFn: async ({ orderId, orderNumber, newStatus }: { orderId: string; orderNumber: string; newStatus: string }) => {
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -108,6 +108,15 @@ export default function OrdersManagement() {
       if (error) throw error;
       
       await adminLogsApi.log('update_order_status', 'order', orderId, { newStatus });
+
+      // Send push notification for status change
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: { orderNumber, status: newStatus },
+        });
+      } catch (pushError) {
+        console.error('Error sending push notification:', pushError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -244,7 +253,7 @@ export default function OrdersManagement() {
                   <div className="flex items-center gap-3">
                     <Select
                       value={order.status}
-                      onValueChange={(value) => updateStatus.mutate({ orderId: order.id, newStatus: value })}
+                      onValueChange={(value) => updateStatus.mutate({ orderId: order.id, orderNumber: order.order_number, newStatus: value })}
                     >
                       <SelectTrigger className="w-40">
                         <SelectValue />
