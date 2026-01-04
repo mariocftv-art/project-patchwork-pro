@@ -26,6 +26,7 @@ interface InstallationService {
   features: string[];
   display_order: number;
   active: boolean;
+  price: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +61,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
     title: service?.title || '',
     description: service?.description || '',
     features: service?.features?.join(', ') || '',
+    price: service?.price ?? '',
     active: service?.active ?? true,
   });
 
@@ -110,6 +112,8 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
 
       const features = formData.features.split(',').map(f => f.trim()).filter(Boolean);
 
+      const priceValue = formData.price === '' ? null : Number(formData.price);
+
       if (service) {
         const { error } = await supabase
           .from('installation_services')
@@ -118,6 +122,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
             description: formData.description,
             features,
             image_url,
+            price: priceValue,
             active: formData.active,
           })
           .eq('id', service.id);
@@ -141,6 +146,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
             features,
             image_url,
             icon: 'Camera',
+            price: priceValue,
             display_order: maxOrder + 1,
             active: formData.active,
           });
@@ -184,6 +190,19 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
             className="form-input mt-1"
             placeholder="Descreva o serviço..."
             rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="price">Valor (R$)</Label>
+          <Input
+            id="price"
+            type="number"
+            step="0.01"
+            value={formData.price}
+            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+            className="form-input mt-1"
+            placeholder="Ex: 350.00 (deixe vazio para 'sob consulta')"
           />
         </div>
 
