@@ -6,9 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Clock, CheckCircle2, Truck, AlertCircle, Eye, ChevronDown, ChevronUp, MapPin, User, Phone, Mail } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Truck, AlertCircle, Eye, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface OrderItem {
   name: string;
@@ -104,6 +115,32 @@ export default function OrdersManagement() {
     onError: () => {
       toast({
         title: 'Erro ao atualizar status',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteOrder = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      
+      await adminLogsApi.log('delete_order', 'order', orderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-orders'] });
+      toast({ title: 'Pedido excluído com sucesso!' });
+      setExpandedOrder(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Erro ao excluir pedido',
         description: 'Tente novamente.',
         variant: 'destructive',
       });
@@ -217,6 +254,36 @@ export default function OrdersManagement() {
                       </SelectContent>
                     </Select>
                     
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir pedido?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir o pedido <strong>#{order.order_number}</strong>? 
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteOrder.mutate(order.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
                     <Button
                       variant="ghost"
                       size="sm"

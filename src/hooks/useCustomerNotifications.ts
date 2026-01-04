@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 interface OrderNotification {
   id: string;
@@ -83,6 +84,9 @@ export function useCustomerNotifications() {
             // Only create notification if status changed
             if (updatedOrder.status !== oldOrder.status) {
               console.log('Order status changed:', updatedOrder.order_number, updatedOrder.status);
+              
+              // Play notification sound
+              playNotificationSound();
               
               const newNotification: OrderNotification = {
                 id: `${updatedOrder.order_number}-${Date.now()}`,
