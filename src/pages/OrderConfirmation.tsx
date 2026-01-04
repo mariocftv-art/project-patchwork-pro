@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home, Search } from "lucide-react";
+import { CheckCircle, MessageCircle, Package, Home, Search, Check } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
 
 interface OrderConfirmData {
   orderNumber: string;
@@ -13,13 +14,29 @@ interface OrderConfirmData {
   total: number;
 }
 
+// Key for storing confirmed WhatsApp clicks
+const WHATSAPP_CONFIRMED_KEY = 'whatsapp-confirmed-orders';
+
 export default function OrderConfirmation() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState<OrderConfirmData | null>(null);
+  const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
+  const { trackOrder } = useCustomerNotifications();
+
+  // Check if already confirmed
+  useEffect(() => {
+    if (orderNumber) {
+      const confirmedOrders = JSON.parse(localStorage.getItem(WHATSAPP_CONFIRMED_KEY) || '[]');
+      setWhatsappConfirmed(confirmedOrders.includes(orderNumber));
+    }
+  }, [orderNumber]);
 
   useEffect(() => {
     if (orderNumber) {
+      // Register order for notifications automatically
+      trackOrder(orderNumber);
+      
       // Get minimal order data from sessionStorage (non-sensitive only)
       const stored = sessionStorage.getItem(`order_confirm_${orderNumber}`);
       if (stored) {
@@ -52,7 +69,7 @@ export default function OrderConfirmation() {
     } else {
       navigate("/");
     }
-  }, [orderNumber, navigate]);
+  }, [orderNumber, navigate, trackOrder]);
 
   if (!orderNumber) {
     return null;
@@ -77,6 +94,14 @@ export default function OrderConfirmation() {
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   const handleWhatsAppClick = () => {
+    // Mark as confirmed in localStorage
+    const confirmedOrders = JSON.parse(localStorage.getItem(WHATSAPP_CONFIRMED_KEY) || '[]');
+    if (!confirmedOrders.includes(orderNumber)) {
+      confirmedOrders.push(orderNumber);
+      localStorage.setItem(WHATSAPP_CONFIRMED_KEY, JSON.stringify(confirmedOrders));
+    }
+    setWhatsappConfirmed(true);
+    
     window.open(whatsappUrl, "_blank");
   };
 
@@ -140,11 +165,30 @@ export default function OrderConfirmation() {
           <div className="space-y-3">
             <Button
               onClick={handleWhatsAppClick}
-              className="w-full h-14 text-lg bg-[#25D366] hover:bg-[#128C7E] text-white"
+              className={`w-full h-14 text-lg transition-all ${
+                whatsappConfirmed 
+                  ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-default' 
+                  : 'bg-[#25D366] hover:bg-[#128C7E] text-white'
+              }`}
             >
-              <MessageCircle className="mr-2 h-6 w-6" />
-              Confirmar pelo WhatsApp
+              {whatsappConfirmed ? (
+                <>
+                  <Check className="mr-2 h-6 w-6" />
+                  Mensagem Enviada
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="mr-2 h-6 w-6" />
+                  Confirmar pelo WhatsApp
+                </>
+              )}
             </Button>
+
+            {whatsappConfirmed && (
+              <p className="text-sm text-green-600 text-center">
+                ✓ Você já enviou a confirmação. Aguarde nosso contato!
+              </p>
+            )}
 
             <Button
               onClick={() => navigate("/")}
