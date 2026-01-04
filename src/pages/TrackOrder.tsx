@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin, Bell } from 'lucide-react';
+import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin, Bell, BellOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { playNotificationSound } from '@/utils/notificationSound';
+import { 
+  registerServiceWorker, 
+  subscribeToPush, 
+  saveSubscriptionToServer,
+  isPushSupported 
+} from '@/utils/serviceWorkerPush';
 
 interface OrderItem {
   name: string;
@@ -57,6 +63,8 @@ export default function TrackOrder() {
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
   const [searchedOrder, setSearchedOrder] = useState(initialOrderNumber);
   const [statusChanged, setStatusChanged] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { trackOrder } = useCustomerNotifications();
@@ -75,7 +83,6 @@ export default function TrackOrder() {
       if (error) throw error;
       if (!data) return null;
       
-      // Transform the data to match our Order type
       return {
         ...data,
         items: data.items as unknown as OrderItem[],
@@ -91,6 +98,79 @@ export default function TrackOrder() {
       trackOrder(order.order_number);
     }
   }, [order?.order_number, trackOrder]);
+
+  // Register Service Worker on page load
+  useEffect(() => {
+    if (isPushSupported()) {
+      registerServiceWorker();
+      if ('Notification' in window) {
+        setPushEnabled(Notification.permission === 'granted');
+      }
+    } else {
+      setPushEnabled(false);
+    }
+  }, []);
+
+  // Enable push notifications for this order
+  const enablePushNotifications = async () => {
+    if (!order?.order_number) return;
+    
+    setIsEnablingPush(true);
+    try {
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+      
+      if (!vapidPublicKey) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setPushEnabled(true);
+          toast({
+            title: '🔔 Notificações ativadas!',
+            description: 'Você receberá alertas quando o status do pedido mudar.',
+          });
+        } else {
+          toast({
+            title: 'Notificações bloqueadas',
+            description: 'Ative nas configurações do navegador.',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      const subscription = await subscribeToPush(vapidPublicKey);
+      
+      if (subscription) {
+        const saved = await saveSubscriptionToServer(
+          subscription, 
+          order.order_number, 
+          supabase as any
+        );
+        
+        if (saved) {
+          setPushEnabled(true);
+          toast({
+            title: '🔔 Notificações push ativadas!',
+            description: 'Você receberá alertas mesmo com o site fechado.',
+          });
+        }
+      } else {
+        toast({
+          title: 'Não foi possível ativar',
+          description: 'Permita notificações nas configurações do navegador.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error enabling push:', error);
+      toast({
+        title: 'Erro ao ativar notificações',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsEnablingPush(false);
+    }
+  };
 
   // Real-time subscription for order updates
   useEffect(() => {
@@ -108,16 +188,12 @@ export default function TrackOrder() {
         },
         (payload) => {
           console.log('Order updated in real-time:', payload);
-          // Invalidate query to refetch updated data
           queryClient.invalidateQueries({ queryKey: ['track-order', searchedOrder] });
           
-          // Show notification and play sound
           const newStatus = (payload.new as any).status;
           const statusInfo = statusConfig[newStatus];
           if (statusInfo) {
             setStatusChanged(true);
-            
-            // Play notification sound
             playNotificationSound();
             
             toast({
@@ -125,7 +201,6 @@ export default function TrackOrder() {
               description: `Seu pedido agora está: ${statusInfo.label}`,
             });
             
-            // Reset animation after 3 seconds
             setTimeout(() => setStatusChanged(false), 3000);
           }
         }
@@ -190,7 +265,7 @@ export default function TrackOrder() {
           <div className="flex-1 relative">
             <Input
               type="text"
-              placeholder="Ex: MR202401040001"
+              placeholder="Ex: MRE-XXXXXX"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
               className="pl-10"
@@ -241,6 +316,37 @@ export default function TrackOrder() {
             </span>
             Atualizações em tempo real ativas
           </div>
+
+          {/* Push Notification Button */}
+          {isPushSupported() && order && (
+            <div className="flex justify-center">
+              {pushEnabled ? (
+                <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full text-sm">
+                  <Bell className="w-4 h-4" />
+                  Notificações push ativas
+                </div>
+              ) : (
+                <Button
+                  onClick={enablePushNotifications}
+                  disabled={isEnablingPush}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  {isEnablingPush ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Ativando...
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="w-4 h-4" />
+                      Ativar notificações push
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Order Header */}
           <div className={`bg-white rounded-lg shadow-sm p-6 transition-all duration-500 ${statusChanged ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}>
@@ -385,7 +491,7 @@ export default function TrackOrder() {
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               <a
-                href={`https://wa.me/5511999999999?text=Olá! Gostaria de informações sobre meu pedido ${order.order_number}`}
+                href={`https://wa.me/5511962579428?text=Olá! Gostaria de informações sobre meu pedido ${order.order_number}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -403,7 +509,7 @@ export default function TrackOrder() {
           <h2 className="text-lg font-semibold mb-2">Digite o número do seu pedido</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
             O número do pedido foi enviado por WhatsApp e também está na confirmação do pedido.
-            Ele começa com "MR" seguido de números.
+            Ele começa com "MRE-" seguido de números.
           </p>
         </div>
       )}

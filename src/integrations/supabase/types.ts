@@ -242,6 +242,36 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          order_numbers: string[] | null
+          p256dh: string
+          updated_at: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          order_numbers?: string[] | null
+          p256dh: string
+          updated_at?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          order_numbers?: string[] | null
+          p256dh?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_photos: {
         Row: {
           created_at: string
