@@ -99,15 +99,6 @@ export default function Home() {
       {!selectedCategory && !searchQuery && <PromoBanner />}
 
       <div className="flex gap-6">
-      {/* Mobile Filter Button */}
-      <button
-        onClick={() => setShowMobileFilters(true)}
-        className="lg:hidden fixed bottom-20 left-4 z-40 bg-ml-blue text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2"
-      >
-        <Filter className="w-4 h-4" />
-        Filtros
-      </button>
-
       {/* Sidebar Filters */}
       <aside className={`
         ${showMobileFilters ? 'fixed inset-0 z-50 bg-white' : 'hidden'} 
