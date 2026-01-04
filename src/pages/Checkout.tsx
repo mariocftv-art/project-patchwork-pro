@@ -159,9 +159,13 @@ export default function Checkout() {
       });
       
       // Store minimal non-sensitive data in sessionStorage for confirmation page only
+      const fullAddress = `${formData.street}, ${formData.number}${formData.complement ? ' - ' + formData.complement : ''}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`;
+      
       sessionStorage.setItem(`order_confirm_${orderNumber}`, JSON.stringify({
         orderNumber,
         customerName: formData.name.trim(),
+        customerPhone: formData.phone.trim(),
+        customerAddress: fullAddress,
         items: orderItems,
         total: finalTotal,
       }));

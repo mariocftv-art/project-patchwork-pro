@@ -6,6 +6,8 @@ import { CheckCircle, MessageCircle, Package, Home } from "lucide-react";
 interface OrderConfirmData {
   orderNumber: string;
   customerName: string;
+  customerPhone: string;
+  customerAddress: string;
   items: Array<{ name: string; quantity: number; price: number }>;
   total: number;
 }
@@ -29,6 +31,8 @@ export default function OrderConfirmation() {
           setOrderData({
             orderNumber,
             customerName: 'Cliente',
+            customerPhone: '',
+            customerAddress: '',
             items: [],
             total: 0
           });
@@ -38,6 +42,8 @@ export default function OrderConfirmation() {
         setOrderData({
           orderNumber,
           customerName: 'Cliente',
+          customerPhone: '',
+          customerAddress: '',
           items: [],
           total: 0
         });
@@ -55,11 +61,15 @@ export default function OrderConfirmation() {
   const whatsappMessage = orderData ? encodeURIComponent(
     `🛒 *PEDIDO REALIZADO*\n\n` +
     `📦 *Número do Pedido:* ${orderNumber}\n\n` +
-    `👤 *Cliente:* ${orderData.customerName}\n\n` +
+    `👤 *Cliente:* ${orderData.customerName}\n` +
+    (orderData.customerPhone ? `📱 *Telefone:* ${orderData.customerPhone}\n` : '') +
+    (orderData.customerAddress ? `📍 *Endereço:* ${orderData.customerAddress}\n` : '') +
+    `\n` +
     (orderData.items.length > 0 ? 
       `*Itens do Pedido:*\n${orderData.items.map(item => `• ${item.quantity}x ${item.name}`).join("\n")}\n\n` +
       `💰 *Total:* R$ ${orderData.total.toFixed(2)}\n\n` 
       : '') +
+    `📞 *WhatsApp MR Segurança:* (11) 96257-9428\n\n` +
     `_Aguardando confirmação do pedido._`
   ) : '';
 
