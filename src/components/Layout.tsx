@@ -93,20 +93,21 @@ export default function Layout({ children }: LayoutProps) {
       <header className="ml-header sticky top-0 z-50">
         {/* Top Header */}
         <div className="container mx-auto px-2 sm:px-4 py-2">
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-3">
                 <img 
                   src={logoMR} 
                   alt="MR Segurança Máxima" 
-                  className="w-14 h-14 sm:w-20 sm:h-20 object-contain"
+                  className="w-20 h-20 object-contain"
                 />
                 <div className="flex flex-col">
-                  <span className="text-sm sm:text-lg font-bold text-ml-dark-gray leading-tight">
+                  <span className="text-lg font-bold text-ml-dark-gray leading-tight">
                     Segurança Máxima
                   </span>
-                  <span className="text-[9px] sm:text-xs text-ml-gray">
+                  <span className="text-xs text-ml-gray">
                     CNPJ: 45.858.215/0001-86
                   </span>
                 </div>
@@ -114,26 +115,26 @@ export default function Layout({ children }: LayoutProps) {
             </Link>
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 min-w-0 max-w-xs sm:max-w-md">
+            <form onSubmit={handleSearch} className="flex-1 max-w-md">
               <div className="relative ml-search flex items-center">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar..."
-                  className="w-full px-2 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm rounded-sm outline-none"
+                  className="w-full px-4 py-2.5 pr-12 text-sm rounded-sm outline-none"
                 />
                 <button
                   type="submit"
-                  className="absolute right-0 top-0 bottom-0 px-2 sm:px-4 text-ml-gray hover:text-ml-dark-gray border-l border-border"
+                  className="absolute right-0 top-0 bottom-0 px-4 text-ml-gray hover:text-ml-dark-gray border-l border-border"
                 >
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Search className="w-5 h-5" />
                 </button>
               </div>
             </form>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1 sm:gap-3">
+            <div className="flex items-center gap-3">
               <NotificationsPopover />
 
               <Link
@@ -163,7 +164,7 @@ export default function Layout({ children }: LayoutProps) {
               {isAdmin ? (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex text-ml-blue">
+                    <Button variant="ghost" size="icon" className="text-ml-blue">
                       <Shield className="w-5 h-5" />
                     </Button>
                   </PopoverTrigger>
@@ -193,7 +194,7 @@ export default function Layout({ children }: LayoutProps) {
               ) : user ? (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:flex text-ml-dark-gray hover:text-ml-blue">
+                    <Button variant="ghost" size="icon" className="text-ml-dark-gray hover:text-ml-blue">
                       <User className="w-5 h-5" />
                     </Button>
                   </PopoverTrigger>
@@ -217,77 +218,146 @@ export default function Layout({ children }: LayoutProps) {
               ) : (
                 <Link
                   to="/auth"
-                  className="hidden sm:flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm"
+                  className="flex items-center gap-1 p-2 text-ml-dark-gray hover:text-ml-blue transition-colors text-sm"
                 >
                   <User className="w-5 h-5" />
                 </Link>
               )}
+            </div>
+          </div>
 
-
-              {/* Mobile Menu */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <button className="sm:hidden p-2 text-ml-dark-gray">
-                    <Menu className="w-5 h-5" />
-                  </button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-72 bg-white p-0">
-                  <div className="p-4 border-b border-border">
-                    <p className="font-semibold text-foreground">Menu</p>
+          {/* Mobile Layout - Stacked */}
+          <div className="sm:hidden space-y-2">
+            {/* Top row: Logo + Actions */}
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={logoMR} 
+                    alt="MR Segurança Máxima" 
+                    className="w-10 h-10 object-contain"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-ml-dark-gray leading-tight">
+                      Segurança Máxima
+                    </span>
+                    <span className="text-[7px] text-ml-gray">
+                      CNPJ: 45.858.215/0001-86
+                    </span>
                   </div>
-                  <nav className="p-4 space-y-1">
-                    {categories.map((cat) => (
-                      <Link
-                        key={cat.path}
-                        to={cat.path}
-                        className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                    <hr className="my-3" />
-                    {isAdmin ? (
-                      <>
-                        <div className="px-2 py-2 text-xs text-muted-foreground">
-                          Logado: {user?.email}
-                        </div>
+                </div>
+              </Link>
+
+              <div className="flex items-center gap-1">
+                <NotificationsPopover />
+
+                <Link
+                  to="/wishlist"
+                  className="relative p-1.5 text-ml-dark-gray hover:text-ml-blue transition-colors"
+                >
+                  <Heart className="w-4 h-4" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ml-blue text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
+
+                <Link
+                  to="/carrinho"
+                  className="relative p-1.5 text-ml-dark-gray hover:text-ml-blue transition-colors"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ml-blue text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <button className="p-1.5 text-ml-dark-gray">
+                      <Menu className="w-5 h-5" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-72 bg-white p-0">
+                    <div className="p-4 border-b border-border">
+                      <p className="font-semibold text-foreground">Menu</p>
+                    </div>
+                    <nav className="p-4 space-y-1">
+                      {categories.map((cat) => (
                         <Link
-                          to="/admin"
+                          key={cat.path}
+                          to={cat.path}
                           className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
                         >
-                          Painel Admin
+                          {cat.name}
                         </Link>
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full text-left py-3 px-2 text-destructive hover:bg-secondary rounded transition-colors"
+                      ))}
+                      <hr className="my-3" />
+                      {isAdmin ? (
+                        <>
+                          <div className="px-2 py-2 text-xs text-muted-foreground">
+                            Logado: {user?.email}
+                          </div>
+                          <Link
+                            to="/admin"
+                            className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
+                          >
+                            Painel Admin
+                          </Link>
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full text-left py-3 px-2 text-destructive hover:bg-secondary rounded transition-colors"
+                          >
+                            Sair
+                          </button>
+                        </>
+                      ) : user ? (
+                        <>
+                          <div className="px-2 py-2 text-xs text-muted-foreground">
+                            Logado: {user?.email}
+                          </div>
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full text-left py-3 px-2 text-destructive hover:bg-secondary rounded transition-colors"
+                          >
+                            Sair
+                          </button>
+                        </>
+                      ) : (
+                        <Link
+                          to="/auth"
+                          className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
                         >
-                          Sair
-                        </button>
-                      </>
-                    ) : user ? (
-                      <>
-                        <div className="px-2 py-2 text-xs text-muted-foreground">
-                          Logado: {user?.email}
-                        </div>
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full text-left py-3 px-2 text-destructive hover:bg-secondary rounded transition-colors"
-                        >
-                          Sair
-                        </button>
-                      </>
-                    ) : (
-                      <Link
-                        to="/auth"
-                        className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
-                      >
-                        Entrar
-                      </Link>
-                    )}
-                  </nav>
-                </SheetContent>
-              </Sheet>
+                          Entrar
+                        </Link>
+                      )}
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
+
+            {/* Search bar - separate row on mobile */}
+            <form onSubmit={handleSearch} className="w-full">
+              <div className="relative ml-search flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar produtos..."
+                  className="w-full px-3 py-2 pr-10 text-sm rounded-sm outline-none"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-0 top-0 bottom-0 px-3 text-ml-gray hover:text-ml-dark-gray border-l border-border"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
           </div>
         </div>
 
