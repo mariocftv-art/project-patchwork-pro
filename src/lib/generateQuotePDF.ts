@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logoMR from '@/assets/logo-mr.png';
 
 interface QuoteItem {
   name: string;
@@ -47,21 +48,27 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   doc.setFillColor(30, 58, 138); // Azul escuro
   doc.rect(0, 0, pageWidth, 50, 'F');
   
-  // Nome da empresa
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text('MR', margin, 22);
+  // Adiciona a logo MR
+  try {
+    doc.addImage(logoMR, 'PNG', margin, 8, 35, 35);
+  } catch (e) {
+    // Se a logo não carregar, usa texto
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MR', margin, 22);
+  }
   
-  // Segurança Máxima abaixo do nome
+  // Nome da empresa ao lado da logo
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Segurança Máxima', margin, 32);
+  doc.text('Segurança Máxima', margin + 40, 25);
   
   // Subtítulo
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistemas de Segurança Eletrônica', margin, 42);
+  doc.text('Sistemas de Segurança Eletrônica', margin + 40, 35);
   
   // Dados da empresa no header (CNPJ abaixo de Segurança Máxima)
   doc.setFontSize(9);
