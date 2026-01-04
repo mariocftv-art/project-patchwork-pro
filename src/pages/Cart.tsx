@@ -56,6 +56,7 @@ export default function Cart() {
       name: item.product?.title || 'Produto',
       quantity: item.quantity,
       price: item.product?.price || 0,
+      imageUrl: item.product?.image_url || undefined,
     }));
 
     generateQuotePDF(

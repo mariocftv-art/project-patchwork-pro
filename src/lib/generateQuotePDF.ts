@@ -6,6 +6,7 @@ interface QuoteItem {
   name: string;
   quantity: number;
   price: number;
+  imageUrl?: string;
 }
 
 interface CompanyInfo {
@@ -126,7 +127,7 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
     yPos += clientBoxHeight + 10;
   }
   
-  // Tabela de produtos
+  // Tabela de produtos com imagens
   const tableData = data.items.map((item, index) => [
     (index + 1).toString(),
     item.name,
@@ -149,6 +150,7 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
     bodyStyles: {
       fontSize: 9,
       textColor: [60, 60, 60],
+      minCellHeight: 15,
     },
     alternateRowStyles: {
       fillColor: [245, 247, 250],
@@ -213,7 +215,7 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   doc.setTextColor(100, 60, 20);
   doc.text('• Este orçamento é válido por ' + (data.validityDays || 15) + ' dias a partir da data de emissão.', margin + 5, yPos + 20);
   doc.text('• Preços sujeitos a alteração sem aviso prévio após o período de validade.', margin + 5, yPos + 28);
-  doc.text('• Para confirmar o pedido, entre em contato pelo WhatsApp.', margin + 5, yPos + 36);
+  doc.text('• O pagamento será finalizado via WhatsApp após confirmação do pedido.', margin + 5, yPos + 36);
   
   // Rodapé
   const pageHeight = doc.internal.pageSize.getHeight();

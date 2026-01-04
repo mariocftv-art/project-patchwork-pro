@@ -130,6 +130,7 @@ export default function Checkout() {
         name: item.product?.title || 'Produto',
         quantity: item.quantity,
         price: item.product?.price || 0,
+        imageUrl: item.product?.image_url || undefined,
       }));
 
       const finalTotal = formData.paymentMethod === 'pix' ? total * 0.95 : total;
