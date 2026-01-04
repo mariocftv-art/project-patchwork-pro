@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { playNotificationSound } from '@/utils/notificationSound';
+import { showOrderNotification } from '@/utils/pushNotifications';
 
 interface OrderNotification {
   id: string;
@@ -87,6 +88,9 @@ export function useCustomerNotifications() {
               
               // Play notification sound
               playNotificationSound();
+              
+              // Show push notification on device
+              showOrderNotification(updatedOrder.order_number, updatedOrder.status);
               
               const newNotification: OrderNotification = {
                 id: `${updatedOrder.order_number}-${Date.now()}`,
