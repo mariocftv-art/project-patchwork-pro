@@ -65,7 +65,7 @@ export default function PromoBanner() {
   const next = () => goTo((current + 1) % banners.length);
 
   return (
-    <div className="relative w-full mb-6 group">
+    <div className="relative w-full mb-4 sm:mb-6 group">
       {/* Main Banner */}
       <div className="relative overflow-hidden rounded-lg">
         <div 
@@ -78,19 +78,19 @@ export default function PromoBanner() {
               to={banner.link}
               className={`flex-shrink-0 w-full ${banner.bgColor} relative overflow-hidden`}
             >
-              <div className="flex items-center justify-between px-6 md:px-12 py-8 md:py-12 min-h-[180px] md:min-h-[280px]">
+              <div className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-5 sm:py-8 md:py-12 min-h-[140px] sm:min-h-[180px] md:min-h-[280px]">
                 {/* Text Content */}
                 <div className="text-white z-10 max-w-md">
-                  <p className="text-sm md:text-base font-medium opacity-90 mb-1">
+                  <p className="text-xs sm:text-sm md:text-base font-medium opacity-90 mb-0.5 sm:mb-1">
                     {banner.subtitle}
                   </p>
-                  <h2 className="text-2xl md:text-4xl font-bold mb-2">
+                  <h2 className="text-lg sm:text-2xl md:text-4xl font-bold mb-1 sm:mb-2">
                     {banner.title}
                   </h2>
-                  <p className="text-sm md:text-lg opacity-90">
+                  <p className="text-xs sm:text-sm md:text-lg opacity-90 hidden sm:block">
                     {banner.description}
                   </p>
-                  <span className="inline-block mt-4 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium hover:bg-white/30 transition-colors">
+                  <span className="inline-block mt-2 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors">
                     Ver ofertas →
                   </span>
                 </div>
@@ -105,28 +105,28 @@ export default function PromoBanner() {
                 </div>
 
                 {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-1/2 w-32 h-32 bg-white/5 rounded-full translate-y-1/2" />
+                <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-1/2 w-16 sm:w-32 h-16 sm:h-32 bg-white/5 rounded-full translate-y-1/2" />
               </div>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows - hidden on mobile */}
       <button
         onClick={prev}
-        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
         aria-label="Banner anterior"
       >
-        <ChevronLeft className="w-5 h-5 text-ml-gray-dark" />
+        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-ml-gray-dark" />
       </button>
       <button
         onClick={next}
-        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
         aria-label="Próximo banner"
       >
-        <ChevronRight className="w-5 h-5 text-ml-gray-dark" />
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-ml-gray-dark" />
       </button>
 
       {/* Dots Indicator */}
