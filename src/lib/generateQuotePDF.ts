@@ -51,14 +51,19 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text(company.name, margin, 25);
+  doc.text('MR', margin, 22);
+  
+  // Segurança Máxima abaixo do nome
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Segurança Máxima', margin, 32);
   
   // Subtítulo
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistemas de Segurança Eletrônica', margin, 35);
+  doc.text('Sistemas de Segurança Eletrônica', margin, 42);
   
-  // Dados da empresa no header
+  // Dados da empresa no header (CNPJ abaixo de Segurança Máxima)
   doc.setFontSize(9);
   doc.text(`CNPJ: ${company.cnpj}`, pageWidth - margin, 20, { align: 'right' });
   doc.text(company.address, pageWidth - margin, 27, { align: 'right' });
