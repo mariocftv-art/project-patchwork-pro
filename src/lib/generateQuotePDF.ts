@@ -37,7 +37,29 @@ const defaultCompanyInfo: CompanyInfo = {
   email: 'contato@mrseguranca.com',
 };
 
-export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyInfo>) {
+// Function to load image as base64
+async function loadImageAsBase64(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } else {
+        reject(new Error('Could not get canvas context'));
+      }
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyInfo>): Promise<void> {
   const company = { ...defaultCompanyInfo, ...companyInfo };
   const doc = new jsPDF();
   
@@ -51,8 +73,10 @@ export function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyI
   
   // Adiciona a logo MR Eagle
   try {
-    doc.addImage(logoMREagle, 'PNG', margin, 5, 45, 45);
+    const logoBase64 = await loadImageAsBase64(logoMREagle);
+    doc.addImage(logoBase64, 'PNG', margin, 5, 45, 45);
   } catch (e) {
+    console.log('Logo não carregou, usando texto:', e);
     // Se a logo não carregar, usa texto
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);

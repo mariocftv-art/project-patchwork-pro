@@ -51,7 +51,11 @@ export default function Cart() {
   const shippingFee = subtotal >= freeShippingMin ? 0 : settings?.shipping_fee || 15;
   const total = subtotal + shippingFee;
 
-  const handleGenerateQuote = () => {
+  const handleGenerateQuote = async () => {
+    if (!customerPhone.trim()) {
+      return;
+    }
+    
     const items = cartWithProducts.map(item => ({
       name: item.product?.title || 'Produto',
       quantity: item.quantity,
@@ -59,7 +63,8 @@ export default function Cart() {
       imageUrl: item.product?.image_url || undefined,
     }));
 
-    generateQuotePDF(
+    // Generate PDF first
+    await generateQuotePDF(
       {
         items,
         subtotal,
@@ -79,31 +84,34 @@ export default function Cart() {
       }
     );
 
-    // Send PDF info via WhatsApp if phone is provided
-    if (customerPhone) {
-      const cleanPhone = customerPhone.replace(/\D/g, '');
-      const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-      
-      const itemsList = items.map(item => 
-        `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
-      ).join('\n');
-      
-      const message = encodeURIComponent(
-        `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n\n` +
-        `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado.\n\n` +
-        `*Itens:*\n${itemsList}\n\n` +
-        `*Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
-        `*Frete:* A combinar\n` +
-        `*Total:* R$ ${total.toFixed(2)}\n\n` +
-        `📞 Para finalizar, entre em contato:\n` +
-        `WhatsApp: (11) 96257-9428\n\n` +
-        `_Orçamento válido por 5 dias._`
-      );
-      
-      window.open(`https://wa.me/${whatsappPhone}?text=${message}`, '_blank');
-    }
+    // Send to customer's WhatsApp
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    
+    const itemsList = items.map(item => 
+      `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
+    ).join('\n');
+    
+    const message = encodeURIComponent(
+      `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n\n` +
+      `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado com sucesso! ✅\n\n` +
+      `*Itens do Orçamento:*\n${itemsList}\n\n` +
+      `💰 *Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
+      `🚚 *Frete:* A combinar\n` +
+      `✨ *Total:* R$ ${total.toFixed(2)}\n\n` +
+      `📞 *Para finalizar seu pedido, entre em contato:*\n` +
+      `WhatsApp: (11) 96257-9428\n\n` +
+      `⏰ _Orçamento válido por 5 dias._\n\n` +
+      `🔒 MR Segurança Máxima - Proteção total para você e sua família!`
+    );
+    
+    // Open WhatsApp with the customer's number
+    window.open(`https://wa.me/${whatsappPhone}?text=${message}`, '_blank');
     
     setQuoteDialogOpen(false);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
   };
 
   const handleWhatsAppPurchase = () => {
