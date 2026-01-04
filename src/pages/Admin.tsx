@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
 import SiteContentForm from '@/components/admin/SiteContentForm';
@@ -14,6 +14,7 @@ import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
 import CategoriesForm from '@/components/admin/CategoriesForm';
 import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
 import OrdersManagement from '@/components/admin/OrdersManagement';
+import QuotesManagement from '@/components/admin/QuotesManagement';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -71,6 +72,10 @@ export default function Admin() {
             <ShoppingBag className="w-4 h-4" />
             Pedidos
           </TabsTrigger>
+          <TabsTrigger value="quotes" className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" />
+            Orçamentos
+          </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Produtos
@@ -119,6 +124,14 @@ export default function Admin() {
             Gerenciar Pedidos
           </h2>
           <OrdersManagement />
+        </TabsContent>
+
+        {/* Quotes Tab */}
+        <TabsContent value="quotes" className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Gerenciar Orçamentos
+          </h2>
+          <QuotesManagement />
         </TabsContent>
 
         {/* Products Tab */}

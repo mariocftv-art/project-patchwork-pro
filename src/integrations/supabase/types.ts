@@ -272,6 +272,48 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          items: Json
+          pdf_url: string | null
+          quote_number: string
+          shipping_fee: number
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          items: Json
+          pdf_url?: string | null
+          quote_number: string
+          shipping_fee?: number
+          subtotal: number
+          total: number
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          pdf_url?: string | null
+          quote_number?: string
+          shipping_fee?: number
+          subtotal?: number
+          total?: number
+        }
+        Relationships: []
+      }
       service_photos: {
         Row: {
           created_at: string
