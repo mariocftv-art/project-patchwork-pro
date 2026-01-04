@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home } from "lucide-react";
+import { CheckCircle, MessageCircle, Package, Home, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface OrderConfirmData {
   orderNumber: string;
@@ -152,6 +153,17 @@ export default function OrderConfirmation() {
             >
               <Home className="mr-2 h-4 w-4" />
               Voltar para a Loja
+            </Button>
+
+            <Button
+              asChild
+              variant="ghost"
+              className="w-full"
+            >
+              <Link to={`/rastrear-pedido?pedido=${orderNumber}`}>
+                <Search className="mr-2 h-4 w-4" />
+                Acompanhar Pedido
+              </Link>
             </Button>
           </div>
 

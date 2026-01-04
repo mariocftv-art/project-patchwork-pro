@@ -49,8 +49,8 @@ export default function Checkout() {
     0
   );
 
-  const shipping = subtotal >= 199 ? 0 : 29.90;
-  const total = subtotal + shipping;
+  // Frete será combinado com o vendedor
+  const total = subtotal;
 
   const handleCepChange = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
@@ -153,7 +153,7 @@ export default function Checkout() {
         },
         items: orderItems,
         subtotal,
-        shipping_fee: shipping,
+        shipping_fee: 0, // Frete a combinar
         total: finalTotal,
         payment_method: formData.paymentMethod,
         status: 'pending'
@@ -429,9 +429,7 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Frete</span>
-                  <span className={shipping === 0 ? "text-ml-green font-medium" : ""}>
-                    {shipping === 0 ? "Grátis" : `R$ ${shipping.toFixed(2)}`}
-                  </span>
+                  <span className="text-primary font-medium">A combinar</span>
                 </div>
                 {formData.paymentMethod === "pix" && (
                   <div className="flex justify-between text-sm text-ml-green">
