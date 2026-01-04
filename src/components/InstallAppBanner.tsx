@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Download, Share } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Download, Share, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -10,9 +10,17 @@ interface BeforeInstallPromptEvent extends Event {
 const INSTALL_DISMISSED_KEY = 'pwa-install-dismissed';
 const INSTALL_DISMISSED_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-export default function InstallAppBanner() {
-  const [showBanner, setShowBanner] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+// Singleton para compartilhar o prompt entre componentes
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+const listeners: Set<() => void> = new Set();
+
+const notifyListeners = () => {
+  listeners.forEach(listener => listener());
+};
+
+// Hook para usar o install prompt em qualquer componente
+export function useInstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(globalDeferredPrompt);
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -23,34 +31,105 @@ export default function InstallAppBanner() {
       return;
     }
 
-    // Check if dismissed recently
-    const dismissedAt = localStorage.getItem(INSTALL_DISMISSED_KEY);
-    if (dismissedAt) {
-      const dismissedTime = parseInt(dismissedAt, 10);
-      if (Date.now() - dismissedTime < INSTALL_DISMISSED_DURATION) {
-        return;
-      }
-    }
-
     // Detect iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(isIOSDevice);
 
-    // For iOS, show the banner with instructions
-    if (isIOSDevice) {
-      // Only show on iOS Safari
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-      if (isSafari) {
-        setTimeout(() => setShowBanner(true), 2000);
-      }
-      return;
-    }
+    // Listener para atualizar quando o prompt global mudar
+    const updatePrompt = () => {
+      setDeferredPrompt(globalDeferredPrompt);
+    };
+    listeners.add(updatePrompt);
 
-    // For Android/Chrome, listen for beforeinstallprompt
+    return () => {
+      listeners.delete(updatePrompt);
+    };
+  }, []);
+
+  const install = useCallback(async () => {
+    if (!globalDeferredPrompt) return false;
+
+    try {
+      await globalDeferredPrompt.prompt();
+      const { outcome } = await globalDeferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        globalDeferredPrompt = null;
+        notifyListeners();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error installing app:', error);
+      return false;
+    }
+  }, []);
+
+  return {
+    canInstall: !isInstalled && (!!deferredPrompt || isIOS),
+    isIOS,
+    isInstalled,
+    install,
+  };
+}
+
+// Botão de instalar para usar em qualquer lugar
+export function InstallAppButton({ className }: { className?: string }) {
+  const { canInstall, isIOS, install } = useInstallPrompt();
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
+  if (!canInstall) return null;
+
+  if (isIOS) {
+    return (
+      <div className={className}>
+        <Button
+          onClick={() => setShowIOSInstructions(!showIOSInstructions)}
+          variant="outline"
+          size="sm"
+          className="gap-2 text-primary border-primary hover:bg-primary hover:text-primary-foreground"
+        >
+          <Smartphone className="w-4 h-4" />
+          Instalar App
+        </Button>
+        {showIOSInstructions && (
+          <div className="mt-2 p-3 bg-secondary rounded-lg text-sm">
+            <p className="font-medium mb-1">Para instalar no iPhone/iPad:</p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Share className="w-4 h-4" />
+              <span>Toque em "Compartilhar" → "Adicionar à Tela Inicial"</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      onClick={install}
+      variant="outline"
+      size="sm"
+      className={`gap-2 text-primary border-primary hover:bg-primary hover:text-primary-foreground ${className}`}
+    >
+      <Download className="w-4 h-4" />
+      Instalar App
+    </Button>
+  );
+}
+
+export default function InstallAppBanner() {
+  const [showBanner, setShowBanner] = useState(false);
+  const { canInstall, isIOS, isInstalled, install } = useInstallPrompt();
+
+  useEffect(() => {
+    // Setup global listener for beforeinstallprompt
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setTimeout(() => setShowBanner(true), 2000);
+      globalDeferredPrompt = e as BeforeInstallPromptEvent;
+      notifyListeners();
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -60,21 +139,29 @@ export default function InstallAppBanner() {
     };
   }, []);
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
+  useEffect(() => {
+    if (isInstalled) return;
 
-    try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
+    // Check if dismissed recently
+    const dismissedAt = localStorage.getItem(INSTALL_DISMISSED_KEY);
+    if (dismissedAt) {
+      const dismissedTime = parseInt(dismissedAt, 10);
+      if (Date.now() - dismissedTime < INSTALL_DISMISSED_DURATION) {
+        return;
       }
-      
-      setDeferredPrompt(null);
+    }
+
+    // Show banner after delay if can install
+    if (canInstall) {
+      const timer = setTimeout(() => setShowBanner(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [canInstall, isInstalled]);
+
+  const handleInstall = async () => {
+    const success = await install();
+    if (success) {
       setShowBanner(false);
-    } catch (error) {
-      console.error('Error installing app:', error);
     }
   };
 
@@ -83,7 +170,7 @@ export default function InstallAppBanner() {
     setShowBanner(false);
   };
 
-  if (isInstalled || !showBanner) {
+  if (isInstalled || !showBanner || !canInstall) {
     return null;
   }
 
@@ -104,7 +191,7 @@ export default function InstallAppBanner() {
               }
             </p>
             
-            {!isIOS && deferredPrompt && (
+            {!isIOS && (
               <Button
                 onClick={handleInstall}
                 size="sm"
