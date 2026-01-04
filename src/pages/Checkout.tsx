@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CreditCard, Barcode, QrCode, MapPin, Loader2, ShieldCheck } from "lucide-react";
+import { CreditCard, QrCode, MapPin, Loader2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Checkout() {
@@ -135,12 +135,21 @@ export default function Checkout() {
 
       const finalTotal = formData.paymentMethod === 'pix' ? total * 0.95 : total;
 
-      // Store order securely in database
-      await ordersApi.create({
+      console.log('Creating order with data:', {
         order_number: orderNumber,
         customer_name: formData.name.trim(),
         customer_email: formData.email.trim().toLowerCase(),
-        customer_phone: formData.phone.trim(),
+        items: orderItems,
+        subtotal,
+        total: finalTotal,
+      });
+
+      // Store order securely in database
+      const orderResult = await ordersApi.create({
+        order_number: orderNumber,
+        customer_name: formData.name.trim(),
+        customer_email: formData.email.trim().toLowerCase(),
+        customer_phone: formData.phone.trim() || null,
         customer_cpf: formData.cpf.trim() || null,
         shipping_address: {
           cep: formData.cep,
@@ -158,6 +167,8 @@ export default function Checkout() {
         payment_method: formData.paymentMethod,
         status: 'pending'
       });
+
+      console.log('Order created successfully:', orderResult);
       
       // Store minimal non-sensitive data in sessionStorage for confirmation page only
       const fullAddress = `${formData.street}, ${formData.number}${formData.complement ? ' - ' + formData.complement : ''}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`;
@@ -178,7 +189,7 @@ export default function Checkout() {
       console.error("Erro ao processar pedido:", error);
       toast({
         title: "Erro ao processar pedido",
-        description: "Verifique os dados e tente novamente.",
+        description: error instanceof Error ? error.message : "Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -380,21 +391,17 @@ export default function Checkout() {
                     <CreditCard className="h-6 w-6 text-ml-blue" />
                     <div>
                       <p className="font-medium">Cartão de Crédito</p>
-                      <p className="text-sm text-muted-foreground">Em até 8x sem juros</p>
-                    </div>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3 p-4 border rounded-lg hover:border-ml-blue cursor-pointer">
-                  <RadioGroupItem value="boleto" id="boleto" />
-                  <Label htmlFor="boleto" className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Barcode className="h-6 w-6 text-gray-600" />
-                    <div>
-                      <p className="font-medium">Boleto Bancário</p>
-                      <p className="text-sm text-muted-foreground">Vencimento em 3 dias úteis</p>
+                      <p className="text-sm text-muted-foreground">Pagamento a combinar via WhatsApp</p>
                     </div>
                   </Label>
                 </div>
               </RadioGroup>
+              
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ O pagamento será finalizado via WhatsApp após a confirmação do pedido.
+                </p>
+              </div>
             </div>
           </div>
 
