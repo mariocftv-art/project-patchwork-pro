@@ -295,24 +295,14 @@ export default function Cart() {
               Finalizar Compra
             </button>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => setQuoteDialogOpen(true)}
-              >
-                <FileText className="w-4 h-4" />
-                Orçamento PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 text-green-600 border-green-600 hover:bg-green-50"
-                onClick={handleWhatsAppPurchase}
-              >
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={() => setQuoteDialogOpen(true)}
+            >
+              <FileText className="w-4 h-4" />
+              Gerar Orçamento PDF
+            </Button>
           </div>
 
           <Link 
