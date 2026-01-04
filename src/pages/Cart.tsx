@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { generateQuotePDF, generateWhatsAppMessage } from '@/lib/generateQuotePDF';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -23,8 +25,10 @@ export default function Cart() {
   const siteContent = useSiteContent();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -52,71 +56,114 @@ export default function Cart() {
   const total = subtotal + shippingFee;
 
   const handleGenerateQuote = async () => {
-    if (!customerPhone.trim()) {
+    if (!customerPhone.trim() || !customerEmail.trim() || !customerName.trim()) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha nome, e-mail e telefone.',
+        variant: 'destructive',
+      });
       return;
     }
-    
-    const items = cartWithProducts.map(item => ({
-      name: item.product?.title || 'Produto',
-      quantity: item.quantity,
-      price: item.product?.price || 0,
-      imageUrl: item.product?.image_url || undefined,
-    }));
 
-    // Generate PDF and upload to storage
-    const result = await generateQuotePDF(
-      {
-        items,
-        subtotal,
-        shipping: shippingFee,
-        total,
-        customerName: customerName || undefined,
-        customerPhone: customerPhone || undefined,
-        customerAddress: customerAddress || undefined,
-        validityDays: 5,
-      },
-      {
-        name: 'MR Segurança Máxima',
-        cnpj: '45.858.215/0001-86',
-        address: siteContent.contact.address || 'São Paulo - SP',
-        phone: '(11) 96257-9428',
-        email: siteContent.contact.email,
+    setIsGenerating(true);
+    
+    try {
+      const items = cartWithProducts.map(item => ({
+        name: item.product?.title || 'Produto',
+        quantity: item.quantity,
+        price: item.product?.price || 0,
+        imageUrl: item.product?.image_url || undefined,
+      }));
+
+      // Generate PDF and upload to storage
+      const result = await generateQuotePDF(
+        {
+          items,
+          subtotal,
+          shipping: shippingFee,
+          total,
+          customerName: customerName || undefined,
+          customerPhone: customerPhone || undefined,
+          customerAddress: customerAddress || undefined,
+          validityDays: 5,
+        },
+        {
+          name: 'MR Segurança Máxima',
+          cnpj: '45.858.215/0001-86',
+          address: siteContent.contact.address || 'São Paulo - SP',
+          phone: '(11) 96257-9428',
+          email: siteContent.contact.email,
+        }
+      );
+
+      // Save quote to database
+      const { error: dbError } = await supabase
+        .from('quotes')
+        .insert({
+          quote_number: result.quoteNumber,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone || null,
+          items: items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+          subtotal,
+          shipping_fee: shippingFee,
+          total,
+          pdf_url: result.pdfUrl,
+        });
+
+      if (dbError) {
+        console.error('Erro ao salvar orçamento:', dbError);
       }
-    );
 
-    // Send to customer's WhatsApp with PDF link
-    const cleanPhone = customerPhone.replace(/\D/g, '');
-    const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    
-    const itemsList = items.map(item => 
-      `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
-    ).join('\n');
-    
-    let message = `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n` +
-      `Nº: ${result.quoteNumber}\n\n` +
-      `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado com sucesso! ✅\n\n` +
-      `*Itens do Orçamento:*\n${itemsList}\n\n` +
-      `💰 *Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
-      `🚚 *Frete:* A combinar\n` +
-      `✨ *Total:* R$ ${total.toFixed(2)}\n\n`;
-    
-    // Add PDF link if available
-    if (result.pdfUrl) {
-      message += `📥 *Baixar PDF do Orçamento:*\n${result.pdfUrl}\n\n`;
+      // Send to customer's WhatsApp with PDF link
+      const cleanPhone = customerPhone.replace(/\D/g, '');
+      const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      
+      const itemsList = items.map(item => 
+        `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
+      ).join('\n');
+      
+      let message = `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n` +
+        `Nº: ${result.quoteNumber}\n\n` +
+        `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado com sucesso! ✅\n\n` +
+        `*Itens do Orçamento:*\n${itemsList}\n\n` +
+        `💰 *Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
+        `🚚 *Frete:* A combinar\n` +
+        `✨ *Total:* R$ ${total.toFixed(2)}\n\n`;
+      
+      // Add PDF link if available
+      if (result.pdfUrl) {
+        message += `📥 *Baixar PDF do Orçamento:*\n${result.pdfUrl}\n\n`;
+      }
+      
+      message += `📞 *Para finalizar seu pedido, entre em contato:*\n` +
+        `WhatsApp: (11) 96257-9428\n\n` +
+        `⏰ _Orçamento válido por 5 dias._\n\n` +
+        `🔒 MR Segurança Máxima - Proteção total para você e sua família!`;
+      
+      // Open WhatsApp with the customer's number
+      window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      
+      toast({
+        title: 'Orçamento gerado!',
+        description: 'O PDF foi criado e enviado por WhatsApp.',
+      });
+
+      setQuoteDialogOpen(false);
+      setCustomerName('');
+      setCustomerEmail('');
+      setCustomerPhone('');
+      setCustomerAddress('');
+    } catch (error) {
+      console.error('Erro ao gerar orçamento:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar o orçamento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
     }
-    
-    message += `📞 *Para finalizar seu pedido, entre em contato:*\n` +
-      `WhatsApp: (11) 96257-9428\n\n` +
-      `⏰ _Orçamento válido por 5 dias._\n\n` +
-      `🔒 MR Segurança Máxima - Proteção total para você e sua família!`;
-    
-    // Open WhatsApp with the customer's number
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
-    
-    setQuoteDialogOpen(false);
-    setCustomerName('');
-    setCustomerPhone('');
-    setCustomerAddress('');
   };
 
   const handleWhatsAppPurchase = () => {
@@ -332,17 +379,29 @@ export default function Cart() {
           <DialogHeader>
             <DialogTitle>Gerar Orçamento em PDF</DialogTitle>
             <DialogDescription>
-              Preencha seus dados para personalizar o orçamento (opcional)
+              Preencha seus dados para receber o orçamento
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="customerName">Nome</Label>
+              <Label htmlFor="customerName">Nome *</Label>
               <Input
                 id="customerName"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Seu nome (opcional)"
+                placeholder="Seu nome completo"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="customerEmail">E-mail *</Label>
+              <Input
+                id="customerEmail"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
               />
             </div>
             <div>
@@ -385,10 +444,10 @@ export default function Cart() {
             <Button 
               onClick={handleGenerateQuote} 
               className="w-full btn-security"
-              disabled={!customerPhone.trim()}
+              disabled={!customerPhone.trim() || !customerEmail.trim() || !customerName.trim() || isGenerating}
             >
               <FileText className="w-4 h-4 mr-2" />
-              Gerar PDF e Enviar por WhatsApp
+              {isGenerating ? 'Gerando...' : 'Gerar PDF e Enviar por WhatsApp'}
             </Button>
           </div>
         </DialogContent>
