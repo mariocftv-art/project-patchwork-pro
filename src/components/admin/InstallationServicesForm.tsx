@@ -27,6 +27,7 @@ interface InstallationService {
   display_order: number;
   active: boolean;
   price: number | null;
+  original_price: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +63,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
     description: service?.description || '',
     features: service?.features?.join(', ') || '',
     price: service?.price ?? '',
+    original_price: service?.original_price ?? '',
     active: service?.active ?? true,
   });
 
@@ -113,6 +115,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
       const features = formData.features.split(',').map(f => f.trim()).filter(Boolean);
 
       const priceValue = formData.price === '' ? null : Number(formData.price);
+      const originalPriceValue = formData.original_price === '' ? null : Number(formData.original_price);
 
       if (service) {
         const { error } = await supabase
@@ -123,6 +126,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
             features,
             image_url,
             price: priceValue,
+            original_price: originalPriceValue,
             active: formData.active,
           })
           .eq('id', service.id);
@@ -147,6 +151,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
             image_url,
             icon: 'Camera',
             price: priceValue,
+            original_price: originalPriceValue,
             display_order: maxOrder + 1,
             active: formData.active,
           });
@@ -193,17 +198,31 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
           />
         </div>
 
-        <div>
-          <Label htmlFor="price">Valor (R$)</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            className="form-input mt-1"
-            placeholder="Ex: 350.00 (deixe vazio para 'sob consulta')"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="price">Valor (R$)</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              className="form-input mt-1"
+              placeholder="350.00"
+            />
+          </div>
+          <div>
+            <Label htmlFor="original_price">Valor Original (R$)</Label>
+            <Input
+              id="original_price"
+              type="number"
+              step="0.01"
+              value={formData.original_price}
+              onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
+              className="form-input mt-1"
+              placeholder="450.00 (opcional)"
+            />
+          </div>
         </div>
 
         <div>

@@ -25,6 +25,7 @@ interface InstallationService {
   display_order: number;
   active: boolean;
   price: number | null;
+  original_price: number | null;
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -161,9 +162,16 @@ export default function Services() {
                         {service.title}
                       </h3>
                       {service.price ? (
-                        <p className="text-primary font-bold">
-                          A partir de R$ {service.price.toFixed(2).replace('.', ',')}
-                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {service.original_price && service.original_price > service.price && (
+                            <span className="text-muted-foreground line-through text-sm">
+                              R$ {service.original_price.toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                          <span className="text-primary font-bold">
+                            A partir de R$ {service.price.toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
                       ) : (
                         <p className="text-muted-foreground text-sm italic">Sob consulta</p>
                       )}
