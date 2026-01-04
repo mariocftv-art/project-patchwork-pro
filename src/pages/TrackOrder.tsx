@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 interface OrderItem {
   name: string;
@@ -110,11 +111,15 @@ export default function TrackOrder() {
           // Invalidate query to refetch updated data
           queryClient.invalidateQueries({ queryKey: ['track-order', searchedOrder] });
           
-          // Show notification
+          // Show notification and play sound
           const newStatus = (payload.new as any).status;
           const statusInfo = statusConfig[newStatus];
           if (statusInfo) {
             setStatusChanged(true);
+            
+            // Play notification sound
+            playNotificationSound();
+            
             toast({
               title: "📦 Status atualizado!",
               description: `Seu pedido agora está: ${statusInfo.label}`,
