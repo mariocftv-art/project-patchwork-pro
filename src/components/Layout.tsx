@@ -228,18 +228,18 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Mobile Layout - Stacked */}
-          <div className="sm:hidden space-y-2">
+          <div className="sm:hidden">
             {/* Top row: Logo + Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <Link to="/" className="flex-shrink-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <img 
                     src={logoMR} 
                     alt="MR Segurança Máxima" 
-                    className="w-10 h-10 object-contain"
+                    className="w-9 h-9 object-contain"
                   />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-ml-dark-gray leading-tight">
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[10px] font-bold text-ml-dark-gray">
                       Segurança Máxima
                     </span>
                     <span className="text-[7px] text-ml-gray">
@@ -249,16 +249,16 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </Link>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center">
                 <NotificationsPopover />
 
                 <Link
                   to="/wishlist"
-                  className="relative p-1.5 text-ml-dark-gray hover:text-ml-blue transition-colors"
+                  className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
                 >
-                  <Heart className="w-4 h-4" />
+                  <Heart className="w-5 h-5" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ml-blue text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-ml-blue text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                       {wishlistCount}
                     </span>
                   )}
@@ -266,11 +266,11 @@ export default function Layout({ children }: LayoutProps) {
 
                 <Link
                   to="/carrinho"
-                  className="relative p-1.5 text-ml-dark-gray hover:text-ml-blue transition-colors"
+                  className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
                 >
-                  <ShoppingCart className="w-4 h-4" />
+                  <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ml-blue text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-ml-blue text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                       {cartCount}
                     </span>
                   )}
@@ -278,7 +278,7 @@ export default function Layout({ children }: LayoutProps) {
 
                 <Sheet>
                   <SheetTrigger asChild>
-                    <button className="p-1.5 text-ml-dark-gray">
+                    <button className="p-2 text-ml-dark-gray">
                       <Menu className="w-5 h-5" />
                     </button>
                   </SheetTrigger>
@@ -342,18 +342,18 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Search bar - separate row on mobile */}
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="relative ml-search flex items-center">
+            <form onSubmit={handleSearch} className="pb-2">
+              <div className="relative flex items-center bg-white border border-border rounded-md overflow-hidden">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar produtos..."
-                  className="w-full px-3 py-2 pr-10 text-sm rounded-sm outline-none"
+                  className="flex-1 px-3 py-2 text-sm outline-none"
                 />
                 <button
                   type="submit"
-                  className="absolute right-0 top-0 bottom-0 px-3 text-ml-gray hover:text-ml-dark-gray border-l border-border"
+                  className="px-3 py-2 text-ml-gray hover:text-ml-dark-gray bg-secondary"
                 >
                   <Search className="w-4 h-4" />
                 </button>
