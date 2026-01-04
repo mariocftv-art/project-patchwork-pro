@@ -6,15 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Save, Edit2, X, GripVertical, Upload, ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, Upload, X, ImageIcon } from 'lucide-react';
 import { Camera, Shield, Zap, Lock, Wifi, Phone, Wrench, Settings, Home, Eye } from 'lucide-react';
 
 interface InstallationService {
@@ -43,24 +43,25 @@ const iconOptions = [
   { value: 'Eye', label: 'Olho', icon: Eye },
 ];
 
-export default function InstallationServicesForm() {
+interface ServiceFormProps {
+  service?: InstallationService | null;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newService, setNewService] = useState({
-    title: '',
-    description: '',
-    icon: 'Camera',
-    features: '',
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(service?.image_url || null);
+  
+  const [formData, setFormData] = useState({
+    title: service?.title || '',
+    description: service?.description || '',
+    features: service?.features?.join(', ') || '',
+    active: service?.active ?? true,
   });
-  const [editData, setEditData] = useState<Partial<InstallationService> & { featuresText?: string }>({});
-  const [newImageFile, setNewImageFile] = useState<File | null>(null);
-  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
-  const [editImageFile, setEditImageFile] = useState<File | null>(null);
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const newFileInputRef = useRef<HTMLInputElement>(null);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadImage = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
@@ -79,25 +80,200 @@ export default function InstallationServicesForm() {
     return data.publicUrl;
   };
 
-  const handleNewImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setNewImageFile(file);
+      setImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => setNewImagePreview(reader.result as string);
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setEditImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setEditImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      toast({ title: 'Erro', description: 'O título é obrigatório.', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let image_url = service?.image_url || null;
+      
+      if (imageFile) {
+        image_url = await uploadImage(imageFile);
+      } else if (!imagePreview) {
+        image_url = null;
+      }
+
+      const features = formData.features.split(',').map(f => f.trim()).filter(Boolean);
+
+      if (service) {
+        const { error } = await supabase
+          .from('installation_services')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            features,
+            image_url,
+            active: formData.active,
+          })
+          .eq('id', service.id);
+        
+        if (error) throw error;
+        toast({ title: 'Serviço atualizado com sucesso!' });
+      } else {
+        const { data: existingServices } = await supabase
+          .from('installation_services')
+          .select('display_order')
+          .order('display_order', { ascending: false })
+          .limit(1);
+        
+        const maxOrder = existingServices?.[0]?.display_order || 0;
+        
+        const { error } = await supabase
+          .from('installation_services')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            features,
+            image_url,
+            icon: 'Camera',
+            display_order: maxOrder + 1,
+            active: formData.active,
+          });
+        
+        if (error) throw error;
+        toast({ title: 'Serviço criado com sucesso!' });
+      }
+      
+      onSuccess();
+    } catch (error) {
+      toast({ 
+        title: 'Erro ao salvar serviço', 
+        description: 'Tente novamente.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <Label htmlFor="title">Título *</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            className="form-input mt-1"
+            placeholder="Ex: Instalação de Câmeras"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description">Descrição</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="form-input mt-1"
+            placeholder="Descreva o serviço..."
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="features">Características (separadas por vírgula)</Label>
+          <Input
+            id="features"
+            value={formData.features}
+            onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+            className="form-input mt-1"
+            placeholder="Câmeras HD, Acesso remoto, Suporte 24h"
+          />
+        </div>
+
+        <div>
+          <Label>Foto do Serviço</Label>
+          <div className="flex items-start gap-4 mt-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {imagePreview ? 'Trocar Foto' : 'Escolher Foto'}
+            </Button>
+            {imagePreview && (
+              <div className="relative w-24 h-24">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover rounded-lg border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 w-6 h-6"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                  }}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+            {!imagePreview && (
+              <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center border border-dashed">
+                <ImageIcon className="w-8 h-8 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="active"
+            checked={formData.active}
+            onCheckedChange={(checked) => setFormData({ ...formData, active: !!checked })}
+          />
+          <Label htmlFor="active" className="cursor-pointer">
+            Serviço ativo
+          </Label>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting} className="btn-security">
+          {isSubmitting ? 'Salvando...' : service ? 'Atualizar' : 'Criar Serviço'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export default function InstallationServicesForm() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<InstallationService | null>(null);
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['installation-services'],
@@ -108,43 +284,6 @@ export default function InstallationServicesForm() {
         .order('display_order', { ascending: true });
       if (error) throw error;
       return data as InstallationService[];
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (service: { title: string; description: string; icon: string; features: string[]; image_url?: string }) => {
-      const maxOrder = services.length > 0 ? Math.max(...services.map(s => s.display_order)) : 0;
-      const { error } = await supabase.from('installation_services').insert({
-        ...service,
-        display_order: maxOrder + 1,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['installation-services'] });
-      setNewService({ title: '', description: '', icon: 'Camera', features: '' });
-      setNewImageFile(null);
-      setNewImagePreview(null);
-      toast({ title: 'Serviço adicionado!', description: 'O serviço foi criado com sucesso.' });
-    },
-    onError: () => {
-      toast({ title: 'Erro', description: 'Não foi possível adicionar o serviço.', variant: 'destructive' });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string } & Partial<InstallationService>) => {
-      const { error } = await supabase.from('installation_services').update(data).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['installation-services'] });
-      setEditingId(null);
-      setEditData({});
-      toast({ title: 'Serviço atualizado!', description: 'As alterações foram salvas.' });
-    },
-    onError: () => {
-      toast({ title: 'Erro', description: 'Não foi possível atualizar o serviço.', variant: 'destructive' });
     },
   });
 
@@ -162,81 +301,34 @@ export default function InstallationServicesForm() {
     },
   });
 
-  const handleCreate = async () => {
-    if (!newService.title.trim()) {
-      toast({ title: 'Erro', description: 'O título é obrigatório.', variant: 'destructive' });
-      return;
-    }
-    
-    setIsUploading(true);
-    try {
-      let image_url: string | undefined;
-      if (newImageFile) {
-        image_url = await uploadImage(newImageFile);
-      }
-      
-      const features = newService.features.split(',').map(f => f.trim()).filter(Boolean);
-      createMutation.mutate({
-        title: newService.title,
-        description: newService.description,
-        icon: newService.icon,
-        features,
-        image_url,
-      });
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Não foi possível fazer upload da imagem.', variant: 'destructive' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from('installation_services')
+        .update({ active })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installation-services'] });
+    },
+  });
 
   const handleEdit = (service: InstallationService) => {
-    setEditingId(service.id);
-    setEditData({
-      ...service,
-      featuresText: service.features.join(', '),
-    });
-    setEditImagePreview(service.image_url || null);
-    setEditImageFile(null);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingId || !editData.title?.trim()) return;
-    
-    setIsUploading(true);
-    try {
-      let image_url = editData.image_url;
-      if (editImageFile) {
-        image_url = await uploadImage(editImageFile);
-      }
-      
-      const features = editData.featuresText?.split(',').map(f => f.trim()).filter(Boolean) || [];
-      updateMutation.mutate({
-        id: editingId,
-        title: editData.title,
-        description: editData.description,
-        icon: editData.icon,
-        image_url,
-        features,
-        active: editData.active,
-      });
-      setEditImageFile(null);
-      setEditImagePreview(null);
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Não foi possível fazer upload da imagem.', variant: 'destructive' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleToggleActive = (id: string, active: boolean) => {
-    updateMutation.mutate({ id, active: !active });
+    setEditingService(service);
+    setDialogOpen(true);
   };
 
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este serviço?')) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['installation-services'] });
+    setDialogOpen(false);
+    setEditingService(null);
   };
 
   const getIconComponent = (iconName: string) => {
@@ -250,230 +342,36 @@ export default function InstallationServicesForm() {
 
   return (
     <div className="space-y-6">
-      {/* Add new service form */}
-      <div className="admin-card">
-        <h3 className="font-semibold text-foreground mb-4">➕ Adicionar Novo Serviço</h3>
-        <div className="grid gap-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="title">Título *</Label>
-              <Input
-                id="title"
-                value={newService.title}
-                onChange={(e) => setNewService({ ...newService, title: e.target.value })}
-                placeholder="Ex: Instalação de Câmeras"
-              />
-            </div>
-            <div>
-              <Label htmlFor="icon">Ícone</Label>
-              <Select
-                value={newService.icon}
-                onValueChange={(value) => setNewService({ ...newService, icon: value })}
-              >
-                <SelectTrigger className="bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {iconOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center gap-2">
-                        <option.icon className="w-4 h-4" />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={newService.description}
-              onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-              placeholder="Descreva o serviço..."
-              rows={2}
-            />
-          </div>
-          <div>
-            <Label htmlFor="features">Características (separadas por vírgula)</Label>
-            <Input
-              id="features"
-              value={newService.features}
-              onChange={(e) => setNewService({ ...newService, features: e.target.value })}
-              placeholder="Câmeras HD, Acesso remoto, Suporte 24h"
-            />
-          </div>
-          <div>
-            <Label>Foto do Serviço (opcional)</Label>
-            <div className="flex items-center gap-4 mt-2">
-              <input
-                type="file"
-                ref={newFileInputRef}
-                onChange={handleNewImageChange}
-                accept="image/*"
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => newFileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Escolher Foto
-              </Button>
-              {newImagePreview && (
-                <div className="relative w-20 h-20">
-                  <img
-                    src={newImagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover rounded-lg border"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 w-6 h-6"
-                    onClick={() => {
-                      setNewImageFile(null);
-                      setNewImagePreview(null);
-                    }}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          <Button onClick={handleCreate} disabled={createMutation.isPending || isUploading} className="btn-security">
-            <Plus className="w-4 h-4 mr-2" />
-            {isUploading ? 'Enviando foto...' : createMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço'}
-          </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h3 className="font-semibold text-foreground">📋 Serviços de Instalação ({services.length})</h3>
+        <Button 
+          onClick={() => { setEditingService(null); setDialogOpen(true); }}
+          className="btn-security"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Adicionar Serviço
+        </Button>
       </div>
 
-      {/* Services list */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingService(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingService ? 'Editar Serviço' : 'Novo Serviço'}
+            </DialogTitle>
+          </DialogHeader>
+          <ServiceForm
+            service={editingService}
+            onSuccess={handleSuccess}
+            onCancel={() => setDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <div className="admin-card">
-        <h3 className="font-semibold text-foreground mb-4">📋 Serviços Cadastrados ({services.length})</h3>
         <div className="space-y-3">
           {services.map((service) => {
             const IconComponent = getIconComponent(service.icon);
-            const isEditing = editingId === service.id;
-
-            if (isEditing) {
-              return (
-                <div key={service.id} className="bg-secondary/50 p-4 rounded-lg space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Título</Label>
-                      <Input
-                        value={editData.title || ''}
-                        onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Ícone</Label>
-                      <Select
-                        value={editData.icon || 'Camera'}
-                        onValueChange={(value) => setEditData({ ...editData, icon: value })}
-                      >
-                        <SelectTrigger className="bg-background">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {iconOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex items-center gap-2">
-                                <option.icon className="w-4 h-4" />
-                                {option.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Descrição</Label>
-                    <Textarea
-                      value={editData.description || ''}
-                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                      rows={2}
-                    />
-                  </div>
-                  <div>
-                    <Label>Características (separadas por vírgula)</Label>
-                    <Input
-                      value={editData.featuresText || ''}
-                      onChange={(e) => setEditData({ ...editData, featuresText: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Foto do Serviço</Label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <input
-                        type="file"
-                        ref={editFileInputRef}
-                        onChange={handleEditImageChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => editFileInputRef.current?.click()}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {editImagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
-                      </Button>
-                      {editImagePreview && (
-                        <div className="relative w-16 h-16">
-                          <img
-                            src={editImagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover rounded-lg border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 w-5 h-5"
-                            onClick={() => {
-                              setEditImageFile(null);
-                              setEditImagePreview(null);
-                              setEditData({ ...editData, image_url: null });
-                            }}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={editData.active ?? true}
-                        onCheckedChange={(checked) => setEditData({ ...editData, active: checked })}
-                      />
-                      <Label>Ativo</Label>
-                    </div>
-                    <div className="flex gap-2 ml-auto">
-                      <Button variant="outline" size="sm" onClick={() => { setEditingId(null); setEditImageFile(null); setEditImagePreview(null); }}>
-                        <X className="w-4 h-4 mr-1" />
-                        Cancelar
-                      </Button>
-                      <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending || isUploading}>
-                        <Save className="w-4 h-4 mr-1" />
-                        {isUploading ? 'Enviando...' : 'Salvar'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
 
             return (
               <div
@@ -502,7 +400,7 @@ export default function InstallationServicesForm() {
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={service.active}
-                    onCheckedChange={() => handleToggleActive(service.id, service.active)}
+                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: service.id, active: checked })}
                   />
                   <Button variant="outline" size="icon" onClick={() => handleEdit(service)}>
                     <Edit2 className="w-4 h-4" />
@@ -516,7 +414,7 @@ export default function InstallationServicesForm() {
           })}
           {services.length === 0 && (
             <p className="text-muted-foreground text-center py-8">
-              Nenhum serviço cadastrado. Adicione o primeiro acima!
+              Nenhum serviço cadastrado. Clique em "Adicionar Serviço" para começar!
             </p>
           )}
         </div>
