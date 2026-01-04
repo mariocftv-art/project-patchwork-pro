@@ -5,7 +5,7 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
-import InstallAppBanner, { InstallAppButton } from './InstallAppBanner';
+import InstallAppBanner, { InstallAppButton, useInstallPrompt } from './InstallAppBanner';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -56,8 +56,10 @@ export default function Layout({ children }: LayoutProps) {
   const { totalItems: cartCount } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
+  const { canInstall, isIOS, install } = useInstallPrompt();
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
+  const [showIOSModal, setShowIOSModal] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -466,6 +468,68 @@ export default function Layout({ children }: LayoutProps) {
         </svg>
         <span className="text-xs sm:text-sm font-medium hidden sm:inline">WhatsApp</span>
       </a>
+
+      {/* Floating Install App Button - Mobile Only */}
+      {canInstall && (
+        <>
+          <button
+            onClick={() => isIOS ? setShowIOSModal(true) : install()}
+            className="sm:hidden fixed bottom-20 right-3 z-50 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-transform animate-pulse"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span className="text-sm font-semibold">Instalar</span>
+          </button>
+
+          {/* iOS Instructions Modal */}
+          {showIOSModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowIOSModal(false)}>
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="text-center mb-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">Instalar App</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Siga os passos abaixo:</p>
+                </div>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Toque no botão Compartilhar</p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M16 5l-1.42 1.42-1.59-1.59V16h-2V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"/>
+                        </svg>
+                        <span>(ícone na barra do Safari)</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Adicionar à Tela Inicial</p>
+                      <p className="text-xs text-muted-foreground mt-1">Role para baixo e toque na opção</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setShowIOSModal(false)}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Entendi
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Install App Banner */}
       <InstallAppBanner />
