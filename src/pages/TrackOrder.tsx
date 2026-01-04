@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin } from 'lucide-react';
+import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin, Bell } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface OrderItem {
   name: string;
@@ -53,6 +54,9 @@ export default function TrackOrder() {
   const initialOrderNumber = searchParams.get('pedido') || '';
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
   const [searchedOrder, setSearchedOrder] = useState(initialOrderNumber);
+  const [statusChanged, setStatusChanged] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['track-order', searchedOrder],
@@ -77,6 +81,47 @@ export default function TrackOrder() {
     },
     enabled: !!searchedOrder,
   });
+
+  // Real-time subscription for order updates
+  useEffect(() => {
+    if (!searchedOrder) return;
+
+    const channel = supabase
+      .channel('order-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `order_number=eq.${searchedOrder.toUpperCase()}`
+        },
+        (payload) => {
+          console.log('Order updated in real-time:', payload);
+          // Invalidate query to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ['track-order', searchedOrder] });
+          
+          // Show notification
+          const newStatus = (payload.new as any).status;
+          const statusInfo = statusConfig[newStatus];
+          if (statusInfo) {
+            setStatusChanged(true);
+            toast({
+              title: "📦 Status atualizado!",
+              description: `Seu pedido agora está: ${statusInfo.label}`,
+            });
+            
+            // Reset animation after 3 seconds
+            setTimeout(() => setStatusChanged(false), 3000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [searchedOrder, queryClient, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,8 +219,17 @@ export default function TrackOrder() {
       {/* Order Found */}
       {order && (
         <div className="space-y-6">
+          {/* Real-time indicator */}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            Atualizações em tempo real ativas
+          </div>
+
           {/* Order Header */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className={`bg-white rounded-lg shadow-sm p-6 transition-all duration-500 ${statusChanged ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-foreground">
@@ -185,7 +239,7 @@ export default function TrackOrder() {
                   Realizado em {formatDate(order.created_at)}
                 </p>
               </div>
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${getStatusInfo(order.status).color}`}>
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${getStatusInfo(order.status).color} ${statusChanged ? 'scale-110' : ''}`}>
                 {(() => {
                   const StatusIcon = getStatusInfo(order.status).icon;
                   return <StatusIcon className="w-5 h-5" />;
