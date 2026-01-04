@@ -5,6 +5,7 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
+import InstallAppBanner from './InstallAppBanner';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -461,6 +462,8 @@ export default function Layout({ children }: LayoutProps) {
         <span className="text-xs sm:text-sm font-medium hidden sm:inline">WhatsApp</span>
       </a>
 
+      {/* Install App Banner */}
+      <InstallAppBanner />
     </div>
   );
 }
