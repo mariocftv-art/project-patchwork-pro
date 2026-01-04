@@ -344,6 +344,7 @@ export default function Layout({ children }: LayoutProps) {
               <ul className="space-y-2 text-sm text-ml-gray">
                 <li><a href="#" className="hover:text-ml-blue">Central de ajuda</a></li>
                 <li><a href="#" className="hover:text-ml-blue">Como comprar</a></li>
+                <li><Link to="/rastrear-pedido" className="hover:text-ml-blue">Rastrear Pedido</Link></li>
                 <li><a href="#" className="hover:text-ml-blue">Garantias</a></li>
               </ul>
             </div>
