@@ -96,20 +96,20 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <div className="flex flex-col items-center text-center">
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <img 
-                    src={logoMR} 
-                    alt="MR Segurança Máxima" 
-                    className="w-8 h-8 sm:w-12 sm:h-12 object-contain"
-                  />
-                  <span className="text-xs sm:text-sm font-bold text-ml-dark-gray hidden xs:inline">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <img 
+                  src={logoMR} 
+                  alt="MR Segurança Máxima" 
+                  className="w-10 h-10 sm:w-14 sm:h-14 object-contain"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm sm:text-lg font-bold text-ml-dark-gray leading-tight">
                     Segurança Máxima
                   </span>
+                  <span className="text-[9px] sm:text-xs text-ml-gray">
+                    CNPJ: 45.858.215/0001-86
+                  </span>
                 </div>
-                <span className="text-[8px] sm:text-[10px] text-ml-gray hidden sm:block">
-                  CNPJ: 45.858.215/0001-86
-                </span>
               </div>
             </Link>
 
