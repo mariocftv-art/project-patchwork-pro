@@ -8,7 +8,7 @@ interface OrderConfirmData {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; quantity: number; price: number; imageUrl?: string }>;
   total: number;
 }
 
@@ -104,11 +104,20 @@ export default function OrderConfirmation() {
           {orderData && orderData.items.length > 0 && (
             <div className="text-left bg-ml-gray-100 rounded-lg p-6 mb-6">
               <h3 className="font-semibold mb-3">Resumo do Pedido</h3>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {orderData.items.map((item, index) => (
-                  <div key={index} className="flex justify-between">
-                    <span>{item.quantity}x {item.name}</span>
-                    <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                  <div key={index} className="flex items-center gap-3">
+                    {item.imageUrl && (
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.name}
+                        className="w-12 h-12 object-contain rounded border border-gray-200"
+                      />
+                    )}
+                    <div className="flex-1 flex justify-between items-center">
+                      <span>{item.quantity}x {item.name}</span>
+                      <span className="font-medium">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
                   </div>
                 ))}
                 <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
@@ -120,10 +129,10 @@ export default function OrderConfirmation() {
           )}
 
           <div className="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold mb-2 text-yellow-800">⚠️ Importante</h3>
+            <h3 className="font-semibold mb-2 text-yellow-800">⚠️ Importante - Pagamento via WhatsApp</h3>
             <p className="text-sm text-yellow-700">
-              Para confirmar seu pedido, clique no botão abaixo e envie a mensagem pelo WhatsApp. 
-              Assim que recebermos, entraremos em contato para finalizar sua compra.
+              Para confirmar seu pedido e <strong>finalizar o pagamento</strong>, clique no botão abaixo e envie a mensagem pelo WhatsApp. 
+              Assim que recebermos, entraremos em contato para combinar a forma de pagamento e finalizar sua compra.
             </p>
           </div>
 
