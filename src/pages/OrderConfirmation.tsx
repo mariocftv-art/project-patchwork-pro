@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home, Search, Check } from "lucide-react";
+import { CheckCircle, MessageCircle, Package, Home, Search, Check, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
+import { 
+  requestNotificationPermission, 
+  getNotificationPermission, 
+  hasRequestedPermission, 
+  markPermissionRequested 
+} from "@/utils/pushNotifications";
 
 interface OrderConfirmData {
   orderNumber: string;
@@ -22,7 +28,26 @@ export default function OrderConfirmation() {
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState<OrderConfirmData | null>(null);
   const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const { trackOrder } = useCustomerNotifications();
+
+  // Request notification permission automatically when page loads
+  useEffect(() => {
+    const currentPermission = getNotificationPermission();
+    if (currentPermission === 'unsupported') {
+      setNotificationStatus('unsupported');
+    } else {
+      setNotificationStatus(currentPermission as 'prompt' | 'granted' | 'denied');
+      
+      // Auto-request permission if not yet asked
+      if (currentPermission === 'default' && !hasRequestedPermission()) {
+        markPermissionRequested();
+        requestNotificationPermission().then((granted) => {
+          setNotificationStatus(granted ? 'granted' : 'denied');
+        });
+      }
+    }
+  }, []);
 
   // Check if already confirmed
   useEffect(() => {
@@ -151,6 +176,31 @@ export default function OrderConfirmation() {
                   <span className="text-ml-blue">R$ {orderData.total.toFixed(2)}</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Notification status indicator */}
+          {notificationStatus === 'granted' && (
+            <div className="text-left bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 text-green-700">
+                <Bell className="h-5 w-5" />
+                <span className="text-sm font-medium">🔔 Notificações ativadas!</span>
+              </div>
+              <p className="text-sm text-green-600 mt-1">
+                Você receberá uma notificação no celular quando o status do seu pedido mudar.
+              </p>
+            </div>
+          )}
+
+          {notificationStatus === 'denied' && (
+            <div className="text-left bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 text-orange-700">
+                <Bell className="h-5 w-5" />
+                <span className="text-sm font-medium">Notificações bloqueadas</span>
+              </div>
+              <p className="text-sm text-orange-600 mt-1">
+                Ative as notificações nas configurações do navegador para receber atualizações do pedido.
+              </p>
             </div>
           )}
 
