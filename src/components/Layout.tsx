@@ -100,7 +100,7 @@ export default function Layout({ children }: LayoutProps) {
                 <img 
                   src={logoMR} 
                   alt="MR Segurança Máxima" 
-                  className="w-10 h-10 sm:w-14 sm:h-14 object-contain"
+                  className="w-14 h-14 sm:w-20 sm:h-20 object-contain"
                 />
                 <div className="flex flex-col">
                   <span className="text-sm sm:text-lg font-bold text-ml-dark-gray leading-tight">
