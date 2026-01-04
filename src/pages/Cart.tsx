@@ -78,6 +78,31 @@ export default function Cart() {
         email: siteContent.contact.email,
       }
     );
+
+    // Send PDF info via WhatsApp if phone is provided
+    if (customerPhone) {
+      const cleanPhone = customerPhone.replace(/\D/g, '');
+      const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      
+      const itemsList = items.map(item => 
+        `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
+      ).join('\n');
+      
+      const message = encodeURIComponent(
+        `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n\n` +
+        `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado.\n\n` +
+        `*Itens:*\n${itemsList}\n\n` +
+        `*Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
+        `*Frete:* A combinar\n` +
+        `*Total:* R$ ${total.toFixed(2)}\n\n` +
+        `📞 Para finalizar, entre em contato:\n` +
+        `WhatsApp: (11) 96257-9428\n\n` +
+        `_Orçamento válido por 5 dias._`
+      );
+      
+      window.open(`https://wa.me/${whatsappPhone}?text=${message}`, '_blank');
+    }
+    
     setQuoteDialogOpen(false);
   };
 
@@ -318,13 +343,17 @@ export default function Cart() {
               />
             </div>
             <div>
-              <Label htmlFor="customerPhone">Telefone</Label>
+              <Label htmlFor="customerPhone">Telefone / WhatsApp *</Label>
               <Input
                 id="customerPhone"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="(11) 99999-9999"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                O orçamento será enviado para este número via WhatsApp
+              </p>
             </div>
             <div>
               <Label htmlFor="customerAddress">Endereço</Label>
@@ -350,9 +379,13 @@ export default function Cart() {
                 <span>R$ {total.toFixed(2)}</span>
               </div>
             </div>
-            <Button onClick={handleGenerateQuote} className="w-full btn-security">
+            <Button 
+              onClick={handleGenerateQuote} 
+              className="w-full btn-security"
+              disabled={!customerPhone.trim()}
+            >
               <FileText className="w-4 h-4 mr-2" />
-              Baixar Orçamento em PDF
+              Gerar PDF e Enviar por WhatsApp
             </Button>
           </div>
         </DialogContent>
