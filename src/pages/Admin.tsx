@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag } from 'lucide-react';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
 import SiteContentForm from '@/components/admin/SiteContentForm';
@@ -13,6 +13,7 @@ import AboutForm from '@/components/admin/AboutForm';
 import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
 import CategoriesForm from '@/components/admin/CategoriesForm';
 import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
+import OrdersManagement from '@/components/admin/OrdersManagement';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -64,8 +65,12 @@ export default function Admin() {
         ⚙️ Painel Administrativo
       </h1>
 
-      <Tabs defaultValue="products" className="space-y-6">
+      <Tabs defaultValue="orders" className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            Pedidos
+          </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Produtos
@@ -107,6 +112,14 @@ export default function Admin() {
             Configurações
           </TabsTrigger>
         </TabsList>
+
+        {/* Orders Tab */}
+        <TabsContent value="orders" className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Gerenciar Pedidos
+          </h2>
+          <OrdersManagement />
+        </TabsContent>
 
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4">
