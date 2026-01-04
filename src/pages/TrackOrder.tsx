@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 
 interface OrderItem {
   name: string;
@@ -57,6 +58,7 @@ export default function TrackOrder() {
   const [statusChanged, setStatusChanged] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { trackOrder } = useCustomerNotifications();
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['track-order', searchedOrder],
@@ -81,6 +83,13 @@ export default function TrackOrder() {
     },
     enabled: !!searchedOrder,
   });
+
+  // Register order for tracking when found
+  useEffect(() => {
+    if (order?.order_number) {
+      trackOrder(order.order_number);
+    }
+  }, [order?.order_number, trackOrder]);
 
   // Real-time subscription for order updates
   useEffect(() => {
