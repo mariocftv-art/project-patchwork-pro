@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, settingsApi } from '@/lib/supabaseApi';
 import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, ShoppingCart, Truck, Shield, FileText, MessageCircle } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Truck, Shield, FileText, MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ export default function Cart() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [quoteSent, setQuoteSent] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -144,16 +145,23 @@ export default function Cart() {
       // Open WhatsApp with the customer's number
       window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
       
+      // Show success state
+      setQuoteSent(true);
+      
       toast({
-        title: 'Orçamento gerado!',
-        description: 'O PDF foi criado e enviado por WhatsApp.',
+        title: '✅ Orçamento enviado!',
+        description: 'O PDF foi criado e enviado para o WhatsApp.',
       });
 
-      setQuoteDialogOpen(false);
-      setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
-      setCustomerAddress('');
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setQuoteDialogOpen(false);
+        setQuoteSent(false);
+        setCustomerName('');
+        setCustomerEmail('');
+        setCustomerPhone('');
+        setCustomerAddress('');
+      }, 2000);
     } catch (error) {
       console.error('Erro ao gerar orçamento:', error);
       toast({
@@ -443,11 +451,31 @@ export default function Cart() {
             </div>
             <Button 
               onClick={handleGenerateQuote} 
-              className="w-full btn-security"
-              disabled={!customerPhone.trim() || !customerEmail.trim() || !customerName.trim() || isGenerating}
+              className={`w-full btn-security transition-all duration-300 ${
+                quoteSent 
+                  ? 'bg-green-500 hover:bg-green-600 animate-pulse' 
+                  : isGenerating 
+                    ? 'animate-pulse' 
+                    : ''
+              }`}
+              disabled={!customerPhone.trim() || !customerEmail.trim() || !customerName.trim() || isGenerating || quoteSent}
             >
-              <FileText className="w-4 h-4 mr-2" />
-              {isGenerating ? 'Gerando...' : 'Gerar PDF e Enviar por WhatsApp'}
+              {quoteSent ? (
+                <>
+                  <span className="mr-2">✅</span>
+                  Enviado para o WhatsApp!
+                </>
+              ) : isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Gerando PDF...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Gerar PDF e Enviar por WhatsApp
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
