@@ -15,6 +15,7 @@ export default function Checkout() {
   const { toast } = useToast();
   const { cartItems, clearCart, isLoading: cartLoading } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderCompleted, setOrderCompleted] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   // Store order data temporarily in state for confirmation page
   const [createdOrder, setCreatedOrder] = useState<{orderNumber: string; customerName: string; items: Array<{name: string; quantity: number; price: number}>; total: number} | null>(null);
@@ -182,9 +183,14 @@ export default function Checkout() {
         total: finalTotal,
       }));
       
-      // Limpar carrinho e navegar
-      clearCart.mutate();
-      navigate(`/pedido-confirmado/${orderNumber}`);
+      // Show success animation
+      setOrderCompleted(true);
+      
+      // Limpar carrinho e navegar após animação
+      setTimeout(() => {
+        clearCart.mutate();
+        navigate(`/pedido-confirmado/${orderNumber}`);
+      }, 1500);
     } catch (error) {
       console.error("Erro ao processar pedido:", error);
       toast({
@@ -461,10 +467,19 @@ export default function Checkout() {
 
               <Button
                 type="submit"
-                className="w-full mt-6 ml-btn-primary h-12 text-lg"
-                disabled={isSubmitting}
+                className={`w-full mt-6 h-12 text-lg transition-all duration-300 ${
+                  orderCompleted 
+                    ? 'bg-green-500 hover:bg-green-600 animate-pulse' 
+                    : 'ml-btn-primary'
+                } ${isSubmitting ? 'animate-pulse' : ''}`}
+                disabled={isSubmitting || orderCompleted}
               >
-                {isSubmitting ? (
+                {orderCompleted ? (
+                  <>
+                    <span className="mr-2">✅</span>
+                    Pedido Enviado!
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Processando...
