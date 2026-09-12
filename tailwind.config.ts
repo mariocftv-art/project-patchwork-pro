@@ -58,8 +58,8 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         ml: {
-          yellow: "#FFE600",
-          "yellow-dark": "#FFCD00",
+          turquoise: "#40E0D0",
+          "turquoise-dark": "#20B2AA",
           blue: "#3483FA",
           "blue-dark": "#2968C8",
           green: "#00A650",

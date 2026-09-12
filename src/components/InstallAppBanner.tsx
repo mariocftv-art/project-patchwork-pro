@@ -89,7 +89,7 @@ export function InstallAppButton({ className }: { className?: string }) {
           onClick={() => setShowIOSInstructions(!showIOSInstructions)}
           variant="outline"
           size="sm"
-          className="gap-2 text-primary border-primary hover:bg-primary hover:text-primary-foreground"
+          className="gap-2 text-ml-turquoise border-ml-turquoise hover:bg-ml-turquoise hover:text-white"
         >
           <Smartphone className="w-4 h-4" />
           Instalar App
@@ -112,7 +112,7 @@ export function InstallAppButton({ className }: { className?: string }) {
       onClick={install}
       variant="outline"
       size="sm"
-      className={`gap-2 text-primary border-primary hover:bg-primary hover:text-primary-foreground ${className}`}
+      className={`gap-2 text-ml-turquoise border-ml-turquoise hover:bg-ml-turquoise hover:text-white ${className}`}
     >
       <Download className="w-4 h-4" />
       Instalar App
@@ -175,11 +175,11 @@ export default function InstallAppBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg animate-slide-up">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-gradient-to-r from-ml-turquoise to-ml-turquoise-dark text-white shadow-lg animate-slide-up">
       <div className="container mx-auto max-w-lg">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-            <Download className="w-6 h-6 text-primary" />
+            <Download className="w-6 h-6 text-ml-turquoise" />
           </div>
           
           <div className="flex-1 min-w-0">
