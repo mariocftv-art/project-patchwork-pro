@@ -400,37 +400,37 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-border mt-8">
+      <footer className="bg-[#40E0D0] border-t border-border mt-8 text-white">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h4 className="font-semibold text-foreground mb-3 text-sm">Sobre</h4>
-              <ul className="space-y-2 text-sm text-ml-gray">
-                <li><a href="#" className="hover:text-ml-blue">Quem somos</a></li>
-                <li><a href="#" className="hover:text-ml-blue">Trabalhe conosco</a></li>
-                <li><a href="#" className="hover:text-ml-blue">Termos de uso</a></li>
+              <h4 className="font-semibold mb-3 text-sm">Sobre</h4>
+              <ul className="space-y-2 text-sm opacity-90">
+                <li><a href="#" className="hover:text-white">Quem somos</a></li>
+                <li><a href="#" className="hover:text-white">Trabalhe conosco</a></li>
+                <li><a href="#" className="hover:text-white">Termos de uso</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-3 text-sm">Ajuda</h4>
-              <ul className="space-y-2 text-sm text-ml-gray">
-                <li><a href="#" className="hover:text-ml-blue">Central de ajuda</a></li>
-                <li><a href="#" className="hover:text-ml-blue">Como comprar</a></li>
-                <li><Link to="/rastrear-pedido" className="hover:text-ml-blue">Rastrear Pedido</Link></li>
-                <li><a href="#" className="hover:text-ml-blue">Garantias</a></li>
+              <h4 className="font-semibold mb-3 text-sm">Ajuda</h4>
+              <ul className="space-y-2 text-sm opacity-90">
+                <li><a href="#" className="hover:text-white">Central de ajuda</a></li>
+                <li><a href="#" className="hover:text-white">Como comprar</a></li>
+                <li><Link to="/rastrear-pedido" className="hover:text-white">Rastrear Pedido</Link></li>
+                <li><a href="#" className="hover:text-white">Garantias</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-3 text-sm">Pagamento</h4>
-              <ul className="space-y-2 text-sm text-ml-gray">
+              <h4 className="font-semibold mb-3 text-sm">Pagamento</h4>
+              <ul className="space-y-2 text-sm opacity-90">
                 <li>💳 Cartão de Crédito</li>
                 <li>📱 PIX</li>
                 <li>📄 Boleto</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-3 text-sm">Contato</h4>
-              <ul className="space-y-2 text-sm text-ml-gray">
+              <h4 className="font-semibold mb-3 text-sm">Contato</h4>
+              <ul className="space-y-2 text-sm opacity-90">
                 <li>📞 {siteContent.contact.phone}</li>
                 <li>📧 {siteContent.contact.email}</li>
                 {siteContent.contact.address && (
@@ -439,7 +439,7 @@ export default function Layout({ children }: LayoutProps) {
               </ul>
             </div>
           </div>
-          <div className="border-t border-border mt-8 pt-6 text-center text-xs text-ml-gray">
+          <div className="border-t border-white/20 mt-8 pt-6 text-center text-xs opacity-80">
             {siteContent.footer.copyright}
           </div>
         </div>
