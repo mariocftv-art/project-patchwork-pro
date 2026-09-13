@@ -370,12 +370,12 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Categories Bar */}
-        <div className="bg-white border-b border-border">
+        <div className="bg-[#40E0D0] border-b border-[#36c2b4]">
           <div className="container mx-auto px-4">
             <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
               <Link
                 to="/"
-                className="flex items-center gap-1 text-sm text-ml-gray hover:text-ml-blue whitespace-nowrap"
+                className="flex items-center gap-1 text-sm text-white hover:text-white/80 whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
                 Categorias
@@ -384,7 +384,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={cat.path}
                   to={cat.path}
-                  className="text-sm text-ml-gray hover:text-ml-blue whitespace-nowrap transition-colors"
+                  className="text-sm text-white hover:text-white/80 whitespace-nowrap transition-colors"
                 >
                   {cat.name}
                 </Link>
@@ -400,7 +400,7 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#40E0D0] border-t border-border mt-8 text-white">
+      <footer className="bg-[#40E0D0] border-t border-[#36c2b4] mt-8 text-white">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
