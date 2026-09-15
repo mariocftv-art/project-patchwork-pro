@@ -30,6 +30,7 @@ export default function Admin() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
+  const { signOut } = useAuth();
 
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ['admin-products'],
