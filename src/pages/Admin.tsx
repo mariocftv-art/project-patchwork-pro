@@ -201,6 +201,11 @@ export default function Admin() {
                       R$ {product.original_price.toFixed(2)}
                     </p>
                   )}
+                  {product.cost_price != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Custo: R$ {Number(product.cost_price).toFixed(2)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
