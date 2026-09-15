@@ -53,6 +53,7 @@ export type Database = {
           display_order: number | null
           id: string
           name: string
+          parent_slug: string | null
           slug: string
         }
         Insert: {
@@ -60,6 +61,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           name: string
+          parent_slug?: string | null
           slug: string
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           name?: string
+          parent_slug?: string | null
           slug?: string
         }
         Relationships: []
@@ -169,41 +172,65 @@ export type Database = {
       }
       products: {
         Row: {
+          brand: string | null
           category: string | null
+          cost_price: number | null
           created_at: string | null
           description: string | null
           featured: boolean | null
+          gallery_urls: string[]
           id: string
           image_url: string | null
+          model: string | null
+          on_sale: boolean
           original_price: number | null
           price: number
+          sku: string | null
+          status: string
           stock: number
+          subcategory: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
+          brand?: string | null
           category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
           featured?: boolean | null
+          gallery_urls?: string[]
           id?: string
           image_url?: string | null
+          model?: string | null
+          on_sale?: boolean
           original_price?: number | null
           price?: number
+          sku?: string | null
+          status?: string
           stock?: number
+          subcategory?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
+          brand?: string | null
           category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
           featured?: boolean | null
+          gallery_urls?: string[]
           id?: string
           image_url?: string | null
+          model?: string | null
+          on_sale?: boolean
           original_price?: number | null
           price?: number
+          sku?: string | null
+          status?: string
           stock?: number
+          subcategory?: string | null
           title?: string
           updated_at?: string | null
         }
