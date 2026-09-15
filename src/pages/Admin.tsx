@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
 import SiteContentForm from '@/components/admin/SiteContentForm';
@@ -69,9 +70,16 @@ export default function Admin() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="font-display text-3xl font-bold text-foreground mb-8">
-        ⚙️ Painel Administrativo
-      </h1>
+      <div className="flex items-center justify-between gap-4 mb-8">
+        <h1 className="font-display text-3xl font-bold text-foreground">
+          ⚙️ Painel Administrativo
+        </h1>
+        <Button variant="outline" size="sm" onClick={() => signOut()} className="flex items-center gap-2">
+          <LogOut className="w-4 h-4" />
+          Sair
+        </Button>
+      </div>
+
 
       <Tabs defaultValue="orders" className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
