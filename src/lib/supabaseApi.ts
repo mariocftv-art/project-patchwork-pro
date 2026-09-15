@@ -86,6 +86,7 @@ export interface Category {
   name: string;
   slug: string;
   display_order: number;
+  parent_slug: string | null;
   created_at: string;
 }
 
@@ -98,7 +99,19 @@ export const categoriesApi = {
       .order('display_order', { ascending: true });
     
     if (error) throw error;
-    return data as Category[] || [];
+    return (data as Category[]) || [];
+  },
+
+  /** Categorias principais (sem categoria pai) */
+  async listRoot(): Promise<Category[]> {
+    const all = await this.list();
+    return all.filter(c => !c.parent_slug);
+  },
+
+  /** Subcategorias de uma categoria */
+  async listChildren(parentSlug: string): Promise<Category[]> {
+    const all = await this.list();
+    return all.filter(c => c.parent_slug === parentSlug);
   }
 };
 
