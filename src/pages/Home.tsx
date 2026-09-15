@@ -54,7 +54,11 @@ export default function Home() {
     filteredProducts = filteredProducts.filter(p => 
       p.title.toLowerCase().includes(query) || 
       (p.description?.toLowerCase() || '').includes(query) ||
-      (p.category?.toLowerCase() || '').includes(query)
+      (p.category?.toLowerCase() || '').includes(query) ||
+      (p.subcategory?.toLowerCase() || '').includes(query) ||
+      (p.brand?.toLowerCase() || '').includes(query) ||
+      (p.model?.toLowerCase() || '').includes(query) ||
+      (p.sku?.toLowerCase() || '').includes(query)
     );
   }
 
