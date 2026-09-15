@@ -31,8 +31,15 @@ export default function Admin() {
   const { toast } = useToast();
 
   const { data: products = [], refetch: refetchProducts } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => productsApi.list(),
+    queryKey: ['admin-products'],
+    queryFn: async () => {
+      try {
+        return await productsApi.listAdmin();
+      } catch (error) {
+        console.error('[Admin] falha ao carregar produtos com custo:', error);
+        return await productsApi.list();
+      }
+    },
   });
 
   const handleEditProduct = (product: Product) => {
@@ -157,6 +164,7 @@ export default function Admin() {
                   </DialogTitle>
                 </DialogHeader>
                 <ProductForm
+                  key={editingProduct?.id ?? 'new'}
                   product={editingProduct}
                   onSuccess={() => {
                     setProductDialogOpen(false);
