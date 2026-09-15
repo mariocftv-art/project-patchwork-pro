@@ -12,9 +12,17 @@ export interface Product {
   price: number;
   original_price: number | null;
   category: string | null;
+  subcategory: string | null;
+  brand: string | null;
+  model: string | null;
+  sku: string | null;
+  cost_price: number | null;
   image_url: string | null;
+  gallery_urls: string[] | null;
   stock: number;
   featured: boolean | null;
+  on_sale: boolean | null;
+  status: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
