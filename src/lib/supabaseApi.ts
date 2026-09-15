@@ -116,49 +116,73 @@ export const categoriesApi = {
 };
 
 // Products API
+/**
+ * Colunas públicas do produto. `cost_price` NUNCA entra aqui:
+ * é informação interna e o banco bloqueia a leitura por clientes.
+ */
+const PUBLIC_PRODUCT_COLUMNS =
+  'id,title,description,price,original_price,category,subcategory,brand,model,sku,image_url,gallery_urls,stock,featured,on_sale,status,created_at,updated_at';
+
 export const productsApi = {
   async list(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data as unknown as Product[]) || [];
+  },
+
+  /** Lista administrativa (inclui preço de custo) — só funciona para admins */
+  async listAdmin(): Promise<Product[]> {
+    const { data, error } = await supabase.rpc('admin_list_products');
+
+    if (error) throw error;
+    return ((data as unknown) as Product[]) || [];
   },
 
   async get(id: string): Promise<Product | null> {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .eq('id', id)
       .maybeSingle();
     
     if (error) throw error;
-    return data;
+    return (data as unknown as Product) ?? null;
   },
 
-  async create(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
+  async create(product: Partial<Product>): Promise<Product> {
     const { data, error } = await supabase
       .from('products')
-      .insert(product)
-      .select()
+      .insert(product as never)
+      .select(PUBLIC_PRODUCT_COLUMNS)
       .single();
     
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('[productsApi.create]', error);
+      throw error;
+    }
+    return data as unknown as Product;
   },
 
   async update(id: string, updates: Partial<Product>): Promise<Product> {
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(updates as never)
       .eq('id', id)
-      .select()
-      .single();
+      .select(PUBLIC_PRODUCT_COLUMNS)
+      .maybeSingle();
     
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('[productsApi.update]', error);
+      throw error;
+    }
+    if (!data) {
+      throw new Error('Nenhum produto foi atualizado. Verifique suas permissões de administrador.');
+    }
+    return data as unknown as Product;
   },
 
   async delete(id: string): Promise<void> {
