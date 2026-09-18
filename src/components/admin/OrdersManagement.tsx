@@ -7,9 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Clock, CheckCircle2, Truck, AlertCircle, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2, Printer } from 'lucide-react';
+import { Package, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2, Printer, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ORDER_STATUSES, getOrderStatusInfo } from '@/lib/orderStatus';
+import { formatBRL } from '@/lib/formatCurrency';
+import { getCompanyProfile } from '@/lib/companyProfile';
+import { buildCustomerOrderMessage, whatsappLink } from '@/lib/whatsappTemplates';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,23 +60,29 @@ interface Order {
   created_at: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<any> }> = {
-  pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: Clock },
-  confirmed: { label: 'Confirmado', color: 'bg-blue-100 text-blue-800 border-blue-300', icon: CheckCircle2 },
-  preparing: { label: 'Preparando', color: 'bg-purple-100 text-purple-800 border-purple-300', icon: Package },
-  shipped: { label: 'Enviado', color: 'bg-orange-100 text-orange-800 border-orange-300', icon: Truck },
-  delivered: { label: 'Entregue', color: 'bg-green-100 text-green-800 border-green-300', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800 border-red-300', icon: AlertCircle },
-};
+const statusOptions = ORDER_STATUSES.map((s) => ({ value: s.value, label: s.label }));
 
-const statusOptions = [
-  { value: 'pending', label: 'Pendente' },
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'preparing', label: 'Preparando' },
-  { value: 'shipped', label: 'Enviado' },
-  { value: 'delivered', label: 'Entregue' },
-  { value: 'cancelled', label: 'Cancelado' },
-];
+async function openOrderWhatsApp(order: Order) {
+  const profile = await getCompanyProfile();
+  const message = buildCustomerOrderMessage(
+    {
+      orderNumber: order.order_number,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone || undefined,
+      customerAddress: order.shipping_address
+        ? `${order.shipping_address.street}, ${order.shipping_address.number}, ${order.shipping_address.neighborhood}, ${order.shipping_address.city} - ${order.shipping_address.state}`
+        : undefined,
+      items: order.items,
+      subtotal: order.subtotal,
+      shippingFee: order.shipping_fee,
+      total: order.total,
+      status: order.status,
+      createdAt: order.created_at,
+    },
+    profile
+  );
+  window.open(whatsappLink(order.customer_phone || profile.whatsapp, message), '_blank');
+}
 
 export default function OrdersManagement() {
   const { toast } = useToast();
@@ -170,9 +180,7 @@ export default function OrdersManagement() {
     return methods[method || ''] || method || 'Não informado';
   };
 
-  const getStatusInfo = (status: string) => {
-    return statusConfig[status] || statusConfig.pending;
-  };
+  const getStatusInfo = (status: string) => getOrderStatusInfo(status);
 
   if (isLoading) {
     return (
@@ -217,8 +225,8 @@ export default function OrdersManagement() {
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const isExpanded = expandedOrder === order.id;
-            const StatusIcon = getStatusInfo(order.status).icon;
-            
+            const statusInfo = getStatusInfo(order.status);
+
             return (
               <div key={order.id} className="admin-card">
                 {/* Order Header */}
@@ -231,9 +239,9 @@ export default function OrdersManagement() {
                       >
                         #{order.order_number}
                       </button>
-                      <Badge className={`${getStatusInfo(order.status).color} border`}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {getStatusInfo(order.status).label}
+                      <Badge className={`${statusInfo.badgeClass} border`}>
+                        <span className="mr-1">{statusInfo.emoji}</span>
+                        {statusInfo.label}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -245,7 +253,7 @@ export default function OrdersManagement() {
                         {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </span>
                       <span className="font-medium text-foreground">
-                        R$ {order.total.toFixed(2)}
+                        {formatBRL(order.total)}
                       </span>
                     </div>
                   </div>
@@ -271,10 +279,20 @@ export default function OrdersManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => generateOrderPDF(order)}
-                      title="Imprimir PDF"
+                      title="Gerar PDF do pedido"
                       className="text-primary hover:text-primary hover:bg-primary/10"
                     >
                       <Printer className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openOrderWhatsApp(order)}
+                      title="Enviar resumo por WhatsApp"
+                      className="text-[#128C7E] hover:text-[#128C7E] hover:bg-[#25D366]/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
                     </Button>
                     
                     <AlertDialog>
