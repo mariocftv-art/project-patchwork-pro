@@ -136,7 +136,8 @@ export async function generateQuotePDF(
   yPos = (doc as any).lastAutoTable.finalY + 10;
 
   const pageHeight = doc.internal.pageSize.getHeight();
-  const summaryHeight = 46;
+  const hasDiscount = !!(data.discount && data.discount > 0);
+  const summaryHeight = hasDiscount ? 53 : 46;
   if (yPos + summaryHeight + 40 > pageHeight - 20) {
     doc.addPage();
     yPos = 24;
