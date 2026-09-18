@@ -120,28 +120,30 @@ export default function Cart() {
       const cleanPhone = customerPhone.replace(/\D/g, '');
       const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
       
-      const itemsList = items.map(item => 
-        `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
-      ).join('\n');
-      
-      let message = `📄 *ORÇAMENTO MR SEGURANÇA MÁXIMA*\n` +
-        `Nº: ${result.quoteNumber}\n\n` +
-        `Olá${customerName ? ` ${customerName}` : ''}! Seu orçamento foi gerado com sucesso! ✅\n\n` +
-        `*Itens do Orçamento:*\n${itemsList}\n\n` +
-        `💰 *Subtotal:* R$ ${subtotal.toFixed(2)}\n` +
-        `🚚 *Frete:* A combinar\n` +
-        `✨ *Total:* R$ ${total.toFixed(2)}\n\n`;
-      
-      // Add PDF link if available
+      const profile = await getCompanyProfile();
+
+      const itemsList = items.map(item =>
+        `📹 ${item.quantity}x ${item.name}\n💰 ${formatBRL(item.price)} cada\n💵 Total: ${formatBRL(item.price * item.quantity)}`
+      ).join('\n\n');
+
+      let message = `🛡️ *${profile.name}*\n\n` +
+        `📄 *ORÇAMENTO Nº ${result.quoteNumber}*\n\n` +
+        `Olá${customerName ? `, *${customerName}*` : ''}! Seu orçamento foi gerado com sucesso. ✅\n\n` +
+        `🛒 *PRODUTOS*\n${itemsList}\n\n` +
+        `💰 *RESUMO*\n` +
+        `Subtotal: ${formatBRL(subtotal)}\n` +
+        `Frete: ${shippingFee > 0 ? formatBRL(shippingFee) : 'A combinar'}\n` +
+        `━━━━━━━━━━━━\n` +
+        `💰 *TOTAL: ${formatBRL(total)}*\n\n`;
+
       if (result.pdfUrl) {
-        message += `📥 *Baixar PDF do Orçamento:*\n${result.pdfUrl}\n\n`;
+        message += `📥 *Baixar o orçamento em PDF:*\n${result.pdfUrl}\n\n`;
       }
-      
-      message += `📞 *Para finalizar seu pedido, entre em contato:*\n` +
-        `WhatsApp: (11) 96257-9428\n\n` +
-        `⏰ _Orçamento válido por 5 dias._\n\n` +
-        `🔒 MR Segurança Máxima - Proteção total para você e sua família!`;
-      
+
+      message += `📲 *Para fechar o pedido, fale com nossa equipe:*\nWhatsApp: ${profile.phone}\n\n` +
+        `⏰ _Orçamento válido por ${profile.quote_validity_days} dias._\n\n` +
+        `🛡️ ${profile.name} — ${profile.tagline}`;
+
       // Open WhatsApp with the customer's number
       window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
       
