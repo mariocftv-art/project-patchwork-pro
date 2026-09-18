@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home, Search, Check, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle, MessageCircle, Package, Home, Search, Check, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
-import { 
-  requestNotificationPermission, 
-  getNotificationPermission, 
-  hasRequestedPermission, 
-  markPermissionRequested 
-} from "@/utils/pushNotifications";
+import { getCompanyProfile, CompanyProfile, defaultCompanyProfile } from "@/lib/companyProfile";
+import { buildAdminOrderMessage, buildCustomerOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
+import { formatBRL } from "@/lib/formatCurrency";
+import OrderStatusTimeline from "@/components/OrderStatusTimeline";
+import { getOrderStatusInfo } from "@/lib/orderStatus";
 
 interface OrderConfirmData {
   orderNumber: string;
@@ -17,39 +16,25 @@ interface OrderConfirmData {
   customerPhone: string;
   customerAddress: string;
   items: Array<{ name: string; quantity: number; price: number; imageUrl?: string }>;
+  subtotal?: number;
   total: number;
 }
 
-// Key for storing confirmed WhatsApp clicks
 const WHATSAPP_CONFIRMED_KEY = 'whatsapp-confirmed-orders';
 
 export default function OrderConfirmation() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState<OrderConfirmData | null>(null);
+  const [status, setStatus] = useState<string>('pending');
   const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
-  const [notificationStatus, setNotificationStatus] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
+  const [profile, setProfile] = useState<CompanyProfile>(defaultCompanyProfile);
   const { trackOrder } = useCustomerNotifications();
 
-  // Request notification permission automatically when page loads
   useEffect(() => {
-    const currentPermission = getNotificationPermission();
-    if (currentPermission === 'unsupported') {
-      setNotificationStatus('unsupported');
-    } else {
-      setNotificationStatus(currentPermission as 'prompt' | 'granted' | 'denied');
-      
-      // Auto-request permission if not yet asked
-      if (currentPermission === 'default' && !hasRequestedPermission()) {
-        markPermissionRequested();
-        requestNotificationPermission().then((granted) => {
-          setNotificationStatus(granted ? 'granted' : 'denied');
-        });
-      }
-    }
+    getCompanyProfile().then(setProfile).catch(() => setProfile(defaultCompanyProfile));
   }, []);
 
-  // Check if already confirmed
   useEffect(() => {
     if (orderNumber) {
       const confirmedOrders = JSON.parse(localStorage.getItem(WHATSAPP_CONFIRMED_KEY) || '[]');
@@ -58,213 +43,220 @@ export default function OrderConfirmation() {
   }, [orderNumber]);
 
   useEffect(() => {
-    if (orderNumber) {
-      // Register order for notifications automatically
-      trackOrder(orderNumber);
-      
-      // Get minimal order data from sessionStorage (non-sensitive only)
-      const stored = sessionStorage.getItem(`order_confirm_${orderNumber}`);
-      if (stored) {
-        try {
-          setOrderData(JSON.parse(stored));
-          // Clean up after reading
-          sessionStorage.removeItem(`order_confirm_${orderNumber}`);
-        } catch {
-          // If parsing fails, still show confirmation with order number
-          setOrderData({
-            orderNumber,
-            customerName: 'Cliente',
-            customerPhone: '',
-            customerAddress: '',
-            items: [],
-            total: 0
-          });
-        }
-      } else {
-        // No data found, show basic confirmation
-        setOrderData({
+    if (!orderNumber) {
+      navigate("/");
+      return;
+    }
+
+    trackOrder(orderNumber);
+
+    const stored = sessionStorage.getItem(`order_confirm_${orderNumber}`);
+    if (stored) {
+      try {
+        setOrderData(JSON.parse(stored));
+      } catch {
+        setOrderData(null);
+      }
+    }
+
+    // Estado real do pedido vem do banco (sem depender de notificação do navegador)
+    const loadOrder = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('order_number, customer_name, customer_phone, items, subtotal, total, status, shipping_address')
+        .eq('order_number', orderNumber)
+        .maybeSingle();
+
+      if (data) {
+        setStatus(data.status || 'pending');
+        const addr = data.shipping_address as Record<string, string> | null;
+        setOrderData((prev) => prev ?? {
           orderNumber,
-          customerName: 'Cliente',
-          customerPhone: '',
-          customerAddress: '',
-          items: [],
-          total: 0
+          customerName: data.customer_name || 'Cliente',
+          customerPhone: data.customer_phone || '',
+          customerAddress: addr
+            ? `${addr.street}, ${addr.number}, ${addr.neighborhood}, ${addr.city} - ${addr.state}`
+            : '',
+          items: (data.items as unknown as OrderConfirmData['items']) || [],
+          subtotal: Number(data.subtotal || 0),
+          total: Number(data.total || 0),
         });
       }
-    } else {
-      navigate("/");
-    }
+    };
+
+    loadOrder();
+
+    // Atualização em tempo real + fallback por polling
+    const channel = supabase
+      .channel(`order-confirm-${orderNumber}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `order_number=eq.${orderNumber}` },
+        (payload) => {
+          const next = (payload.new as { status?: string })?.status;
+          if (next) setStatus(next);
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(loadOrder, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [orderNumber, navigate, trackOrder]);
 
-  if (!orderNumber) {
-    return null;
-  }
+  const messageData = useMemo(() => ({
+    orderNumber: orderNumber || '',
+    customerName: orderData?.customerName || 'Cliente',
+    customerPhone: orderData?.customerPhone,
+    customerAddress: orderData?.customerAddress,
+    items: orderData?.items || [],
+    subtotal: orderData?.subtotal ?? orderData?.total ?? 0,
+    total: orderData?.total ?? 0,
+    status,
+  }), [orderNumber, orderData, status]);
 
-  const whatsappNumber = "5511962579428";
-  const whatsappMessage = orderData ? encodeURIComponent(
-    `🛒 *PEDIDO REALIZADO*\n\n` +
-    `📦 *Número do Pedido:* ${orderNumber}\n\n` +
-    `👤 *Cliente:* ${orderData.customerName}\n` +
-    (orderData.customerPhone ? `📱 *Telefone:* ${orderData.customerPhone}\n` : '') +
-    (orderData.customerAddress ? `📍 *Endereço:* ${orderData.customerAddress}\n` : '') +
-    `\n` +
-    (orderData.items.length > 0 ? 
-      `*Itens do Pedido:*\n${orderData.items.map(item => `• ${item.quantity}x ${item.name}`).join("\n")}\n\n` +
-      `💰 *Total:* R$ ${orderData.total.toFixed(2)}\n\n` 
-      : '') +
-    `📞 *WhatsApp MR Segurança:* (11) 96257-9428\n\n` +
-    `_Aguardando confirmação do pedido._`
-  ) : '';
+  if (!orderNumber) return null;
 
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+  const statusInfo = getOrderStatusInfo(status);
 
   const handleWhatsAppClick = () => {
-    // Mark as confirmed in localStorage
     const confirmedOrders = JSON.parse(localStorage.getItem(WHATSAPP_CONFIRMED_KEY) || '[]');
     if (!confirmedOrders.includes(orderNumber)) {
       confirmedOrders.push(orderNumber);
       localStorage.setItem(WHATSAPP_CONFIRMED_KEY, JSON.stringify(confirmedOrders));
     }
     setWhatsappConfirmed(true);
-    
-    window.open(whatsappUrl, "_blank");
+    window.open(whatsappLink(profile.whatsapp, buildAdminOrderMessage(messageData, profile)), "_blank");
+  };
+
+  const handleSendCopyToMe = () => {
+    if (!orderData?.customerPhone) return;
+    window.open(
+      whatsappLink(orderData.customerPhone, buildCustomerOrderMessage(messageData, profile)),
+      "_blank"
+    );
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg p-8 shadow-sm text-center">
-          <div className="mb-6">
-            <CheckCircle className="h-20 w-20 text-ml-green mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-ml-green mb-2">
-              Pedido Realizado com Sucesso!
-            </h1>
-            <p className="text-muted-foreground">
-              Obrigado por comprar conosco{orderData?.customerName && orderData.customerName !== 'Cliente' ? `, ${orderData.customerName.split(" ")[0]}` : ''}!
-            </p>
-          </div>
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Cabeçalho de sucesso */}
+        <div className="bg-white rounded-xl border border-border p-6 sm:p-8 text-center shadow-sm">
+          <CheckCircle className="h-16 w-16 text-ml-green mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-1">Pedido realizado com sucesso!</h1>
+          <p className="text-muted-foreground">
+            Obrigado por comprar com a {profile.name}
+            {orderData?.customerName && orderData.customerName !== 'Cliente'
+              ? `, ${orderData.customerName.split(" ")[0]}`
+              : ''}.
+          </p>
 
-          <div className="bg-ml-gray-100 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Package className="h-5 w-5 text-ml-blue" />
-              <span className="text-sm text-muted-foreground">Número do Pedido</span>
+          <div className="grid sm:grid-cols-3 gap-3 mt-6 text-left">
+            <div className="bg-secondary/60 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                <Package className="h-3.5 w-3.5" /> Número do pedido
+              </p>
+              <p className="font-bold text-ml-blue">{orderNumber}</p>
             </div>
-            <p className="text-2xl font-bold text-ml-blue">{orderNumber}</p>
+            <div className="bg-secondary/60 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1">Cliente</p>
+              <p className="font-medium truncate">{orderData?.customerName || 'Cliente'}</p>
+            </div>
+            <div className="bg-secondary/60 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1">Total</p>
+              <p className="font-bold">{formatBRL(orderData?.total || 0)}</p>
+            </div>
           </div>
+        </div>
 
-          {orderData && orderData.items.length > 0 && (
-            <div className="text-left bg-ml-gray-100 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold mb-3">Resumo do Pedido</h3>
-              <div className="space-y-3 text-sm">
-                {orderData.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    {item.imageUrl && (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.name}
-                        className="w-12 h-12 object-contain rounded border border-gray-200"
-                      />
-                    )}
-                    <div className="flex-1 flex justify-between items-center">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span className="font-medium">R$ {(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
+        {/* Linha do tempo do pedido */}
+        <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-foreground">Andamento do pedido</h2>
+            <span className={`text-xs px-2.5 py-1 rounded-full border ${statusInfo.badgeClass}`}>
+              {statusInfo.emoji} {statusInfo.label}
+            </span>
+          </div>
+          <OrderStatusTimeline status={status} />
+          <p className="text-xs text-muted-foreground mt-4">
+            Esta página atualiza sozinha quando a loja mudar o status — não é necessário autorizar
+            notificações do navegador.
+          </p>
+        </div>
+
+        {/* Resumo dos itens */}
+        {orderData && orderData.items.length > 0 && (
+          <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
+            <h2 className="font-semibold text-foreground mb-4">Resumo da compra</h2>
+            <div className="space-y-3 text-sm">
+              {orderData.items.map((item, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-12 h-12 object-contain rounded border border-border"
+                    />
+                  )}
+                  <div className="flex-1 flex justify-between items-center gap-2">
+                    <span className="truncate">{item.quantity}x {item.name}</span>
+                    <span className="font-medium whitespace-nowrap">
+                      {formatBRL(item.price * item.quantity)}
+                    </span>
                   </div>
-                ))}
-                <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span className="text-ml-blue">R$ {orderData.total.toFixed(2)}</span>
                 </div>
+              ))}
+              <div className="border-t pt-3 flex justify-between font-semibold">
+                <span>Total</span>
+                <span className="text-ml-blue">{formatBRL(orderData.total)}</span>
               </div>
             </div>
-          )}
-
-          {/* Notification status indicator */}
-          {notificationStatus === 'granted' && (
-            <div className="text-left bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-2 text-green-700">
-                <Bell className="h-5 w-5" />
-                <span className="text-sm font-medium">🔔 Notificações ativadas!</span>
-              </div>
-              <p className="text-sm text-green-600 mt-1">
-                Você receberá uma notificação no celular quando o status do seu pedido mudar.
-              </p>
-            </div>
-          )}
-
-          {notificationStatus === 'denied' && (
-            <div className="text-left bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-2 text-orange-700">
-                <Bell className="h-5 w-5" />
-                <span className="text-sm font-medium">Notificações bloqueadas</span>
-              </div>
-              <p className="text-sm text-orange-600 mt-1">
-                Ative as notificações nas configurações do navegador para receber atualizações do pedido.
-              </p>
-            </div>
-          )}
-
-          <div className="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold mb-2 text-yellow-800">⚠️ Importante - Pagamento via WhatsApp</h3>
-            <p className="text-sm text-yellow-700">
-              Para confirmar seu pedido e <strong>finalizar o pagamento</strong>, clique no botão abaixo e envie a mensagem pelo WhatsApp. 
-              Assim que recebermos, entraremos em contato para combinar a forma de pagamento e finalizar sua compra.
-            </p>
           </div>
+        )}
 
-          <div className="space-y-3">
-            <Button
-              onClick={handleWhatsAppClick}
-              className={`w-full h-14 text-lg transition-all ${
-                whatsappConfirmed 
-                  ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-default' 
-                  : 'bg-[#25D366] hover:bg-[#128C7E] text-white'
-              }`}
-            >
-              {whatsappConfirmed ? (
-                <>
-                  <Check className="mr-2 h-6 w-6" />
-                  Mensagem Enviada
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="mr-2 h-6 w-6" />
-                  Confirmar pelo WhatsApp
-                </>
-              )}
-            </Button>
+        {/* Próximo passo */}
+        <div className="bg-white rounded-xl border border-border p-6 shadow-sm space-y-3">
+          <h2 className="font-semibold text-foreground">Próximo passo</h2>
+          <p className="text-sm text-muted-foreground">
+            Envie a confirmação pelo WhatsApp para combinarmos a forma de pagamento e a entrega.
+          </p>
 
-            {whatsappConfirmed && (
-              <p className="text-sm text-green-600 text-center">
-                ✓ Você já enviou a confirmação. Aguarde nosso contato!
-              </p>
+          <Button
+            onClick={handleWhatsAppClick}
+            className={`w-full h-12 text-base transition-all ${
+              whatsappConfirmed
+                ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-default'
+                : 'bg-[#25D366] hover:bg-[#128C7E] text-white'
+            }`}
+          >
+            {whatsappConfirmed ? (
+              <><Check className="mr-2 h-5 w-5" /> Mensagem enviada</>
+            ) : (
+              <><MessageCircle className="mr-2 h-5 w-5" /> Confirmar pelo WhatsApp</>
             )}
+          </Button>
 
-            <Button
-              onClick={() => navigate("/")}
-              variant="outline"
-              className="w-full"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Voltar para a Loja
+          {orderData?.customerPhone && (
+            <Button variant="outline" className="w-full" onClick={handleSendCopyToMe}>
+              <Send className="mr-2 h-4 w-4" />
+              Receber resumo no meu WhatsApp
             </Button>
+          )}
 
-            <Button
-              asChild
-              variant="ghost"
-              className="w-full"
-            >
+          <div className="grid sm:grid-cols-2 gap-3 pt-2">
+            <Button asChild variant="secondary" className="w-full">
               <Link to={`/rastrear-pedido?pedido=${orderNumber}`}>
                 <Search className="mr-2 h-4 w-4" />
-                Acompanhar Pedido
+                Acompanhar pedido
               </Link>
             </Button>
-          </div>
-
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-sm text-muted-foreground">
-              Seus dados estão seguros e protegidos. Não armazenamos informações sensíveis no navegador.
-            </p>
+            <Button onClick={() => navigate("/")} variant="ghost" className="w-full">
+              <Home className="mr-2 h-4 w-4" />
+              Voltar para a loja
+            </Button>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
@@ -16,6 +16,8 @@ import CategoriesForm from '@/components/admin/CategoriesForm';
 import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
 import OrdersManagement from '@/components/admin/OrdersManagement';
 import QuotesManagement from '@/components/admin/QuotesManagement';
+import SalesDashboard from '@/components/admin/SalesDashboard';
+import CompanyProfileForm from '@/components/admin/CompanyProfileForm';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -82,8 +84,12 @@ export default function Admin() {
       </div>
 
 
-      <Tabs defaultValue="orders" className="space-y-6">
+      <Tabs defaultValue="sales" className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
+          <TabsTrigger value="sales" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Vendas
+          </TabsTrigger>
           <TabsTrigger value="orders" className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4" />
             Pedidos
@@ -91,6 +97,10 @@ export default function Admin() {
           <TabsTrigger value="quotes" className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4" />
             Orçamentos
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Personalização
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
@@ -134,12 +144,28 @@ export default function Admin() {
           </TabsTrigger>
         </TabsList>
 
+        {/* Sales Tab */}
+        <TabsContent value="sales" className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            📊 Painel de Vendas
+          </h2>
+          <SalesDashboard />
+        </TabsContent>
+
         {/* Orders Tab */}
         <TabsContent value="orders" className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground">
             Gerenciar Pedidos
           </h2>
           <OrdersManagement />
+        </TabsContent>
+
+        {/* Branding / Personalização */}
+        <TabsContent value="branding" className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Personalização do Orçamento e das Mensagens
+          </h2>
+          <CompanyProfileForm />
         </TabsContent>
 
         {/* Quotes Tab */}

@@ -74,6 +74,81 @@ export type Database = {
         }
         Relationships: []
       }
+      company_profile: {
+        Row: {
+          accent_color: string | null
+          address: string | null
+          city: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          pdf_footer_text: string | null
+          pdf_notes_text: string | null
+          phone: string | null
+          primary_color: string | null
+          quote_validity_days: number
+          secondary_color: string | null
+          state: string | null
+          tagline: string | null
+          updated_at: string
+          website: string | null
+          whatsapp: string | null
+          whatsapp_admin_template: string | null
+          whatsapp_customer_template: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          pdf_footer_text?: string | null
+          pdf_notes_text?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          quote_validity_days?: number
+          secondary_color?: string | null
+          state?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+          whatsapp_admin_template?: string | null
+          whatsapp_customer_template?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          pdf_footer_text?: string | null
+          pdf_notes_text?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          quote_validity_days?: number
+          secondary_color?: string | null
+          state?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+          whatsapp_admin_template?: string | null
+          whatsapp_customer_template?: string | null
+        }
+        Relationships: []
+      }
       installation_services: {
         Row: {
           active: boolean | null
