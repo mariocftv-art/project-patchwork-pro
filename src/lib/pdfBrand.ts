@@ -111,9 +111,9 @@ export async function drawDocumentHeader(
       .join(' - '),
   ].filter(Boolean);
 
-  doc.setFontSize(8);
-  contactLines.slice(0, 2).forEach((line, i) => {
-    doc.text(line, textX, 31 + i * 5.5);
+  doc.setFontSize(7.6);
+  contactLines.slice(0, 3).forEach((line, i) => {
+    doc.text(line, textX, 30 + i * 4.6);
   });
 
   // Bloco de identificação do documento (direita)
@@ -128,19 +128,7 @@ export async function drawDocumentHeader(
     });
   });
 
-  // Linha extra de contato abaixo da faixa
-  const extra = contactLines.slice(2);
-  let y = bandHeight + 10;
-  if (extra.length) {
-    doc.setTextColor(...theme.muted);
-    doc.setFontSize(8);
-    extra.forEach((line) => {
-      doc.text(line, PAGE_MARGIN, y);
-      y += 4.5;
-    });
-    y += 3;
-  }
-  return y;
+  return bandHeight + 12;
 }
 
 export function formatWhatsApp(raw: string): string {
