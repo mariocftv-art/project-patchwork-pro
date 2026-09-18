@@ -4,6 +4,8 @@ import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import OrderStatusTimeline from '@/components/OrderStatusTimeline';
+import { formatBRL } from '@/lib/formatCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
@@ -397,7 +399,7 @@ export default function TrackOrder() {
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-muted-foreground">Quantidade: {item.quantity}</p>
                   </div>
-                  <p className="font-medium">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">{formatBRL(item.price * item.quantity)}</p>
                 </div>
               ))}
             </div>
@@ -405,7 +407,7 @@ export default function TrackOrder() {
             <div className="border-t mt-4 pt-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>R$ {order.subtotal.toFixed(2)}</span>
+                <span>{formatBRL(order.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Frete</span>
@@ -417,7 +419,7 @@ export default function TrackOrder() {
               </div>
               <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                 <span>Total</span>
-                <span className="text-primary">R$ {order.total.toFixed(2)}</span>
+                <span className="text-primary">{formatBRL(order.total)}</span>
               </div>
             </div>
           </div>
