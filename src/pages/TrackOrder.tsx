@@ -244,16 +244,6 @@ export default function TrackOrder() {
     return methods[method || ''] || method || 'Não informado';
   };
 
-  const steps = [
-    { key: 'pending', label: 'Aguardando' },
-    { key: 'confirmed', label: 'Confirmado' },
-    { key: 'payment_pending', label: 'Pagamento' },
-    { key: 'paid', label: 'Pago' },
-    { key: 'preparing', label: 'Preparando' },
-    { key: 'shipped', label: 'Enviado' },
-    { key: 'delivered', label: 'Entregue' },
-  ];
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="text-center mb-8">
