@@ -49,12 +49,14 @@ interface Order {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<any>; step: number }> = {
-  pending: { label: 'Aguardando Confirmação', color: 'text-yellow-600 bg-yellow-100', icon: Clock, step: 1 },
-  confirmed: { label: 'Pedido Confirmado', color: 'text-blue-600 bg-blue-100', icon: CheckCircle2, step: 2 },
-  preparing: { label: 'Em Preparação', color: 'text-purple-600 bg-purple-100', icon: Package, step: 3 },
-  shipped: { label: 'Enviado', color: 'text-orange-600 bg-orange-100', icon: Truck, step: 4 },
-  delivered: { label: 'Entregue', color: 'text-green-600 bg-green-100', icon: CheckCircle2, step: 5 },
-  cancelled: { label: 'Cancelado', color: 'text-red-600 bg-red-100', icon: AlertCircle, step: 0 },
+  pending: { label: 'Aguardando confirmação', color: 'text-yellow-600 bg-yellow-100', icon: Clock, step: 1 },
+  confirmed: { label: 'Pedido confirmado', color: 'text-blue-600 bg-blue-100', icon: CheckCircle2, step: 2 },
+  payment_pending: { label: 'Aguardando pagamento', color: 'text-amber-600 bg-amber-100', icon: Clock, step: 3 },
+  paid: { label: 'Pagamento confirmado', color: 'text-emerald-600 bg-emerald-100', icon: CheckCircle2, step: 4 },
+  preparing: { label: 'Em preparação', color: 'text-purple-600 bg-purple-100', icon: Package, step: 5 },
+  shipped: { label: 'Pedido enviado', color: 'text-orange-600 bg-orange-100', icon: Truck, step: 6 },
+  delivered: { label: 'Pedido entregue', color: 'text-green-600 bg-green-100', icon: CheckCircle2, step: 7 },
+  cancelled: { label: 'Pedido cancelado', color: 'text-red-600 bg-red-100', icon: AlertCircle, step: 0 },
 };
 
 export default function TrackOrder() {
@@ -243,6 +245,8 @@ export default function TrackOrder() {
   const steps = [
     { key: 'pending', label: 'Aguardando' },
     { key: 'confirmed', label: 'Confirmado' },
+    { key: 'payment_pending', label: 'Pagamento' },
+    { key: 'paid', label: 'Pago' },
     { key: 'preparing', label: 'Preparando' },
     { key: 'shipped', label: 'Enviado' },
     { key: 'delivered', label: 'Entregue' },
