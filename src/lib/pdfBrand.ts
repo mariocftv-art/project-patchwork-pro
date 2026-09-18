@@ -139,7 +139,7 @@ export function formatWhatsApp(raw: string): string {
   return raw;
 }
 
-/** Card claro com título — devolve o Y após o card */
+/** Card claro com título — devolve o Y após o card (quebra o texto na largura) */
 export function drawCard(
   doc: jsPDF,
   theme: BrandTheme,
@@ -149,8 +149,15 @@ export function drawCard(
   title: string,
   lines: string[]
 ): number {
-  const lineHeight = 5.4;
-  const height = 13 + Math.max(lines.length, 1) * lineHeight;
+  const lineHeight = 5.2;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const wrapped: string[] = [];
+  lines.forEach((line) => {
+    const parts = doc.splitTextToSize(line, width - 12) as string[];
+    parts.forEach((p) => wrapped.push(p));
+  });
+  const height = 13 + Math.max(wrapped.length, 1) * lineHeight;
   doc.setFillColor(...theme.surface);
   doc.roundedRect(x, y, width, height, 2.5, 2.5, 'F');
   doc.setFillColor(...theme.accent);
@@ -164,7 +171,7 @@ export function drawCard(
   doc.setTextColor(...theme.ink);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  lines.forEach((line, i) => {
+  wrapped.forEach((line, i) => {
     doc.text(line, x + 6, y + 15 + i * lineHeight);
   });
   return y + height;
