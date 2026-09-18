@@ -373,53 +373,12 @@ export default function TrackOrder() {
             </div>
           </div>
 
-          {/* Progress Steps */}
-          {order.status !== 'cancelled' && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="font-semibold mb-6">Progresso do Pedido</h3>
-              <div className="relative">
-                <div className="flex justify-between">
-                  {steps.map((step, index) => {
-                    const currentStep = getStatusInfo(order.status).step;
-                    const isCompleted = currentStep > index + 1;
-                    const isCurrent = currentStep === index + 1;
-                    
-                    return (
-                      <div key={step.key} className="flex flex-col items-center relative z-10">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          isCompleted 
-                            ? 'bg-green-500 text-white' 
-                            : isCurrent 
-                              ? 'bg-primary text-white' 
-                              : 'bg-gray-200 text-gray-500'
-                        }`}>
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-5 h-5" />
-                          ) : (
-                            <span className="text-sm font-medium">{index + 1}</span>
-                          )}
-                        </div>
-                        <span className={`text-xs mt-2 text-center ${
-                          isCompleted || isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
-                        }`}>
-                          {step.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Progress Line */}
-                <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 -z-0" style={{ width: 'calc(100% - 2rem)', marginLeft: '1rem' }}>
-                  <div 
-                    className="h-full bg-green-500 transition-all duration-500"
-                    style={{ 
-                      width: `${Math.max(0, ((getStatusInfo(order.status).step - 1) / (steps.length - 1)) * 100)}%` 
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Progresso do pedido (linha do tempo compartilhada) */}
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <h3 className="font-semibold mb-4">Progresso do Pedido</h3>
+            <OrderStatusTimeline status={order.status || 'pending'} />
+          </div>
+
 
           {/* Order Items */}
           <div className="bg-white rounded-lg shadow-sm p-6">
