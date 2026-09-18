@@ -15,6 +15,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { generateQuotePDF, generateWhatsAppMessage } from '@/lib/generateQuotePDF';
+import { getCompanyProfile } from '@/lib/companyProfile';
+import { formatBRL } from '@/lib/formatCurrency';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
