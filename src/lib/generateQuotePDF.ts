@@ -1,15 +1,19 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoMRTransparent from '@/assets/logo-mr-transparent.png';
 import { supabase } from '@/integrations/supabase/client';
+import { getCompanyProfile, CompanyProfile } from '@/lib/companyProfile';
+import { formatBRL } from '@/lib/formatCurrency';
+import { buildTheme, drawCard, drawDocumentHeader, drawFooters, PAGE_MARGIN } from '@/lib/pdfBrand';
 
 interface QuoteItem {
   name: string;
+  description?: string;
   quantity: number;
   price: number;
   imageUrl?: string;
 }
 
+/** Mantido para compatibilidade com chamadas existentes */
 interface CompanyInfo {
   name: string;
   cnpj: string;
@@ -23,9 +27,11 @@ interface QuoteData {
   items: QuoteItem[];
   subtotal: number;
   shipping: number;
+  discount?: number;
   total: number;
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
   customerAddress?: string;
   validityDays?: number;
 }
@@ -35,279 +41,196 @@ interface QuoteResult {
   quoteNumber: string;
 }
 
-const defaultCompanyInfo: CompanyInfo = {
-  name: 'MR Segurança Máxima',
-  cnpj: '45.858.215/0001-86',
-  address: 'São Paulo - SP',
-  phone: '(11) 96257-9428',
-  email: 'contato@mrseguranca.com',
-};
+export async function generateQuotePDF(
+  data: QuoteData,
+  companyInfo?: Partial<CompanyInfo>
+): Promise<QuoteResult> {
+  const stored = await getCompanyProfile(true);
+  const profile: CompanyProfile = {
+    ...stored,
+    name: companyInfo?.name || stored.name,
+    cnpj: companyInfo?.cnpj || stored.cnpj,
+    address: companyInfo?.address || stored.address,
+    phone: companyInfo?.phone || stored.phone,
+    email: companyInfo?.email || stored.email,
+    logo_url: companyInfo?.logoUrl || stored.logo_url,
+  };
 
-// Function to load image as base64
-async function loadImageAsBase64(src: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } else {
-        reject(new Error('Could not get canvas context'));
-      }
-    };
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-export async function generateQuotePDF(data: QuoteData, companyInfo?: Partial<CompanyInfo>): Promise<QuoteResult> {
-  const company = { ...defaultCompanyInfo, ...companyInfo };
+  const theme = buildTheme(profile);
   const doc = new jsPDF();
-  
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  let yPos = 20;
-  
+  const contentWidth = pageWidth - PAGE_MARGIN * 2;
+
   const quoteNumber = `ORC-${Date.now().toString().slice(-8)}`;
-  
-  // Header com logo e dados da empresa
-  doc.setFillColor(30, 58, 138); // Azul escuro
-  doc.rect(0, 0, pageWidth, 55, 'F');
-  
-  // Adiciona a logo MR Eagle
-  try {
-    const logoBase64 = await loadImageAsBase64(logoMRTransparent);
-    doc.addImage(logoBase64, 'PNG', margin, 5, 45, 45);
-  } catch (e) {
-    console.log('Logo não carregou, usando texto:', e);
-    // Se a logo não carregar, usa texto
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MR', margin + 10, 30);
+  const validityDays = data.validityDays ?? profile.quote_validity_days ?? 15;
+  const today = new Date();
+  const validUntil = new Date(today.getTime() + validityDays * 24 * 60 * 60 * 1000);
+
+  let yPos = await drawDocumentHeader(doc, profile, theme, 'Orçamento', [
+    { label: 'Nº', value: quoteNumber },
+    { label: 'Data', value: today.toLocaleDateString('pt-BR') },
+    { label: 'Válido até', value: validUntil.toLocaleDateString('pt-BR') },
+  ]);
+
+  // Bloco do cliente
+  const clientLines = [
+    data.customerName ? `Nome: ${data.customerName}` : '',
+    [
+      data.customerPhone ? `Telefone: ${data.customerPhone}` : '',
+      data.customerEmail ? `E-mail: ${data.customerEmail}` : '',
+    ]
+      .filter(Boolean)
+      .join('    '),
+    data.customerAddress ? `Endereço: ${data.customerAddress}` : '',
+  ].filter(Boolean);
+
+  if (clientLines.length) {
+    yPos = drawCard(doc, theme, PAGE_MARGIN, yPos, contentWidth, 'Cliente', clientLines) + 8;
   }
-  
-  // Nome da empresa ao lado da logo
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Segurança Máxima', margin + 50, 22);
-  
-  // Subtítulo
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Sistemas de Segurança Eletrônica', margin + 50, 32);
-  
-  // Slogan
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'italic');
-  doc.text('Proteção total para você e sua família', margin + 50, 42);
-  
-  // Dados da empresa no header (lado direito)
-  doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`CNPJ: ${company.cnpj}`, pageWidth - margin, 18, { align: 'right' });
-  doc.text(company.address, pageWidth - margin, 26, { align: 'right' });
-  doc.text(`Tel: ${company.phone}`, pageWidth - margin, 34, { align: 'right' });
-  doc.text(company.email, pageWidth - margin, 42, { align: 'right' });
-  
-  yPos = 65;
-  
-  // Título do documento
-  doc.setTextColor(30, 58, 138);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text('ORÇAMENTO', margin, yPos);
-  
-  // Número e data
-  const today = new Date().toLocaleDateString('pt-BR');
-  const validUntil = new Date(Date.now() + (data.validityDays || 15) * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR');
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Nº: ${quoteNumber}`, pageWidth - margin, yPos - 5, { align: 'right' });
-  doc.text(`Data: ${today}`, pageWidth - margin, yPos + 2, { align: 'right' });
-  doc.text(`Válido até: ${validUntil}`, pageWidth - margin, yPos + 9, { align: 'right' });
-  
-  yPos += 20;
-  
-  // Dados do cliente (se fornecidos)
-  if (data.customerName || data.customerPhone || data.customerAddress) {
-    const clientBoxHeight = data.customerAddress ? 35 : 25;
-    doc.setFillColor(245, 247, 250);
-    doc.rect(margin, yPos, pageWidth - margin * 2, clientBoxHeight, 'F');
-    
-    doc.setTextColor(30, 58, 138);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CLIENTE', margin + 5, yPos + 8);
-    
-    doc.setTextColor(60, 60, 60);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    if (data.customerName) {
-      doc.text(`Nome: ${data.customerName}`, margin + 5, yPos + 17);
-    }
-    if (data.customerPhone) {
-      doc.text(`Telefone: ${data.customerPhone}`, margin + 100, yPos + 17);
-    }
-    if (data.customerAddress) {
-      doc.text(`Endereço: ${data.customerAddress}`, margin + 5, yPos + 27);
-    }
-    
-    yPos += clientBoxHeight + 10;
-  }
-  
-  // Tabela de produtos com imagens
-  const tableData = data.items.map((item, index) => [
+
+  // Tabela de produtos
+  const tableBody = data.items.map((item, index) => [
     (index + 1).toString(),
     item.name,
+    item.description || '—',
     item.quantity.toString(),
-    `R$ ${item.price.toFixed(2)}`,
-    `R$ ${(item.price * item.quantity).toFixed(2)}`,
+    formatBRL(item.price),
+    formatBRL(item.price * item.quantity),
   ]);
-  
+
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Produto/Serviço', 'Qtd', 'Valor Unit.', 'Total']],
-    body: tableData,
-    theme: 'striped',
+    head: [['#', 'Produto/Serviço', 'Descrição', 'Qtd', 'Valor unit.', 'Total']],
+    body: tableBody,
+    theme: 'plain',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
+      textColor: theme.ink,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.1,
+    },
     headStyles: {
-      fillColor: [30, 58, 138],
+      fillColor: theme.primary,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 10,
-    },
-    bodyStyles: {
       fontSize: 9,
-      textColor: [60, 60, 60],
-      minCellHeight: 15,
+      halign: 'left',
     },
-    alternateRowStyles: {
-      fillColor: [245, 247, 250],
-    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 15, halign: 'center' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 35, halign: 'right' },
-      4: { cellWidth: 35, halign: 'right' },
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 52 },
+      2: { cellWidth: 'auto', textColor: theme.muted, fontSize: 8 },
+      3: { cellWidth: 14, halign: 'center' },
+      4: { cellWidth: 26, halign: 'right' },
+      5: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
     },
-    margin: { left: margin, right: margin },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: 24, bottom: 24 },
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage',
   });
-  
-  // @ts-ignore - autoTable adds lastAutoTable property
-  yPos = doc.lastAutoTable.finalY + 15;
-  
-  // Resumo de valores
-  const summaryX = pageWidth - margin - 80;
-  
-  doc.setFillColor(245, 247, 250);
-  doc.rect(summaryX - 10, yPos - 5, 90, 50, 'F');
-  
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  doc.setFont('helvetica', 'normal');
-  
-  doc.text('Subtotal:', summaryX, yPos + 5);
-  doc.text(`R$ ${data.subtotal.toFixed(2)}`, pageWidth - margin, yPos + 5, { align: 'right' });
-  
-  doc.text('Frete:', summaryX, yPos + 15);
-  doc.text(data.shipping === 0 ? 'Grátis' : `R$ ${data.shipping.toFixed(2)}`, pageWidth - margin, yPos + 15, { align: 'right' });
-  
-  // Linha separadora
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(0.5);
-  doc.line(summaryX, yPos + 22, pageWidth - margin, yPos + 22);
-  
-  // Total
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 58, 138);
-  doc.text('TOTAL:', summaryX, yPos + 35);
-  doc.text(`R$ ${data.total.toFixed(2)}`, pageWidth - margin, yPos + 35, { align: 'right' });
-  
-  yPos += 65;
-  
-  // Observações e condições
-  doc.setFillColor(255, 251, 235); // Amarelo claro
-  doc.rect(margin, yPos, pageWidth - margin * 2, 40, 'F');
-  doc.setDrawColor(245, 158, 11);
-  doc.setLineWidth(0.5);
-  doc.rect(margin, yPos, pageWidth - margin * 2, 40, 'S');
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 83, 9);
-  doc.text('OBSERVAÇÕES:', margin + 5, yPos + 10);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(100, 60, 20);
-  doc.text('• Este orçamento é válido por ' + (data.validityDays || 15) + ' dias a partir da data de emissão.', margin + 5, yPos + 20);
-  doc.text('• Preços sujeitos a alteração sem aviso prévio após o período de validade.', margin + 5, yPos + 28);
-  doc.text('• O pagamento será finalizado via WhatsApp após confirmação do pedido.', margin + 5, yPos + 36);
-  
-  // Rodapé
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
   const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setFillColor(30, 58, 138);
-  doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-  
-  doc.setFontSize(8);
+  const summaryHeight = 46;
+  if (yPos + summaryHeight + 40 > pageHeight - 20) {
+    doc.addPage();
+    yPos = 24;
+  }
+
+  // Resumo financeiro
+  const boxWidth = 84;
+  const boxX = pageWidth - PAGE_MARGIN - boxWidth;
+  doc.setFillColor(...theme.surface);
+  doc.roundedRect(boxX, yPos, boxWidth, summaryHeight, 3, 3, 'F');
+
+  const rowY = (i: number) => yPos + 10 + i * 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...theme.ink);
+  doc.text('Subtotal', boxX + 6, rowY(0));
+  doc.text(formatBRL(data.subtotal), boxX + boxWidth - 6, rowY(0), { align: 'right' });
+
+  doc.text('Frete', boxX + 6, rowY(1));
+  doc.text(
+    data.shipping && data.shipping > 0 ? formatBRL(data.shipping) : 'A combinar',
+    boxX + boxWidth - 6,
+    rowY(1),
+    { align: 'right' }
+  );
+
+  if (data.discount && data.discount > 0) {
+    doc.text('Desconto', boxX + 6, rowY(2));
+    doc.text(`- ${formatBRL(data.discount)}`, boxX + boxWidth - 6, rowY(2), { align: 'right' });
+  }
+
+  // Faixa de TOTAL com destaque forte
+  const totalY = yPos + summaryHeight - 14;
+  doc.setFillColor(...theme.primary);
+  doc.roundedRect(boxX, totalY, boxWidth, 14, 3, 3, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.text(`${company.name} | ${company.phone} | ${company.email}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  
-  // Save PDF locally
-  doc.save(`orcamento-mr-seguranca-${quoteNumber}.pdf`);
-  
-  // Upload to Supabase Storage and get public URL
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TOTAL', boxX + 6, totalY + 9);
+  doc.setFontSize(12.5);
+  doc.text(formatBRL(data.total), boxX + boxWidth - 6, totalY + 9, { align: 'right' });
+
+  // Observações
+  const notes = (
+    profile.pdf_notes_text?.trim() ||
+    `Este orçamento é válido por ${validityDays} dias a partir da data de emissão.\nPreços sujeitos a alteração após o período de validade.\nO pagamento é combinado via WhatsApp após a confirmação do pedido.`
+  )
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => `• ${line.replace(/^•\s*/, '')}`);
+
+  drawCard(doc, theme, PAGE_MARGIN, yPos, contentWidth - boxWidth - 8, 'Observações', notes);
+
+  drawFooters(doc, profile, theme);
+
+  doc.save(`orcamento-${quoteNumber}.pdf`);
+
+  // Upload para o storage e URL pública
   let pdfUrl: string | null = null;
   try {
     const pdfBlob = doc.output('blob');
     const fileName = `${quoteNumber}-${Date.now()}.pdf`;
-    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('quotes')
-      .upload(fileName, pdfBlob, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-      });
-    
+      .upload(fileName, pdfBlob, { contentType: 'application/pdf', cacheControl: '3600' });
+
     if (uploadError) {
       console.error('Erro ao fazer upload do PDF:', uploadError);
     } else if (uploadData) {
-      const { data: urlData } = supabase.storage
-        .from('quotes')
-        .getPublicUrl(fileName);
-      
-      pdfUrl = urlData.publicUrl;
+      pdfUrl = supabase.storage.from('quotes').getPublicUrl(fileName).data.publicUrl;
     }
   } catch (e) {
     console.error('Erro ao salvar PDF no storage:', e);
   }
-  
+
   return { pdfUrl, quoteNumber };
 }
 
-export function generateWhatsAppMessage(items: QuoteItem[], total: number, customerName?: string): string {
-  const itemsList = items.map(item => 
-    `• ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity).toFixed(2)}`
-  ).join('\n');
-  
-  const message = `Olá! Gostaria de finalizar minha compra.
+/** Mensagem simples de WhatsApp (mantida para compatibilidade) */
+export function generateWhatsAppMessage(
+  items: QuoteItem[],
+  total: number,
+  customerName?: string
+): string {
+  const itemsList = items
+    .map((item) => `• ${item.quantity}x ${item.name} — ${formatBRL(item.price * item.quantity)}`)
+    .join('\n');
 
-${customerName ? `*Nome:* ${customerName}\n` : ''}
+  const message = `Olá! Gostaria de finalizar minha compra.
+${customerName ? `\n*Nome:* ${customerName}\n` : ''}
 *Itens do pedido:*
 ${itemsList}
 
-*Total:* R$ ${total.toFixed(2)}
+*Total:* ${formatBRL(total)}
 
 Aguardo confirmação para prosseguir com o pagamento.`;
 

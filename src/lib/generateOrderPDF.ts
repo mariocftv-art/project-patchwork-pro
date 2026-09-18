@@ -1,6 +1,9 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoMRTransparent from '@/assets/logo-mr-transparent.png';
+import { getCompanyProfile } from '@/lib/companyProfile';
+import { formatBRL } from '@/lib/formatCurrency';
+import { getOrderStatusLabel } from '@/lib/orderStatus';
+import { buildTheme, drawCard, drawDocumentHeader, drawFooters, PAGE_MARGIN } from '@/lib/pdfBrand';
 
 interface OrderItem {
   name: string;
@@ -35,229 +38,146 @@ interface OrderData {
   created_at: string;
 }
 
-const statusLabels: Record<string, string> = {
-  pending: 'Aguardando Confirmação',
-  confirmed: 'Confirmado',
-  preparing: 'Em Preparação',
-  shipped: 'Enviado',
-  delivered: 'Entregue',
-  cancelled: 'Cancelado',
-};
-
 const paymentLabels: Record<string, string> = {
   pix: 'PIX',
   credit: 'Cartão de Crédito',
   boleto: 'Boleto Bancário',
 };
 
-// Function to load image as base64
-async function loadImageAsBase64(src: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } else {
-        reject(new Error('Could not get canvas context'));
-      }
-    };
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
 export async function generateOrderPDF(order: OrderData): Promise<void> {
+  const profile = await getCompanyProfile(true);
+  const theme = buildTheme(profile);
   const doc = new jsPDF();
-  
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  let yPos = 20;
-  
-  // Header com logo e dados da empresa
-  doc.setFillColor(30, 58, 138);
-  doc.rect(0, 0, pageWidth, 50, 'F');
-  
-  // Adiciona a logo
-  try {
-    const logoBase64 = await loadImageAsBase64(logoMRTransparent);
-    doc.addImage(logoBase64, 'PNG', margin, 5, 40, 40);
-  } catch (e) {
-    console.log('Logo não carregou:', e);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MR', margin + 10, 28);
-  }
-  
-  // Nome da empresa
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Segurança Máxima', margin + 45, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('CNPJ: 45.858.215/0001-86', margin + 45, 30);
-  doc.text('Tel: (11) 96257-9428', margin + 45, 38);
-  
-  // Número do pedido no header
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`PEDIDO #${order.order_number}`, pageWidth - margin, 25, { align: 'right' });
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const orderDate = new Date(order.created_at).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  doc.text(orderDate, pageWidth - margin, 35, { align: 'right' });
-  
-  yPos = 60;
-  
-  // Status do pedido
-  doc.setFillColor(240, 240, 240);
-  doc.rect(margin, yPos, pageWidth - margin * 2, 15, 'F');
-  doc.setTextColor(30, 58, 138);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Status: ${statusLabels[order.status] || order.status}`, margin + 5, yPos + 10);
-  
-  yPos += 25;
-  
-  // Dados do cliente
-  doc.setFillColor(245, 247, 250);
-  doc.rect(margin, yPos, pageWidth - margin * 2, order.shipping_address ? 55 : 35, 'F');
-  
-  doc.setTextColor(30, 58, 138);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DADOS DO CLIENTE', margin + 5, yPos + 10);
-  
-  doc.setTextColor(60, 60, 60);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  
-  doc.text(`Nome: ${order.customer_name}`, margin + 5, yPos + 20);
-  doc.text(`Email: ${order.customer_email}`, margin + 100, yPos + 20);
-  
-  if (order.customer_phone) {
-    doc.text(`Telefone: ${order.customer_phone}`, margin + 5, yPos + 28);
-  }
-  if (order.customer_cpf) {
-    doc.text(`CPF: ${order.customer_cpf}`, margin + 100, yPos + 28);
-  }
-  
-  if (order.shipping_address) {
-    const addr = order.shipping_address;
-    doc.text('Endereço:', margin + 5, yPos + 38);
-    const addressLine = `${addr.street}, ${addr.number}${addr.complement ? ' - ' + addr.complement : ''}, ${addr.neighborhood}`;
-    doc.text(addressLine, margin + 35, yPos + 38);
-    doc.text(`${addr.city} - ${addr.state}, CEP: ${addr.cep}`, margin + 35, yPos + 46);
-    yPos += 55;
-  } else {
-    yPos += 35;
-  }
-  
-  yPos += 10;
-  
-  // Tabela de produtos
-  doc.setTextColor(30, 58, 138);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('ITENS DO PEDIDO', margin, yPos + 5);
-  
-  yPos += 10;
-  
-  const tableData = order.items.map((item, index) => [
-    (index + 1).toString(),
-    item.name,
-    item.quantity.toString(),
-    `R$ ${item.price.toFixed(2)}`,
-    `R$ ${(item.price * item.quantity).toFixed(2)}`,
+  const contentWidth = pageWidth - PAGE_MARGIN * 2;
+  const created = new Date(order.created_at);
+
+  let yPos = await drawDocumentHeader(doc, profile, theme, `Pedido #${order.order_number}`, [
+    { label: 'Data', value: created.toLocaleDateString('pt-BR') },
+    { label: 'Hora', value: created.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) },
+    { label: 'Status', value: getOrderStatusLabel(order.status) },
   ]);
-  
+
+  const addr = order.shipping_address;
+  const halfWidth = (contentWidth - 8) / 2;
+
+  const customerLines = [
+    `Nome: ${order.customer_name}`,
+    `E-mail: ${order.customer_email}`,
+    order.customer_phone ? `Telefone: ${order.customer_phone}` : '',
+    order.customer_cpf ? `CPF: ${order.customer_cpf}` : '',
+  ].filter(Boolean);
+
+  const addressLines = addr
+    ? [
+        `${addr.street}, ${addr.number}${addr.complement ? ` - ${addr.complement}` : ''}`,
+        addr.neighborhood,
+        `${addr.city} - ${addr.state}`,
+        `CEP: ${addr.cep}`,
+      ]
+    : ['Não informado'];
+
+  const leftEnd = drawCard(doc, theme, PAGE_MARGIN, yPos, halfWidth, 'Dados do cliente', customerLines);
+  const rightEnd = drawCard(
+    doc,
+    theme,
+    PAGE_MARGIN + halfWidth + 8,
+    yPos,
+    halfWidth,
+    'Endereço de entrega',
+    addressLines
+  );
+  yPos = Math.max(leftEnd, rightEnd) + 8;
+
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Produto', 'Qtd', 'Valor Unit.', 'Total']],
-    body: tableData,
-    theme: 'striped',
+    head: [['#', 'Produto', 'Qtd', 'Valor unit.', 'Total']],
+    body: order.items.map((item, index) => [
+      (index + 1).toString(),
+      item.name,
+      item.quantity.toString(),
+      formatBRL(item.price),
+      formatBRL(item.price * item.quantity),
+    ]),
+    theme: 'plain',
+    styles: {
+      fontSize: 9,
+      cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
+      textColor: theme.ink,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.1,
+    },
     headStyles: {
-      fillColor: [30, 58, 138],
+      fillColor: theme.primary,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 10,
+      halign: 'left',
     },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [60, 60, 60],
-      minCellHeight: 12,
-    },
-    alternateRowStyles: {
-      fillColor: [245, 247, 250],
-    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 15, halign: 'center' },
+      0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 16, halign: 'center' },
       3: { cellWidth: 30, halign: 'right' },
-      4: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },
     },
-    margin: { left: margin, right: margin },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: 24, bottom: 24 },
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage',
   });
-  
-  // @ts-ignore
-  yPos = doc.lastAutoTable.finalY + 15;
-  
-  // Resumo de valores
-  const summaryX = pageWidth - margin - 80;
-  
-  doc.setFillColor(245, 247, 250);
-  doc.rect(summaryX - 10, yPos - 5, 90, 55, 'F');
-  
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  doc.setFont('helvetica', 'normal');
-  
-  doc.text('Subtotal:', summaryX, yPos + 5);
-  doc.text(`R$ ${order.subtotal.toFixed(2)}`, pageWidth - margin, yPos + 5, { align: 'right' });
-  
-  doc.text('Frete:', summaryX, yPos + 15);
-  doc.text('A combinar', pageWidth - margin, yPos + 15, { align: 'right' });
-  
-  doc.text('Pagamento:', summaryX, yPos + 25);
-  doc.text(paymentLabels[order.payment_method || ''] || order.payment_method || 'Não informado', pageWidth - margin, yPos + 25, { align: 'right' });
-  
-  // Linha separadora
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(0.5);
-  doc.line(summaryX, yPos + 32, pageWidth - margin, yPos + 32);
-  
-  // Total
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 58, 138);
-  doc.text('TOTAL:', summaryX, yPos + 45);
-  doc.text(`R$ ${order.total.toFixed(2)}`, pageWidth - margin, yPos + 45, { align: 'right' });
-  
-  // Rodapé
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
   const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setFillColor(30, 58, 138);
-  doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-  
-  doc.setFontSize(8);
+  const summaryHeight = 52;
+  if (yPos + summaryHeight + 20 > pageHeight - 20) {
+    doc.addPage();
+    yPos = 24;
+  }
+
+  const boxWidth = 88;
+  const boxX = pageWidth - PAGE_MARGIN - boxWidth;
+  doc.setFillColor(...theme.surface);
+  doc.roundedRect(boxX, yPos, boxWidth, summaryHeight, 3, 3, 'F');
+
+  const rowY = (i: number) => yPos + 10 + i * 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...theme.ink);
+  doc.text('Subtotal', boxX + 6, rowY(0));
+  doc.text(formatBRL(order.subtotal), boxX + boxWidth - 6, rowY(0), { align: 'right' });
+  doc.text('Frete', boxX + 6, rowY(1));
+  doc.text(
+    order.shipping_fee > 0 ? formatBRL(order.shipping_fee) : 'A combinar',
+    boxX + boxWidth - 6,
+    rowY(1),
+    { align: 'right' }
+  );
+  doc.text('Pagamento', boxX + 6, rowY(2));
+  doc.text(
+    paymentLabels[order.payment_method || ''] || order.payment_method || 'Não informado',
+    boxX + boxWidth - 6,
+    rowY(2),
+    { align: 'right' }
+  );
+
+  const totalY = yPos + summaryHeight - 14;
+  doc.setFillColor(...theme.primary);
+  doc.roundedRect(boxX, totalY, boxWidth, 14, 3, 3, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.text('MR Segurança Máxima | (11) 96257-9428 | contato@mrseguranca.com', pageWidth / 2, pageHeight - 10, { align: 'center' });
-  
-  // Salvar PDF
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TOTAL', boxX + 6, totalY + 9);
+  doc.setFontSize(12.5);
+  doc.text(formatBRL(order.total), boxX + boxWidth - 6, totalY + 9, { align: 'right' });
+
+  drawCard(doc, theme, PAGE_MARGIN, yPos, contentWidth - boxWidth - 8, 'Separação do pedido', [
+    `Status atual: ${getOrderStatusLabel(order.status)}`,
+    `Itens: ${order.items.reduce((sum, i) => sum + i.quantity, 0)} unidade(s)`,
+    'Conferir produtos, embalar e registrar a saída.',
+  ]);
+
+  drawFooters(doc, profile, theme);
   doc.save(`pedido-${order.order_number}.pdf`);
 }
