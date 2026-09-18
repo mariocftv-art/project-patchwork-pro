@@ -164,9 +164,9 @@ export async function generateQuotePDF(
     { align: 'right' }
   );
 
-  if (data.discount && data.discount > 0) {
+  if (hasDiscount) {
     doc.text('Desconto', boxX + 6, rowY(2));
-    doc.text(`- ${formatBRL(data.discount)}`, boxX + boxWidth - 6, rowY(2), { align: 'right' });
+    doc.text(`- ${formatBRL(data.discount!)}`, boxX + boxWidth - 6, rowY(2), { align: 'right' });
   }
 
   // Faixa de TOTAL com destaque forte
