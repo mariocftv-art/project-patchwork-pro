@@ -582,7 +582,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     columnStyles: {
       0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold' },
       1: { cellWidth: 'auto', halign: 'left' },
-      2: { cellWidth: 17, halign: 'center' },
+      2: { cellWidth: 20, halign: 'center' },
       3: { cellWidth: 28, halign: 'right' },
       4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
     },
@@ -740,8 +740,8 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
 
   /* ---- Assinaturas ---- */
   if (data.showSignatures) {
-    y = ensureSpace(doc, y, 42);
-    y += 14;
+    y = ensureSpace(doc, y, 34);
+    y += 10;
     const sw = (CONTENT_W - 16) / 2;
     const sigs = [
       { title: 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
