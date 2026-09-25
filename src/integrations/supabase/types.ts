@@ -89,7 +89,9 @@ export type Database = {
           logo_url: string | null
           name: string
           pdf_footer_text: string | null
+          pdf_gold_color: string | null
           pdf_notes_text: string | null
+          pdf_red_color: string | null
           phone: string | null
           primary_color: string | null
           quote_validity_days: number
@@ -117,7 +119,9 @@ export type Database = {
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
+          pdf_gold_color?: string | null
           pdf_notes_text?: string | null
+          pdf_red_color?: string | null
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number
@@ -145,7 +149,9 @@ export type Database = {
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
+          pdf_gold_color?: string | null
           pdf_notes_text?: string | null
+          pdf_red_color?: string | null
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number
