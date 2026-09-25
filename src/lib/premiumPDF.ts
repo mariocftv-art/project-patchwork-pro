@@ -779,7 +779,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
   const w = data.warranty;
   const warrantyLines: string[] = [];
-  if (w?.option) {
+  const warrantyInClauses = /\bGARANTIA\b/.test((data.contractText || '').toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
+  if (w?.option && !warrantyInClauses) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
     warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);
     if (w.option !== 'none' && w.text?.trim()) warrantyLines.push(w.text.trim());
