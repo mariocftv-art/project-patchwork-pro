@@ -386,7 +386,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number) {
-  if (y + needed > PAGE_H - FOOTER_H - 6) {
+  if (y + needed > PAGE_H - FOOTER_H - 3) {
     doc.addPage();
     return 26;
   }
@@ -692,7 +692,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const warrantyLines: string[] = [];
   if (w?.option) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
-    warrantyLines.push(`GARANTIA: ${period.toUpperCase()}`);
+    warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);
     if (w.option !== 'none' && w.text?.trim()) warrantyLines.push(w.text.trim());
   }
 
@@ -704,7 +704,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     const bw = blocks.length === 2 ? (CONTENT_W - gap) / 2 : CONTENT_W;
     doc.setFontSize(9);
     const wrapped = blocks.map((b) => b.lines.flatMap((l) => doc.splitTextToSize(l, bw - 8) as string[]));
-    const bh = 7 + 5 + Math.max(...wrapped.map((l) => l.length)) * 4.8 + 2;
+    const bh = 7 + 4 + Math.max(...wrapped.map((l) => l.length)) * 4.6 + 1;
     y = ensureSpace(doc, y, bh + 4);
     blocks.forEach((b, i) => {
       const x = LEFT + i * (bw + gap);
