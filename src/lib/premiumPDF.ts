@@ -196,28 +196,6 @@ interface Theme {
   red: RGB;
 }
 
-function drawShield(doc: jsPDF, cx: number, cy: number, s: number, fill: RGB, stroke: RGB) {
-  doc.setFillColor(...fill);
-  doc.setDrawColor(...stroke);
-  doc.setLineWidth(0.4);
-  const w = 6 * s;
-  const h = 7 * s;
-  doc.lines(
-    [
-      [w, 0],
-      [0, h * 0.45],
-      [-w / 2, h * 0.55],
-      [-w / 2, -h * 0.55],
-      [0, -h * 0.45],
-    ],
-    cx - w / 2,
-    cy - h / 2,
-    [1, 1],
-    'FD',
-    true
-  );
-}
-
 function sectionTitle(doc: jsPDF, t: Theme, x: number, y: number, w: number, title: string) {
   doc.setFillColor(...BLACK);
   doc.rect(x, y, w, 7, 'F');
