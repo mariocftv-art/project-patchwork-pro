@@ -86,6 +86,7 @@ export type Database = {
           email: string | null
           footer_slogan: string | null
           id: string
+          instagram: string | null
           logo_url: string | null
           name: string
           pdf_footer_text: string | null
@@ -116,6 +117,7 @@ export type Database = {
           email?: string | null
           footer_slogan?: string | null
           id?: string
+          instagram?: string | null
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           email?: string | null
           footer_slogan?: string | null
           id?: string
+          instagram?: string | null
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
