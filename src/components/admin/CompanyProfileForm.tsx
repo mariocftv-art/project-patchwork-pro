@@ -133,6 +133,10 @@ export default function CompanyProfileForm() {
             <Label>Site</Label>
             <Input value={profile.website} onChange={(e) => set('website', e.target.value)} placeholder="www.mrseguranca.com.br" />
           </div>
+          <div className="sm:col-span-2">
+            <Label>Instagram</Label>
+            <Input value={profile.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@linkmrstore" />
+          </div>
         </TabsContent>
 
         <TabsContent value="brand" className="space-y-6">

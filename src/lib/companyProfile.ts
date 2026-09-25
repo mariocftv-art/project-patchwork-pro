@@ -12,6 +12,7 @@ export interface CompanyProfile {
   city: string;
   state: string;
   website: string;
+  instagram: string;
   logo_url: string | null;
   primary_color: string;
   secondary_color: string;
@@ -98,6 +99,7 @@ export const defaultCompanyProfile: CompanyProfile = {
   city: 'São Paulo',
   state: 'SP',
   website: '',
+  instagram: '@linkmrstore',
   logo_url: null,
   primary_color: '#1E3A8A',
   secondary_color: '#0F172A',
@@ -163,6 +165,7 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     city: profile.city,
     state: profile.state,
     website: profile.website,
+    instagram: profile.instagram,
     logo_url: profile.logo_url,
     primary_color: profile.primary_color,
     secondary_color: profile.secondary_color,
