@@ -407,10 +407,14 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setFontSize(7.5);
   const wa = profile.phone || profile.whatsapp;
   doc.text(
-    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : '', profile.instagram ? `Instagram: ${profile.instagram}` : ''].filter(Boolean).join('  •  '),
+    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : ''].filter(Boolean).join('   •   '),
     LEFT + 15,
-    y + 13
+    y + 12.5
   );
+  if (profile.instagram) {
+    doc.setTextColor(...t.gold);
+    doc.text(`Siga no Instagram: ${profile.instagram}`, LEFT + 15, y + 16.5);
+  }
   const slogan = (profile.footer_slogan || '').trim();
   if (slogan) {
     doc.setTextColor(...t.gold);
