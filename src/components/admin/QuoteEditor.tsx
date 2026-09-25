@@ -13,6 +13,7 @@ import { getCompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
 import {
   buildPremiumPDF,
+  buildDefaultContractText,
   computeTotals,
   DocCustomer,
   DocItem,
@@ -48,6 +49,7 @@ export interface QuoteRecord {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   warranty: any;
   notes: string | null;
+  contract_text?: string | null;
   validity_days: number | null;
   show_signatures: boolean;
   total: number;
@@ -83,6 +85,7 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
     payment: r.payment || { method: '' },
     warranty: r.warranty || { option: '' },
     notes: r.notes || '',
+    contractText: r.contract_text || '',
     showSignatures: !!r.show_signatures,
   };
 }
@@ -276,6 +279,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         payment: final.payment || {},
         warranty: final.warranty || {},
         notes: final.notes || null,
+        contract_text: final.contractText?.trim() ? final.contractText : null,
         validity_days: final.validityDays || null,
         show_signatures: !!final.showSignatures,
         pdf_url: url,
@@ -384,7 +388,12 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             <section className="grid gap-3 sm:grid-cols-3">
               <div>
                 <Label>Tipo de documento</Label>
-                <select className={selectCls} value={data.docType} onChange={(e) => set('docType', e.target.value as DocType)}>
+                <select className={selectCls} value={data.docType} onChange={(e) => {
+                  const docType = e.target.value as DocType;
+                  if (docType === 'contrato' && !data.contractText?.trim()) {
+                    setData({ ...data, docType, showSignatures: true, contractText: buildDefaultContractText(data) });
+                  } else set('docType', docType);
+                }}>
                   {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
@@ -543,6 +552,18 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             <section className="space-y-2">
               <h3 className="font-semibold">Observações importantes</h3>
               <Textarea rows={4} placeholder="Uma observação por linha" value={data.notes || ''} onChange={(e) => set('notes', e.target.value)} />
+              <div className="flex items-center justify-between gap-2 pt-2">
+                <h3 className="font-semibold">Cláusulas do contrato (aparecem abaixo das observações)</h3>
+                <Button size="sm" variant="outline" type="button" onClick={() => set('contractText', buildDefaultContractText(data))}>
+                  Preencher modelo padrão
+                </Button>
+              </div>
+              <Textarea
+                rows={10}
+                placeholder={'Deixe vazio para não mostrar.\nTítulos: "1. OBJETO DO CONTRATO". Itens: comece com "•". Use {VALOR_TOTAL} para o valor automático.'}
+                value={data.contractText || ''}
+                onChange={(e) => set('contractText', e.target.value)}
+              />
               <div className="flex items-center gap-2">
                 <Switch checked={!!data.showSignatures} onCheckedChange={(v) => set('showSignatures', v)} />
                 <span className="text-sm">Mostrar campos de assinatura</span>
