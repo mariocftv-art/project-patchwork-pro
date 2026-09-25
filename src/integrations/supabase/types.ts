@@ -394,6 +394,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          contract_text: string | null
           created_at: string
           created_by: string | null
           customer: Json
@@ -424,6 +425,7 @@ export type Database = {
           warranty: Json
         }
         Insert: {
+          contract_text?: string | null
           created_at?: string
           created_by?: string | null
           customer?: Json
@@ -454,6 +456,7 @@ export type Database = {
           warranty?: Json
         }
         Update: {
+          contract_text?: string | null
           created_at?: string
           created_by?: string | null
           customer?: Json
