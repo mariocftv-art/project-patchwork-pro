@@ -718,7 +718,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setFont('helvetica', strong ? 'bold' : 'normal');
         doc.setTextColor(...(strong ? BLACK : INK));
         doc.setFontSize(9);
-        doc.text(l, x + 4, y + 12.5 + j * 4.8);
+        doc.text(l, x + 4, y + 12 + j * 4.6);
       });
     });
     y += bh + G(6);
