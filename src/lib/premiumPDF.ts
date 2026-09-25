@@ -63,6 +63,7 @@ export interface PremiumDocData {
   payment?: DocPayment;
   warranty?: DocWarranty;
   notes?: string;
+  contractText?: string;
   showSignatures?: boolean;
 }
 
@@ -139,6 +140,42 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
 
 export const lineTotal = (it: DocItem) =>
   Math.round(cents(it.unitPrice) * (Number(it.quantity) || 0)) / 100;
+
+/* ============ Cláusulas do contrato ============ */
+
+/** Monta o texto padrão do contrato a partir dos itens e da garantia escolhida. {VALOR_TOTAL} é trocado na hora de gerar. */
+export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'warranty'>): string {
+  const scope = data.items
+    .filter((i) => i.description?.trim())
+    .map((i) => `• ${i.kind === 'service' ? '' : `${i.quantity} `}${i.description.trim()}.`.replace(/\.\.$/, '.'));
+  const parts: string[] = [
+    '1. OBJETO DO CONTRATO',
+    'A CONTRATADA realizará o fornecimento, instalação, configuração e testes do sistema de CFTV descrito neste contrato, incluindo organização dos componentes e entrega do sistema em funcionamento.',
+    '',
+    '2. ESCOPO DA INSTALAÇÃO',
+    ...(scope.length ? scope : ['• (descreva os itens do escopo)']),
+    '• Instalação, configuração, testes e orientação básica de uso do sistema.',
+  ];
+  let n = 3;
+  const w = data.warranty;
+  if (w?.option && w.option !== 'none') {
+    const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
+    parts.push(
+      '',
+      `${n++}. GARANTIA — ${period.toUpperCase()}`,
+      `Todos os equipamentos e o serviço de instalação terão ${period} de garantia, observadas as condições de uso e as limitações decorrentes de mau uso, intervenção de terceiros, alterações elétricas, surtos, descargas atmosféricas, vandalismo ou danos externos.`
+    );
+  }
+  parts.push(
+    '',
+    `${n++}. VALOR E CONDIÇÕES`,
+    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. A forma e o cronograma de pagamento serão definidos e registrados entre as partes.',
+    '',
+    `${n++}. DISPOSIÇÕES GERAIS`,
+    'Alterações de escopo ou serviços adicionais deverão ser previamente aprovados pelas partes e poderão gerar orçamento complementar. A assinatura deste documento representa a concordância com o escopo, valor e condições aqui descritos.'
+  );
+  return parts.join('\n');
+}
 
 /* ============ Validação antes de gerar ============ */
 
@@ -674,6 +711,58 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     }
   }
 
+  /* ---- Cláusulas do contrato ---- */
+  const clauses = (data.contractText || '').replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total)).split('\n');
+  if (clauses.some((l) => l.trim())) {
+    y = ensureSpace(doc, y, 30);
+    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
+    y += 5;
+    clauses.forEach((raw) => {
+      const line = raw.trim();
+      if (!line) {
+        y += 1.5;
+        return;
+      }
+      const isHead = /^\d+\.\s/.test(line) || (line === line.toUpperCase() && line.length < 60 && /[A-Z]/.test(line));
+      const isBullet = /^[•\-✓]/.test(line);
+      if (isHead) {
+        y = ensureSpace(doc, y, 14);
+        y += 2;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.6);
+        doc.setTextColor(...BLACK);
+        doc.setFillColor(...t.red);
+        doc.rect(LEFT, y - 3.2, 1.2, 4.2, 'F');
+        doc.text(line, LEFT + 3.5, y);
+        doc.setDrawColor(...t.gold);
+        doc.setLineWidth(0.3);
+        doc.line(LEFT + 3.5, y + 1.6, LEFT + 3.5 + Math.min(doc.getTextWidth(line), CONTENT_W - 4), y + 1.6);
+        y += 6;
+        return;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...INK);
+      const text = isBullet ? line.replace(/^[•\-✓]\s*/, '') : line;
+      const indent = isBullet ? 8.5 : 3.5;
+      const wrapped = doc.splitTextToSize(text, CONTENT_W - indent - 2) as string[];
+      wrapped.forEach((l, k) => {
+        y = ensureSpace(doc, y, 6);
+        if (isBullet && k === 0) {
+          doc.setFillColor(...t.gold);
+          doc.rect(LEFT + 4.5, y - 2.2, 1.5, 1.5, 'F');
+        }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...INK);
+        doc.text(l, LEFT + indent, y);
+        y += 4.6;
+      });
+      y += 0.8;
+    });
+    y += G(4);
+  }
+
   /* ---- Pagamento + Garantia ---- */
   const pay = data.payment;
   const payLines: string[] = [];
@@ -730,9 +819,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     y += 10;
     const sw = (CONTENT_W - 16) / 2;
     const sigs = [
-      { title: 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
+      { title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
       {
-        title: 'ASSINATURA DA CONTRATADA',
+        title: data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
         lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : ''].filter(Boolean),
       },
     ];
