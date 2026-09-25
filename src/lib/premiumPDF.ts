@@ -179,6 +179,9 @@ const WHITE: RGB = [255, 255, 255];
 const INK: RGB = [28, 28, 32];
 const MUTED: RGB = [105, 105, 112];
 const PAPER: RGB = [251, 249, 243];
+const SURFACE: RGB = [244, 242, 236];
+let EXTRA = 0;
+const G = (base: number) => base + EXTRA;
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -186,58 +189,11 @@ const SIDEBAR_W = 13;
 const LEFT = SIDEBAR_W + 9;
 const RIGHT = PAGE_W - 12;
 const CONTENT_W = RIGHT - LEFT;
-const FOOTER_H = 20;
+const FOOTER_H = 18;
 
 interface Theme {
   gold: RGB;
   red: RGB;
-}
-
-function drawCamera(doc: jsPDF, x: number, y: number, s: number, t: Theme) {
-  // Câmera bullet estilizada (vetorial)
-  doc.setFillColor(...PANEL);
-  doc.setDrawColor(...t.gold);
-  doc.setLineWidth(0.5);
-  // suporte
-  doc.rect(x + 24 * s, y + 13 * s, 3 * s, 8 * s, 'FD');
-  doc.roundedRect(x + 19 * s, y + 20 * s, 13 * s, 3 * s, 1, 1, 'FD');
-  // corpo
-  doc.roundedRect(x, y, 34 * s, 13 * s, 2.5 * s, 2.5 * s, 'FD');
-  // viseira
-  doc.setFillColor(...BLACK);
-  doc.roundedRect(x - 1.5 * s, y - 2 * s, 30 * s, 3 * s, 1, 1, 'FD');
-  // lente
-  doc.setFillColor(...BLACK);
-  doc.circle(x + 3 * s, y + 6.5 * s, 4.5 * s, 'FD');
-  doc.setFillColor(...t.gold);
-  doc.circle(x + 3 * s, y + 6.5 * s, 2.2 * s, 'F');
-  doc.setFillColor(...WHITE);
-  doc.circle(x + 2.2 * s, y + 5.7 * s, 0.7 * s, 'F');
-  // led
-  doc.setFillColor(...t.red);
-  doc.circle(x + 30 * s, y + 4 * s, 1 * s, 'F');
-}
-
-function drawShield(doc: jsPDF, cx: number, cy: number, s: number, fill: RGB, stroke: RGB) {
-  doc.setFillColor(...fill);
-  doc.setDrawColor(...stroke);
-  doc.setLineWidth(0.4);
-  const w = 6 * s;
-  const h = 7 * s;
-  doc.lines(
-    [
-      [w, 0],
-      [0, h * 0.45],
-      [-w / 2, h * 0.55],
-      [-w / 2, -h * 0.55],
-      [0, -h * 0.45],
-    ],
-    cx - w / 2,
-    cy - h / 2,
-    [1, 1],
-    'FD',
-    true
-  );
 }
 
 function sectionTitle(doc: jsPDF, t: Theme, x: number, y: number, w: number, title: string) {
@@ -315,8 +271,9 @@ function drawSidebar(doc: jsPDF, t: Theme) {
   doc.setFontSize(7);
   let y = 95;
   words.forEach((w) => {
-    drawShield(doc, SIDEBAR_W / 2, y, 0.55, t.red, t.gold);
-    y += 6;
+    doc.setFillColor(...t.red);
+    doc.circle(SIDEBAR_W / 2, y, 0.9, 'F');
+    y += 4;
     doc.setTextColor(...t.gold);
     const tw = doc.getTextWidth(w);
     doc.text(w, SIDEBAR_W / 2 + 1.2, y + tw, { angle: 90 });
@@ -334,47 +291,49 @@ async function tryLoad(src?: string | null) {
 }
 
 function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, title: string) {
-  const top = 0;
-  const h = 40;
+  const h = 32;
   doc.setFillColor(...BLACK);
-  doc.rect(SIDEBAR_W + 1.4, top, PAGE_W - SIDEBAR_W, h, 'F');
-  // moldura dourada interna
-  doc.setDrawColor(...t.gold);
-  doc.setLineWidth(0.4);
-  doc.rect(SIDEBAR_W + 4, 3, PAGE_W - SIDEBAR_W - 7, h - 6);
+  doc.rect(SIDEBAR_W + 1.4, 0, PAGE_W - SIDEBAR_W, h, 'F');
+  doc.setFillColor(...t.gold);
+  doc.rect(SIDEBAR_W + 1.4, h, PAGE_W - SIDEBAR_W, 0.7, 'F');
 
+  let tx = LEFT;
   if (logo) {
-    doc.addImage(logo, 'PNG', LEFT - 2, 6, 28, 28);
+    doc.addImage(logo, 'PNG', LEFT - 1, 4, 24, 24);
+    tx = LEFT + 27;
   }
-
-  const cx = (LEFT + 28 + RIGHT - 44) / 2 + 2;
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(17);
-  doc.text((profile.name || '').toUpperCase(), cx, 17, { align: 'center' });
+  doc.setFontSize(16);
+  doc.text((profile.name || '').toUpperCase(), tx, 14);
   doc.setFillColor(...t.red);
-  doc.rect(cx - 22, 20.5, 44, 0.8, 'F');
+  doc.rect(tx, 16.6, 16, 0.7, 'F');
   doc.setTextColor(...t.gold);
-  doc.setFontSize(9.5);
-  doc.text('CÂMERAS E ALARMES', cx, 27, { align: 'center' });
-  doc.setTextColor(...WHITE);
+  doc.setFontSize(8.6);
+  doc.text('CÂMERAS E ALARMES', tx, 22);
+  doc.setTextColor(215, 215, 215);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.text('MONITORAMENTO 24H', cx, 32.5, { align: 'center' });
+  doc.setFontSize(7.8);
+  doc.text('MONITORAMENTO 24H', tx, 26.5);
 
-  drawCamera(doc, RIGHT - 40, 11, 1, t);
+  // contato discreto à direita
+  doc.setFontSize(7.6);
+  doc.setTextColor(215, 215, 215);
+  const right = [profile.phone ? `WhatsApp ${profile.phone}` : '', profile.cnpj ? `CNPJ ${profile.cnpj}` : '', profile.email || '']
+    .filter(Boolean);
+  right.forEach((l, i) => doc.text(l, RIGHT, 13 + i * 4.6, { align: 'right' }));
 
   // título do documento
-  let y = h + 7;
+  let y = h + 11;
   doc.setTextColor(...BLACK);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(title.length > 22 ? 16 : 21);
-  doc.text(title, LEFT, y + 6);
-  y += 10;
+  doc.setFontSize(title.length > 22 ? 15 : 19);
+  doc.text(title, LEFT, y);
+  y += 3;
   doc.setFillColor(...t.gold);
-  doc.rect(LEFT, y, CONTENT_W * 0.72, 1.1, 'F');
+  doc.rect(LEFT, y, 40, 0.9, 'F');
   doc.setFillColor(...t.red);
-  doc.rect(LEFT + CONTENT_W * 0.72, y, CONTENT_W * 0.28, 1.1, 'F');
+  doc.rect(LEFT + 40, y, 8, 0.9, 'F');
   return y + 4;
 }
 
@@ -399,7 +358,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.rect(SIDEBAR_W + 1.4, y, PAGE_W - SIDEBAR_W, FOOTER_H, 'F');
   doc.setFillColor(...t.gold);
   doc.rect(SIDEBAR_W + 1.4, y, PAGE_W - SIDEBAR_W, 0.8, 'F');
-  if (logo) doc.addImage(logo, 'PNG', LEFT - 2, y + 3, 14, 14);
+  if (logo) doc.addImage(logo, 'PNG', LEFT - 1, y + 2.5, 13, 13);
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.3);
@@ -423,11 +382,11 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setTextColor(200, 200, 200);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text(`Página ${page} de ${total}`, RIGHT, y + 17, { align: 'right' });
+  if (total > 1) doc.text(`Página ${page}`, RIGHT, y + 17, { align: 'right' });
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number) {
-  if (y + needed > PAGE_H - FOOTER_H - 6) {
+  if (y + needed > PAGE_H - FOOTER_H - 3) {
     doc.addPage();
     return 26;
   }
@@ -446,6 +405,20 @@ function formatAddress(c: DocCustomer) {
 }
 
 export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
+  EXTRA = 0;
+  const first = await buildOnce(data, profile);
+  // Uma página só e sobrando espaço: distribui melhor os blocos
+  if (first.pages === 1 && first.free > 25) {
+    EXTRA = Math.min(5, (first.free - 12) / 7);
+    const second = await buildOnce(data, profile);
+    EXTRA = 0;
+    if (second.pages === 1) return second.doc;
+  }
+  EXTRA = 0;
+  return first.doc;
+}
+
+async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise<{ doc: jsPDF; pages: number; free: number }> {
   const t: Theme = {
     gold: hexToRgb(profile.pdf_gold_color, [201, 162, 39]),
     red: hexToRgb(profile.pdf_red_color, [200, 16, 46]),
@@ -469,23 +442,26 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     ['STATUS', DOC_TYPE_LABELS[data.docType].toUpperCase()],
   ];
   const cellW = CONTENT_W / ids.length;
-  doc.setFillColor(...PANEL);
-  doc.rect(LEFT, y, CONTENT_W, 12, 'F');
-  doc.setDrawColor(...t.gold);
-  doc.setLineWidth(0.5);
-  doc.rect(LEFT, y, CONTENT_W, 12);
+  doc.setFillColor(...SURFACE);
+  doc.rect(LEFT, y, CONTENT_W, 10, 'F');
+  doc.setFillColor(...t.gold);
+  doc.rect(LEFT, y, 1.2, 10, 'F');
   ids.forEach(([label, value], i) => {
     const x = LEFT + i * cellW;
-    if (i > 0) doc.line(x, y + 2, x, y + 10);
-    doc.setTextColor(...t.gold);
+    if (i > 0) {
+      doc.setDrawColor(215, 210, 195);
+      doc.setLineWidth(0.2);
+      doc.line(x, y + 2, x, y + 8);
+    }
+    doc.setTextColor(...MUTED);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.6);
-    doc.text(label, x + 3.5, y + 4.6);
-    doc.setTextColor(...WHITE);
-    doc.setFontSize(9.2);
-    doc.text(value, x + 3.5, y + 9.4);
+    doc.setFontSize(6.2);
+    doc.text(label, x + 4, y + 4);
+    doc.setTextColor(...BLACK);
+    doc.setFontSize(8.8);
+    doc.text(value, x + 4, y + 8.2);
   });
-  y += 17;
+  y += 10 + G(5);
 
   /* ---- Cliente + Empresa ---- */
   const c = data.customer;
@@ -493,8 +469,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     [
       ['Nome', c.name],
       ['Fantasia', c.fantasy],
-      ['CPF', c.cpf],
-      ['CNPJ', c.cnpj],
+      ['CPF/CNPJ', [c.cpf, c.cnpj].filter((v) => v && v.trim()).join(' • ')],
       ['Telefone', c.phone],
       ['WhatsApp', c.whatsapp],
       ['E-mail', c.email],
@@ -524,7 +499,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
   const blockH = Math.max(measureInfoBlock(doc, leftW, clientRows), measureInfoBlock(doc, rightW, companyRows));
   drawInfoBlock(doc, t, LEFT, y, leftW, blockH, 'Dados do cliente', clientRows);
   drawInfoBlock(doc, t, LEFT + leftW + gap, y, rightW, blockH, 'Dados da empresa', companyRows);
-  y += blockH + 6;
+  y += blockH + G(6);
 
   /* ---- Descrição do serviço ---- */
   if (data.serviceTitle?.trim()) {
@@ -539,7 +514,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     st.forEach((l, i) => doc.text(l, LEFT + 4, y + 6 + i * 5.2));
-    y += h + 6;
+    y += h + G(6);
   }
 
   /* ---- Tabela ---- */
@@ -557,16 +532,16 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
       formatBRL(Number(it.unitPrice) || 0),
       formatBRL(lineTotal(it)),
     ]),
-    theme: 'grid',
+    theme: 'plain',
     styles: {
       font: 'helvetica',
-      fontSize: 9,
+      fontSize: 9.2,
       textColor: INK,
-      lineColor: t.gold,
-      lineWidth: 0.25,
-      cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
+      lineColor: [226, 222, 210],
+      lineWidth: { top: 0, right: 0, left: 0, bottom: 0.25 },
+      cellPadding: { top: 3.4, bottom: 3.4, left: 3.2, right: 3.2 },
       valign: 'middle',
-      minCellHeight: hasImages ? 14 : 9,
+      minCellHeight: hasImages ? 13 : 9,
     },
     headStyles: {
       fillColor: BLACK,
@@ -574,17 +549,17 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
       fontStyle: 'bold',
       fontSize: 8.6,
       lineColor: t.gold,
-      lineWidth: 0.4,
+      lineWidth: { top: 0, right: 0, left: 0, bottom: 0.8 },
       minCellHeight: 9,
     },
     bodyStyles: { fillColor: WHITE },
-    alternateRowStyles: { fillColor: PAPER },
+    alternateRowStyles: { fillColor: [250, 249, 245] },
     columnStyles: {
-      0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold', textColor: MUTED },
       1: { cellWidth: 'auto', halign: 'left' },
       2: { cellWidth: 20, halign: 'center' },
       3: { cellWidth: 28, halign: 'right' },
-      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLACK, fontSize: 9.6 },
     },
     margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 },
     rowPageBreak: 'avoid',
@@ -600,7 +575,11 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
         if (img) {
           const size = Math.min(10, h.cell.height - 3);
           try {
-            doc.addImage(img, 'PNG', h.cell.x + h.cell.width - size - 1.5, h.cell.y + (h.cell.height - size) / 2, size, size);
+            const pr = doc.getImageProperties(img);
+            const ratio = pr.width / pr.height || 1;
+            const iw = ratio >= 1 ? size : size * ratio;
+            const ih = ratio >= 1 ? size / ratio : size;
+            doc.addImage(img, 'PNG', h.cell.x + h.cell.width - 1.5 - size + (size - iw) / 2, h.cell.y + (h.cell.height - ih) / 2, iw, ih);
           } catch {
             /* imagem inválida: ignora */
           }
@@ -610,7 +589,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  y = (doc as any).lastAutoTable.finalY + 6;
+  y = (doc as any).lastAutoTable.finalY + G(6);
 
   /* ---- Resumo + Total ---- */
   const summary: Array<[string, string]> = [];
@@ -658,7 +637,42 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
   doc.setTextColor(...WHITE);
   doc.setFontSize(20);
   doc.text(formatBRL(totals.total), RIGHT - 6, y + 14.5, { align: 'right' });
-  y += totalBoxH + 7;
+  y += totalBoxH + G(7);
+
+  /* ---- Observações ---- */
+  const notes = (data.notes || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (notes.length) {
+    doc.setFontSize(9);
+    const wrapped = notes.flatMap((n) => doc.splitTextToSize(n.replace(/^[-•✓]\s*/, ''), CONTENT_W - 12).map((l: string, k: number) => (k === 0 ? `\u0001${l}` : l)) as string[]);
+    let idx = 0;
+    while (idx < wrapped.length) {
+      y = ensureSpace(doc, y, 22);
+      const room = Math.floor((PAGE_H - FOOTER_H - 8 - y - 12) / 4.8);
+      const chunk = wrapped.slice(idx, idx + Math.max(1, room));
+      const h = 7 + 5 + chunk.length * 4.8;
+      doc.setFillColor(...PAPER);
+      doc.setDrawColor(...t.gold);
+      doc.setLineWidth(0.5);
+      doc.rect(LEFT, y, CONTENT_W, h, 'FD');
+      sectionTitle(doc, t, LEFT, y, CONTENT_W, idx === 0 ? 'Observações importantes' : 'Observações (continuação)');
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...INK);
+      doc.setFontSize(9);
+      chunk.forEach((l, j) => {
+        const first = l.startsWith('\u0001');
+        if (first) {
+          doc.setFillColor(...t.gold);
+          doc.rect(LEFT + 4.5, y + 10.6 + j * 4.8, 1.6, 1.6, 'F');
+        }
+        doc.text(first ? l.slice(1) : l, LEFT + 8.5, y + 12.5 + j * 4.8);
+      });
+      y += h + G(6);
+      idx += chunk.length;
+    }
+  }
 
   /* ---- Pagamento + Garantia ---- */
   const pay = data.payment;
@@ -678,7 +692,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
   const warrantyLines: string[] = [];
   if (w?.option) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
-    warrantyLines.push(`GARANTIA: ${period.toUpperCase()}`);
+    warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);
     if (w.option !== 'none' && w.text?.trim()) warrantyLines.push(w.text.trim());
   }
 
@@ -690,7 +704,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     const bw = blocks.length === 2 ? (CONTENT_W - gap) / 2 : CONTENT_W;
     doc.setFontSize(9);
     const wrapped = blocks.map((b) => b.lines.flatMap((l) => doc.splitTextToSize(l, bw - 8) as string[]));
-    const bh = 7 + 5 + Math.max(...wrapped.map((l) => l.length)) * 4.8 + 2;
+    const bh = 7 + 4 + Math.max(...wrapped.map((l) => l.length)) * 4.6 + 1;
     y = ensureSpace(doc, y, bh + 4);
     blocks.forEach((b, i) => {
       const x = LEFT + i * (bw + gap);
@@ -704,38 +718,10 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
         doc.setFont('helvetica', strong ? 'bold' : 'normal');
         doc.setTextColor(...(strong ? BLACK : INK));
         doc.setFontSize(9);
-        doc.text(l, x + 4, y + 12.5 + j * 4.8);
+        doc.text(l, x + 4, y + 12 + j * 4.6);
       });
     });
-    y += bh + 6;
-  }
-
-  /* ---- Observações ---- */
-  const notes = (data.notes || '')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (notes.length) {
-    doc.setFontSize(9);
-    const wrapped = notes.flatMap((n) => doc.splitTextToSize(`• ${n.replace(/^[-•]\s*/, '')}`, CONTENT_W - 8) as string[]);
-    let idx = 0;
-    while (idx < wrapped.length) {
-      y = ensureSpace(doc, y, 22);
-      const room = Math.floor((PAGE_H - FOOTER_H - 8 - y - 12) / 4.8);
-      const chunk = wrapped.slice(idx, idx + Math.max(1, room));
-      const h = 7 + 5 + chunk.length * 4.8;
-      doc.setFillColor(...PAPER);
-      doc.setDrawColor(...t.gold);
-      doc.setLineWidth(0.5);
-      doc.rect(LEFT, y, CONTENT_W, h, 'FD');
-      sectionTitle(doc, t, LEFT, y, CONTENT_W, idx === 0 ? 'Observações importantes' : 'Observações (continuação)');
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...INK);
-      doc.setFontSize(9);
-      chunk.forEach((l, j) => doc.text(l, LEFT + 4, y + 12.5 + j * 4.8));
-      y += h + 6;
-      idx += chunk.length;
-    }
+    y += bh + G(6);
   }
 
   /* ---- Assinaturas ---- */
@@ -776,7 +762,7 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
     drawFooter(doc, profile, t, logo, p, total);
   }
 
-  return doc;
+  return { doc, pages: total, free: PAGE_H - FOOTER_H - 6 - y };
 }
 
 /** Número único e sequencial: MR-2026-0001 */
