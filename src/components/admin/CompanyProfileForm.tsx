@@ -110,6 +110,10 @@ export default function CompanyProfileForm() {
             <Input value={profile.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5511962579428" />
           </div>
           <div>
+            <Label>Responsável / técnico</Label>
+            <Input value={profile.responsible_name} onChange={(e) => set('responsible_name', e.target.value)} />
+          </div>
+          <div>
             <Label>E-mail</Label>
             <Input value={profile.email} onChange={(e) => set('email', e.target.value)} />
           </div>
@@ -166,6 +170,8 @@ export default function CompanyProfileForm() {
               ['primary_color', 'Cor primária'],
               ['secondary_color', 'Cor secundária'],
               ['accent_color', 'Cor de destaque'],
+              ['pdf_gold_color', 'PDF: dourado'],
+              ['pdf_red_color', 'PDF: vermelho'],
             ] as Array<[keyof CompanyProfile, string]>).map(([key, label]) => (
               <div key={key as string}>
                 <Label>{label}</Label>
@@ -206,6 +212,30 @@ export default function CompanyProfileForm() {
               value={profile.pdf_notes_text}
               onChange={(e) => set('pdf_notes_text', e.target.value)}
             />
+          </div>
+          <div>
+            <Label>Frase do rodapé (PDF premium)</Label>
+            <Input value={profile.footer_slogan} onChange={(e) => set('footer_slogan', e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Garantia padrão</Label>
+              <select
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={profile.default_warranty}
+                onChange={(e) => set('default_warranty', e.target.value)}
+              >
+                <option value="">Não definir (escolher em cada orçamento)</option>
+                <option value="none">Sem garantia</option>
+                <option value="3m">3 meses</option>
+                <option value="6m">6 meses</option>
+                <option value="1y">1 ano</option>
+              </select>
+            </div>
+            <div>
+              <Label>Texto padrão da garantia</Label>
+              <Textarea rows={2} value={profile.default_warranty_text} onChange={(e) => set('default_warranty_text', e.target.value)} />
+            </div>
           </div>
           <div>
             <Label>Texto do rodapé do PDF</Label>

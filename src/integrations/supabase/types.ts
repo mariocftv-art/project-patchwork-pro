@@ -81,15 +81,21 @@ export type Database = {
           city: string | null
           cnpj: string | null
           created_at: string
+          default_warranty: string | null
+          default_warranty_text: string | null
           email: string | null
+          footer_slogan: string | null
           id: string
           logo_url: string | null
           name: string
           pdf_footer_text: string | null
+          pdf_gold_color: string | null
           pdf_notes_text: string | null
+          pdf_red_color: string | null
           phone: string | null
           primary_color: string | null
           quote_validity_days: number
+          responsible_name: string | null
           secondary_color: string | null
           state: string | null
           tagline: string | null
@@ -105,15 +111,21 @@ export type Database = {
           city?: string | null
           cnpj?: string | null
           created_at?: string
+          default_warranty?: string | null
+          default_warranty_text?: string | null
           email?: string | null
+          footer_slogan?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
+          pdf_gold_color?: string | null
           pdf_notes_text?: string | null
+          pdf_red_color?: string | null
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number
+          responsible_name?: string | null
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
@@ -129,15 +141,21 @@ export type Database = {
           city?: string | null
           cnpj?: string | null
           created_at?: string
+          default_warranty?: string | null
+          default_warranty_text?: string | null
           email?: string | null
+          footer_slogan?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           pdf_footer_text?: string | null
+          pdf_gold_color?: string | null
           pdf_notes_text?: string | null
+          pdf_red_color?: string | null
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number
+          responsible_name?: string | null
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
@@ -377,42 +395,93 @@ export type Database = {
       quotes: {
         Row: {
           created_at: string
+          created_by: string | null
+          customer: Json
+          customer_address: string | null
+          customer_cnpj: string | null
+          customer_cpf: string | null
           customer_email: string
           customer_name: string
           customer_phone: string | null
+          customer_whatsapp: string | null
+          discount: number
+          doc_type: string
           id: string
           items: Json
+          labor_total: number
+          notes: string | null
+          payment: Json
           pdf_url: string | null
           quote_number: string
+          service_title: string | null
           shipping_fee: number
+          show_signatures: boolean
+          status: string
           subtotal: number
           total: number
+          updated_at: string
+          validity_days: number | null
+          warranty: Json
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          customer?: Json
+          customer_address?: string | null
+          customer_cnpj?: string | null
+          customer_cpf?: string | null
           customer_email: string
           customer_name: string
           customer_phone?: string | null
+          customer_whatsapp?: string | null
+          discount?: number
+          doc_type?: string
           id?: string
           items: Json
+          labor_total?: number
+          notes?: string | null
+          payment?: Json
           pdf_url?: string | null
           quote_number: string
+          service_title?: string | null
           shipping_fee?: number
+          show_signatures?: boolean
+          status?: string
           subtotal: number
           total: number
+          updated_at?: string
+          validity_days?: number | null
+          warranty?: Json
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          customer?: Json
+          customer_address?: string | null
+          customer_cnpj?: string | null
+          customer_cpf?: string | null
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
+          customer_whatsapp?: string | null
+          discount?: number
+          doc_type?: string
           id?: string
           items?: Json
+          labor_total?: number
+          notes?: string | null
+          payment?: Json
           pdf_url?: string | null
           quote_number?: string
+          service_title?: string | null
           shipping_fee?: number
+          show_signatures?: boolean
+          status?: string
           subtotal?: number
           total?: number
+          updated_at?: string
+          validity_days?: number | null
+          warranty?: Json
         }
         Relationships: []
       }
@@ -504,6 +573,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_quote_number: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"

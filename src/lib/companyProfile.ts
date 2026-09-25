@@ -21,6 +21,12 @@ export interface CompanyProfile {
   quote_validity_days: number;
   whatsapp_customer_template: string;
   whatsapp_admin_template: string;
+  responsible_name: string;
+  footer_slogan: string;
+  default_warranty: string;
+  default_warranty_text: string;
+  pdf_gold_color: string;
+  pdf_red_color: string;
 }
 
 export const DEFAULT_CUSTOMER_TEMPLATE = `🛡️ *{EMPRESA}*
@@ -102,6 +108,13 @@ export const defaultCompanyProfile: CompanyProfile = {
   quote_validity_days: 15,
   whatsapp_customer_template: DEFAULT_CUSTOMER_TEMPLATE,
   whatsapp_admin_template: DEFAULT_ADMIN_TEMPLATE,
+  responsible_name: 'Rogério',
+  footer_slogan: 'SEGURANÇA DE VERDADE. TRANQUILIDADE SEMPRE.',
+  default_warranty: '',
+  default_warranty_text:
+    'Todos os equipamentos instalados e configurados possuem garantia conforme as condições estabelecidas neste orçamento.',
+  pdf_gold_color: '#C9A227',
+  pdf_red_color: '#C8102E',
 };
 
 function normalize(row: Record<string, unknown> | null): CompanyProfile {
@@ -159,6 +172,12 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     quote_validity_days: profile.quote_validity_days,
     whatsapp_customer_template: profile.whatsapp_customer_template,
     whatsapp_admin_template: profile.whatsapp_admin_template,
+    responsible_name: profile.responsible_name,
+    footer_slogan: profile.footer_slogan,
+    default_warranty: profile.default_warranty,
+    default_warranty_text: profile.default_warranty_text,
+    pdf_gold_color: profile.pdf_gold_color,
+    pdf_red_color: profile.pdf_red_color,
   };
 
   if (profile.id) {
