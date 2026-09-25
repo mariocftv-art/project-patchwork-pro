@@ -152,11 +152,14 @@ export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'w
     '1. OBJETO DO CONTRATO',
     'A CONTRATADA realizará o fornecimento, instalação, configuração e testes do sistema de CFTV descrito neste contrato, incluindo organização dos componentes e entrega do sistema em funcionamento.',
     '',
-    '2. ESCOPO DA INSTALAÇÃO',
+    '2. EQUIPAMENTOS E SERVIÇOS',
+    'Os equipamentos, materiais e serviços, com quantidades, valores unitários e totais, são os descritos na tabela de itens deste documento, totalizando {VALOR_TOTAL}.',
+    '',
+    '3. ESCOPO DA INSTALAÇÃO',
     ...(scope.length ? scope : ['• (descreva os itens do escopo)']),
     '• Instalação, configuração, testes e orientação básica de uso do sistema.',
   ];
-  let n = 3;
+  let n = 4;
   const w = data.warranty;
   if (w?.option && w.option !== 'none') {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
@@ -356,9 +359,9 @@ function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: str
   // contato discreto à direita
   doc.setFontSize(7.6);
   doc.setTextColor(215, 215, 215);
-  const right = [profile.phone ? `WhatsApp ${profile.phone}` : '', profile.cnpj ? `CNPJ ${profile.cnpj}` : '', profile.email || '']
+  const right = [profile.phone ? `WhatsApp ${profile.phone}` : '', profile.cnpj ? `CNPJ ${profile.cnpj}` : '', profile.email || '', profile.instagram ? `Instagram ${profile.instagram}` : '']
     .filter(Boolean);
-  right.forEach((l, i) => doc.text(l, RIGHT, 13 + i * 4.6, { align: 'right' }));
+  right.forEach((l, i) => doc.text(l, RIGHT, 11 + i * 4.4, { align: 'right' }));
 
   // título do documento
   let y = h + 11;
@@ -404,7 +407,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setFontSize(7.5);
   const wa = profile.phone || profile.whatsapp;
   doc.text(
-    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : ''].filter(Boolean).join('   •   '),
+    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : '', profile.instagram ? `Instagram: ${profile.instagram}` : ''].filter(Boolean).join('  •  '),
     LEFT + 15,
     y + 13
   );
@@ -524,6 +527,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       ['Telefone', profile.phone],
       ['Responsável', profile.responsible_name],
       ['E-mail', profile.email],
+      ['Instagram', profile.instagram],
       ['Endereço', [profile.address, [profile.city, profile.state].filter(Boolean).join('/')].filter(Boolean).join(' - ')],
     ] as Array<[string, string | undefined]>
   )

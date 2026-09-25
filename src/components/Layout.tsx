@@ -447,7 +447,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Instagram Button */}
       <a
-        href="https://instagram.com/rogeriocftv"
+        href="https://instagram.com/linkmrstore"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-20 left-3 sm:left-6 z-50 flex items-center gap-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-full shadow-lg hover:scale-105 transition-transform"
