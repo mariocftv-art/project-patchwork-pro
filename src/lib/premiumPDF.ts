@@ -610,6 +610,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     rowPageBreak: 'avoid',
     showHead: 'everyPage',
     didParseCell: (h) => {
+      if (h.section === 'head') {
+        h.cell.styles.halign = (['center', 'left', 'center', 'right', 'right'] as const)[h.column.index];
+      }
       if (h.section === 'body' && h.column.index === 0 && images[h.row.index]) {
         h.cell.styles.halign = 'left';
       }
