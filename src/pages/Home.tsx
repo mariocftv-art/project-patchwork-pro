@@ -36,14 +36,15 @@ export default function Home() {
 
   const isLoading = isLoadingProducts || isLoadingCategories;
 
-  // Count products per category
-  const categoryCounts = categories.map(cat => ({
+  // Count products per category (oculta categorias vazias)
+  const allCategoryCounts = categories.map(cat => ({
     ...cat,
     count: products.filter(p => p.category === cat.slug).length
   }));
+  const categoryCounts = allCategoryCounts.filter(c => c.count > 0);
 
-  // Filter products
-  let filteredProducts = products;
+  // Filter products (esgotados por último)
+  let filteredProducts = [...products].sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
   
   if (selectedCategory) {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
@@ -169,14 +170,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Free Shipping Filter */}
-          <div className="mb-6">
-            <h3 className="font-semibold text-foreground text-sm mb-3">Envio</h3>
-            <label className="flex items-center gap-2 cursor-pointer ml-filter-item">
-              <input type="checkbox" className="w-4 h-4 accent-ml-blue" />
-              <span>Frete grátis</span>
-            </label>
-          </div>
 
           {/* Mobile Apply Button */}
           <button

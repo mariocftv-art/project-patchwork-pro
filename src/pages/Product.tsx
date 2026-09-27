@@ -214,20 +214,25 @@ export default function Product() {
 
               {/* Buttons */}
               <div className="space-y-2">
-                <button
-                  onClick={handleBuyNow}
-                  disabled={product.stock === 0}
-                  className="w-full ml-btn-primary disabled:opacity-50"
-                >
-                  Comprar agora
-                </button>
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className="w-full ml-btn-secondary disabled:opacity-50"
-                >
-                  Adicionar ao carrinho
-                </button>
+                {product.stock === 0 ? (
+                  <a
+                    href={`https://wa.me/5511962579428?text=${encodeURIComponent(`Olá! Me avise quando chegar: ${product.title}${product.sku ? ` (${product.sku})` : ''}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full ml-btn-primary block text-center"
+                  >
+                    Avise-me quando chegar
+                  </a>
+                ) : (
+                  <>
+                    <button onClick={handleBuyNow} className="w-full ml-btn-primary">
+                      Comprar agora
+                    </button>
+                    <button onClick={handleAddToCart} className="w-full ml-btn-secondary">
+                      Adicionar ao carrinho
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Wishlist */}
