@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck } from 'lucide-react';
+import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from '@/hooks/use-toast';
 import { getCompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
+import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
+import PdfPagesPreview, { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import {
   buildPremiumPDF,
   buildDefaultContractText,
   computeTotals,
+  docFileName,
   DocCustomer,
   DocItem,
   DocType,
@@ -127,6 +130,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
   const [step, setStep] = useState<'edit' | 'preview'>('edit');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -312,7 +316,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     }
   };
 
-  const fileName = `${DOC_TYPE_LABELS[data.docType].toLowerCase().replace(/\s+/g, '-')}-${data.number || 'previa'}.pdf`;
+  const fileName = docFileName(data.docType, data.number || 'previa');
 
   const handleDownload = () => {
     if (!previewUrl) return;
@@ -322,18 +326,17 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     a.click();
   };
 
-  const handlePrint = () => {
-    const frame = document.getElementById('quote-preview-frame') as HTMLIFrameElement | null;
+  const handlePrint = async () => {
     try {
-      frame?.contentWindow?.focus();
-      frame?.contentWindow?.print();
-    } catch {
-      if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer');
+      const pages = previewPages.length ? previewPages : previewBlob ? await renderPdfPages(previewBlob) : [];
+      if (pages.length) printPages(pages);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Não foi possível abrir a impressão', variant: 'destructive' });
     }
   };
 
   const handleShare = async () => {
-    const phone = (data.customer.whatsapp || data.customer.phone || '').replace(/\D/g, '');
     if (previewBlob && navigator.canShare) {
       const file = new File([previewBlob], fileName, { type: 'application/pdf' });
       if (navigator.canShare({ files: [file] })) {
@@ -345,13 +348,13 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         }
       }
     }
+    handleWhatsApp();
+  };
+
+  const handleWhatsApp = async () => {
     const profile = await getCompanyProfile();
-    const msg =
-      `🛡️ *${profile.name}*\n\n📄 *${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº ${data.number || ''}*\n\n` +
-      `Olá, *${data.customer.name}*!\n💰 *Total: ${formatBRL(totals.total)}*\n\n` +
-      (pdfUrl ? `📎 Veja o PDF:\n${pdfUrl}` : '');
-    const to = phone ? (phone.startsWith('55') ? phone : `55${phone}`) : '';
-    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+    const msg = buildQuoteWhatsAppMessage(data, profile, { pdfUrl });
+    window.open(whatsappUrl(data.customer.whatsapp || data.customer.phone || '', msg), '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -366,9 +369,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
 
         {step === 'preview' ? (
           <div className="space-y-3">
-            {previewUrl && (
-              <iframe id="quote-preview-frame" src={previewUrl} title="Pré-visualização" className="w-full h-[65vh] rounded border border-border bg-muted" />
-            )}
+            <PdfPagesPreview blob={previewBlob} onPages={setPreviewPages} />
             {!data.number && (
               <p className="text-xs text-muted-foreground">Prévia — o número definitivo é criado ao clicar em "Gerar PDF".</p>
             )}
@@ -377,9 +378,10 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
               <Button onClick={handleGenerate} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}Gerar PDF
               </Button>
-              <Button variant="outline" onClick={handleDownload}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
-              <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
+              <Button variant="outline" onClick={handleDownload} disabled={!previewUrl}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
+              <Button variant="outline" onClick={handlePrint} disabled={!previewBlob}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
               <Button variant="outline" onClick={handleShare}><Share2 className="h-4 w-4 mr-1" />Compartilhar</Button>
+              <Button variant="outline" onClick={handleWhatsApp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
             </div>
           </div>
         ) : (

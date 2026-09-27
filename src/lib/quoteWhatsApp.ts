@@ -60,7 +60,7 @@ export function buildQuoteWhatsAppMessage(
     if (v && v.trim()) push(`${emoji} ${name}: ${v.trim()}`);
   };
 
-  push(`🛡️ *${label.toUpperCase()} — ${(profile.name || '').toUpperCase()}*`, SEP);
+  push(`🛡️ *NOVO ${label.toUpperCase()} — ${(profile.name || '').toUpperCase()}*`, SEP);
   push(`📋 *${label.toUpperCase()} Nº ${data.number || '—'}*`, `📅 Data: ${date}`);
   if (validity) push(`⏳ Validade: ${validity}`);
   push(`📌 Status: ${label}`, SEP);
