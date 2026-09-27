@@ -3,7 +3,9 @@ import autoTable from 'jspdf-autotable';
 import logoMRTransparent from '@/assets/logo-mr-transparent.png';
 import { CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
-import { hexToRgb, loadImageAsBase64, RGB } from '@/lib/pdfBrand';
+import { hexToRgb, RGB } from '@/lib/pdfBrand';
+import { buildScopeLines, categorize, CATEGORY_BADGE } from '@/lib/docScope';
+import { loadDocImage } from '@/lib/docImages';
 
 /* ============ Tipos do documento ============ */
 
@@ -393,13 +395,9 @@ function drawSidebar(doc: jsPDF, t: Theme) {
   });
 }
 
-async function tryLoad(src?: string | null) {
+async function tryLoad(src?: string | null, maxPx?: number) {
   if (!src) return null;
-  try {
-    return await loadImageAsBase64(src);
-  } catch {
-    return null;
-  }
+  return loadDocImage(src, maxPx);
 }
 
 function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, title: string) {
@@ -635,8 +633,10 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Tabela ---- */
-  const images = await Promise.all(data.items.map((it) => tryLoad(it.imageUrl)));
-  const hasImages = images.some(Boolean);
+  // Aguarda todas as imagens (ou a falha delas) antes de montar a tabela
+  const images = await Promise.all(data.items.map((it) => tryLoad(it.imageUrl, 240)));
+  const hasImages = true; // coluna de foto sempre presente: foto real ou ícone neutro da categoria
+  const badges = data.items.map((it) => CATEGORY_BADGE[categorize(it)]);
   y = ensureSpace(doc, y, 30);
 
   autoTable(doc, {
@@ -685,24 +685,40 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       if (h.section === 'head') {
         h.cell.styles.halign = (['center', 'left', 'center', 'right', 'right'] as const)[h.column.index];
       }
-      if (h.section === 'body' && h.column.index === 0 && images[h.row.index]) {
+      if (h.section === 'body' && h.column.index === 0) {
         h.cell.styles.halign = 'left';
       }
     },
     didDrawCell: (h) => {
       if (h.section === 'body' && h.column.index === 0) {
         const img = images[h.row.index];
+        const size = Math.min(10, h.cell.height - 3);
+        const bx = h.cell.x + h.cell.width - 1.5 - size;
+        const by = h.cell.y + (h.cell.height - size) / 2;
+        let drawn = false;
         if (img) {
-          const size = Math.min(10, h.cell.height - 3);
           try {
             const pr = doc.getImageProperties(img);
             const ratio = pr.width / pr.height || 1;
             const iw = ratio >= 1 ? size : size * ratio;
             const ih = ratio >= 1 ? size / ratio : size;
-            doc.addImage(img, 'PNG', h.cell.x + h.cell.width - 1.5 - size + (size - iw) / 2, h.cell.y + (h.cell.height - ih) / 2, iw, ih);
+            doc.addImage(img, bx + (size - iw) / 2, h.cell.y + (h.cell.height - ih) / 2, iw, ih);
+            drawn = true;
           } catch {
-            /* imagem inválida: ignora */
+            drawn = false;
           }
+        }
+        if (!drawn) {
+          // Ícone neutro da categoria (sem foto inventada)
+          doc.setFillColor(...SURFACE);
+          doc.setDrawColor(...t.gold);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(bx, by, size, size, 1.2, 1.2, 'FD');
+          doc.setTextColor(...MUTED);
+          doc.setFont('helvetica', 'bold');
+          const label = badges[h.row.index];
+          doc.setFontSize(label.length > 4 ? 4.4 : 5.2);
+          doc.text(label, bx + size / 2, by + size / 2 + 0.9, { align: 'center' });
         }
       }
     },
@@ -795,7 +811,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Cláusulas do contrato ---- */
-  const clauses = (data.contractText || '').replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total)).split('\n');
+  const resolvedContract = resolveContractText(data);
+  const clauses = resolvedContract.split('\n');
   if (clauses.some((l) => l.trim())) {
     y = ensureSpace(doc, y, 30);
     y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
@@ -862,7 +879,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
   const w = data.warranty;
   const warrantyLines: string[] = [];
-  const warrantyInClauses = /\bGARANTIA\b/.test((data.contractText || '').toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
+  const warrantyInClauses = /\bGARANTIA\b/.test(resolvedContract.toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
   if (w?.option && !warrantyInClauses) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
     warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);
