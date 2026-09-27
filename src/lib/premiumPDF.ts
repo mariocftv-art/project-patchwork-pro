@@ -658,7 +658,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       lineWidth: { top: 0, right: 0, left: 0, bottom: 0.25 },
       cellPadding: { top: 3.4, bottom: 3.4, left: 3.2, right: 3.2 },
       valign: 'middle',
-      minCellHeight: hasImages ? 13 : 9,
+      minCellHeight: hasImages ? 11.5 : 9,
     },
     headStyles: {
       fillColor: BLACK,
@@ -692,7 +692,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     didDrawCell: (h) => {
       if (h.section === 'body' && h.column.index === 0) {
         const img = images[h.row.index];
-        const size = Math.min(10, h.cell.height - 3);
+        const size = Math.min(9, h.cell.height - 2.5);
         const bx = h.cell.x + h.cell.width - 1.5 - size;
         const by = h.cell.y + (h.cell.height - size) / 2;
         let drawn = false;
