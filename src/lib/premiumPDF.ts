@@ -3,7 +3,9 @@ import autoTable from 'jspdf-autotable';
 import logoMRTransparent from '@/assets/logo-mr-transparent.png';
 import { CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
-import { hexToRgb, loadImageAsBase64, RGB } from '@/lib/pdfBrand';
+import { hexToRgb, RGB } from '@/lib/pdfBrand';
+import { buildScopeLines, categorize, CATEGORY_BADGE } from '@/lib/docScope';
+import { loadDocImage } from '@/lib/docImages';
 
 /* ============ Tipos do documento ============ */
 
@@ -143,12 +145,13 @@ export const lineTotal = (it: DocItem) =>
 
 /* ============ Cláusulas do contrato ============ */
 
-/** Monta o texto padrão do contrato a partir dos itens e da garantia escolhida. {VALOR_TOTAL} é trocado na hora de gerar. */
-export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'warranty'>): string {
-  const scope = data.items
-    .filter((i) => i.description?.trim())
-    .map((i) => `• ${i.kind === 'service' ? '' : `${i.quantity} `}${i.description.trim()}.`.replace(/\.\.$/, '.'));
-  const parts: string[] = [
+/**
+ * Texto padrão do contrato. As marcações {ESCOPO}, {VALOR_TOTAL}, {PAGAMENTO} e {GARANTIA_*}
+ * são trocadas na hora de gerar, sempre a partir dos itens e dados atuais do documento.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function buildDefaultContractText(_data?: Pick<PremiumDocData, 'items' | 'warranty'>): string {
+  return [
     '1. OBJETO DO CONTRATO',
     'A CONTRATADA realizará o fornecimento, instalação, configuração e testes do sistema de CFTV descrito neste contrato, incluindo organização dos componentes e entrega do sistema em funcionamento.',
     '',
@@ -156,28 +159,99 @@ export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'w
     'Os equipamentos, materiais e serviços, com quantidades, valores unitários e totais, são os descritos na tabela de itens deste documento, totalizando {VALOR_TOTAL}.',
     '',
     '3. ESCOPO DA INSTALAÇÃO',
-    ...(scope.length ? scope : ['• (descreva os itens do escopo)']),
-    '• Instalação, configuração, testes e orientação básica de uso do sistema.',
-  ];
-  let n = 4;
-  const w = data.warranty;
-  if (w?.option && w.option !== 'none') {
-    const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
-    parts.push(
-      '',
-      `${n++}. GARANTIA — ${period.toUpperCase()}`,
-      `Todos os equipamentos e o serviço de instalação terão ${period} de garantia, observadas as condições de uso e as limitações decorrentes de mau uso, intervenção de terceiros, alterações elétricas, surtos, descargas atmosféricas, vandalismo ou danos externos.`
-    );
+    'O serviço será executado conforme os equipamentos, quantidades e serviços descritos neste contrato. O sistema contratado contempla:',
+    '{ESCOPO}',
+    '',
+    '4. GARANTIA — {GARANTIA_PERIODO}',
+    'A garantia seguirá o período de {GARANTIA_PERIODO_MIN} e as condições registradas neste documento. A garantia não cobre danos decorrentes de mau uso, alterações não autorizadas, intervenção de terceiros, vandalismo, surtos elétricos, descargas atmosféricas ou danos externos.',
+    '',
+    '5. VALOR E CONDIÇÕES',
+    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. {PAGAMENTO}',
+    '',
+    '6. ALTERAÇÃO DE ESCOPO',
+    'Qualquer alteração ou serviço adicional solicitado posteriormente poderá ser objeto de orçamento complementar e dependerá de aprovação das partes.',
+    '',
+    '7. ACESSO AO LOCAL E INFRAESTRUTURA',
+    'O cliente deverá disponibilizar acesso ao local e as condições necessárias para a execução do serviço. Quando houver infraestrutura elétrica, de rede ou física inadequada, eventuais adequações não previstas neste documento poderão ser cobradas separadamente, mediante aprovação do cliente.',
+    '',
+    '8. DISPOSIÇÕES GERAIS',
+    'A assinatura deste documento representa a concordância das partes com o escopo, o valor e as condições aqui descritos.',
+  ].join('\n');
+}
+
+function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals>) {
+  const p = data.payment;
+  if (!p?.method) return 'A forma e o cronograma de pagamento serão definidos e registrados entre as partes.';
+  if (p.method === 'parcelado')
+    return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)} (total parcelado de ${formatBRL(totals.installmentTotal)}).`;
+  if (p.method === 'personalizado') return `Condição de pagamento: ${(p.customText || '').trim().replace(/\n+/g, '; ')}.`;
+  return `Forma de pagamento: ${PAYMENT_LABELS[p.method]}.`;
+}
+
+export function warrantyPeriod(w?: DocWarranty): string {
+  if (!w?.option || w.option === 'none') return '';
+  return w.option === 'custom' ? (w.customPeriod || '').trim() : WARRANTY_LABELS[w.option];
+}
+
+/**
+ * Troca as marcações pelo conteúdo atual. Em contratos antigos (sem {ESCOPO}), os tópicos
+ * logo abaixo do título de ESCOPO são refeitos a partir dos itens reais.
+ * Remove a cláusula de garantia se nenhuma foi escolhida e renumera as cláusulas.
+ */
+export function resolveContractText(data: PremiumDocData): string {
+  const raw = data.contractText || '';
+  if (!raw.trim()) return '';
+  const totals = computeTotals(data);
+  const scope = buildScopeLines(data.items);
+  let lines = raw.split('\n');
+
+  if (!raw.includes('{ESCOPO}')) {
+    const hi = lines.findIndex((l) => /^\d+\.\s.*ESCOPO/i.test(l.trim()));
+    if (hi >= 0) {
+      let end = hi + 1;
+      while (end < lines.length && !/^\d+\.\s/.test(lines[end].trim())) end++;
+      const body = lines.slice(hi + 1, end);
+      const rest = body.filter((l) => !/^\s*[•\-✓]/.test(l));
+      const firstBullet = body.findIndex((l) => /^\s*[•\-✓]/.test(l));
+      const intro = firstBullet >= 0 ? body.slice(0, firstBullet).filter((l) => !/^\s*[•\-✓]/.test(l)) : rest;
+      const tail = firstBullet >= 0 ? body.slice(firstBullet).filter((l) => !/^\s*[•\-✓]/.test(l)) : [];
+      lines = [...lines.slice(0, hi + 1), ...intro, '{ESCOPO}', ...tail, ...lines.slice(end)];
+    }
   }
-  parts.push(
-    '',
-    `${n++}. VALOR E CONDIÇÕES`,
-    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. A forma e o cronograma de pagamento serão definidos e registrados entre as partes.',
-    '',
-    `${n++}. DISPOSIÇÕES GERAIS`,
-    'Alterações de escopo ou serviços adicionais deverão ser previamente aprovados pelas partes e poderão gerar orçamento complementar. A assinatura deste documento representa a concordância com o escopo, valor e condições aqui descritos.'
-  );
-  return parts.join('\n');
+
+  // Garantia: sem garantia escolhida => remove a cláusula que usa as marcações
+  const period = warrantyPeriod(data.warranty);
+  if (!period) {
+    const gi = lines.findIndex((l) => l.includes('{GARANTIA_PERIODO}') && /^\d+\.\s/.test(l.trim()));
+    if (gi >= 0) {
+      let end = gi + 1;
+      while (end < lines.length && !/^\d+\.\s/.test(lines[end].trim())) end++;
+      lines.splice(gi, end - gi);
+    }
+  }
+
+  let n = 0;
+  const out = lines
+    .map((l) => (/^\d+\.\s/.test(l.trim()) ? l.trim().replace(/^\d+\./, `${++n}.`) : l))
+    .join('\n')
+    .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
+    .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
+    .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
+    .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
+    .replace(/\{GARANTIA_PERIODO_MIN\}/g, period);
+  return out;
+}
+
+const DOC_FILE_LABEL: Record<DocType, string> = {
+  orcamento: 'Orcamento',
+  contrato: 'Contrato',
+  os: 'OS',
+  recibo: 'Recibo',
+};
+
+/** Ex.: MR-Seguranca-Maxima-Orcamento-MR-2026-0007.pdf */
+export function docFileName(docType: DocType, number: string) {
+  return `MR-Seguranca-Maxima-${DOC_FILE_LABEL[docType] || 'Orcamento'}-${(number || 'previa').replace(/[^\w-]/g, '')}.pdf`;
 }
 
 /* ============ Validação antes de gerar ============ */
@@ -321,13 +395,9 @@ function drawSidebar(doc: jsPDF, t: Theme) {
   });
 }
 
-async function tryLoad(src?: string | null) {
+async function tryLoad(src?: string | null, maxPx?: number) {
   if (!src) return null;
-  try {
-    return await loadImageAsBase64(src);
-  } catch {
-    return null;
-  }
+  return loadDocImage(src, maxPx);
 }
 
 function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, title: string) {
@@ -563,8 +633,10 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Tabela ---- */
-  const images = await Promise.all(data.items.map((it) => tryLoad(it.imageUrl)));
-  const hasImages = images.some(Boolean);
+  // Aguarda todas as imagens (ou a falha delas) antes de montar a tabela
+  const images = await Promise.all(data.items.map((it) => tryLoad(it.imageUrl, 240)));
+  const hasImages = true; // coluna de foto sempre presente: foto real ou ícone neutro da categoria
+  const badges = data.items.map((it) => CATEGORY_BADGE[categorize(it)]);
   y = ensureSpace(doc, y, 30);
 
   autoTable(doc, {
@@ -586,7 +658,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       lineWidth: { top: 0, right: 0, left: 0, bottom: 0.25 },
       cellPadding: { top: 3.4, bottom: 3.4, left: 3.2, right: 3.2 },
       valign: 'middle',
-      minCellHeight: hasImages ? 13 : 9,
+      minCellHeight: hasImages ? 11.5 : 9,
     },
     headStyles: {
       fillColor: BLACK,
@@ -613,24 +685,40 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       if (h.section === 'head') {
         h.cell.styles.halign = (['center', 'left', 'center', 'right', 'right'] as const)[h.column.index];
       }
-      if (h.section === 'body' && h.column.index === 0 && images[h.row.index]) {
+      if (h.section === 'body' && h.column.index === 0) {
         h.cell.styles.halign = 'left';
       }
     },
     didDrawCell: (h) => {
       if (h.section === 'body' && h.column.index === 0) {
         const img = images[h.row.index];
+        const size = Math.min(9, h.cell.height - 2.5);
+        const bx = h.cell.x + h.cell.width - 1.5 - size;
+        const by = h.cell.y + (h.cell.height - size) / 2;
+        let drawn = false;
         if (img) {
-          const size = Math.min(10, h.cell.height - 3);
           try {
             const pr = doc.getImageProperties(img);
             const ratio = pr.width / pr.height || 1;
             const iw = ratio >= 1 ? size : size * ratio;
             const ih = ratio >= 1 ? size / ratio : size;
-            doc.addImage(img, 'PNG', h.cell.x + h.cell.width - 1.5 - size + (size - iw) / 2, h.cell.y + (h.cell.height - ih) / 2, iw, ih);
+            doc.addImage(img, bx + (size - iw) / 2, h.cell.y + (h.cell.height - ih) / 2, iw, ih);
+            drawn = true;
           } catch {
-            /* imagem inválida: ignora */
+            drawn = false;
           }
+        }
+        if (!drawn) {
+          // Ícone neutro da categoria (sem foto inventada)
+          doc.setFillColor(...SURFACE);
+          doc.setDrawColor(...t.gold);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(bx, by, size, size, 1.2, 1.2, 'FD');
+          doc.setTextColor(...MUTED);
+          doc.setFont('helvetica', 'bold');
+          const label = badges[h.row.index];
+          doc.setFontSize(label.length > 4 ? 4.4 : 5.2);
+          doc.text(label, bx + size / 2, by + size / 2 + 0.9, { align: 'center' });
         }
       }
     },
@@ -723,7 +811,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Cláusulas do contrato ---- */
-  const clauses = (data.contractText || '').replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total)).split('\n');
+  const resolvedContract = resolveContractText(data);
+  const clauses = resolvedContract.split('\n');
   if (clauses.some((l) => l.trim())) {
     y = ensureSpace(doc, y, 30);
     y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
@@ -790,7 +879,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
   const w = data.warranty;
   const warrantyLines: string[] = [];
-  const warrantyInClauses = /\bGARANTIA\b/.test((data.contractText || '').toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
+  const warrantyInClauses = /\bGARANTIA\b/.test(resolvedContract.toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
   if (w?.option && !warrantyInClauses) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
     warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);
