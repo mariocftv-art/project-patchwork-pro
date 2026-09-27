@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, MessageCircle, Package, Home, Search, Check, Send } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ordersApi } from "@/lib/supabaseApi";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
 import { getCompanyProfile, CompanyProfile, defaultCompanyProfile } from "@/lib/companyProfile";
 import { buildAdminOrderMessage, buildCustomerOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
@@ -83,23 +83,9 @@ export default function OrderConfirmation() {
 
     loadOrder();
 
-    // Atualização em tempo real + fallback por polling
-    const channel = supabase
-      .channel(`order-confirm-${orderNumber}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `order_number=eq.${orderNumber}` },
-        (payload) => {
-          const next = (payload.new as { status?: string })?.status;
-          if (next) setStatus(next);
-        }
-      )
-      .subscribe();
-
-    const interval = setInterval(loadOrder, 30000);
+    const interval = setInterval(loadOrder, 15000);
 
     return () => {
-      supabase.removeChannel(channel);
       clearInterval(interval);
     };
   }, [orderNumber, navigate, trackOrder]);

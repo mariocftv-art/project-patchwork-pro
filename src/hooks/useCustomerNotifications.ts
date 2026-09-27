@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ordersApi } from '@/lib/supabaseApi';
 import { playNotificationSound } from '@/utils/notificationSound';
 import { showOrderNotification } from '@/utils/pushNotifications';
 
@@ -61,56 +61,38 @@ export function useCustomerNotifications() {
     }
   }, [notifications]);
 
-  // Subscribe to real-time updates for tracked orders
+  // Consulta segura periódica dos pedidos acompanhados
   useEffect(() => {
     if (trackedOrders.length === 0) return;
-
-    console.log('Subscribing to updates for orders:', trackedOrders);
-
-    const channel = supabase
-      .channel('customer-order-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload) => {
-          const updatedOrder = payload.new as any;
-          const oldOrder = payload.old as any;
-          
-          // Check if this is one of our tracked orders
-          if (trackedOrders.includes(updatedOrder.order_number)) {
-            // Only create notification if status changed
-            if (updatedOrder.status !== oldOrder.status) {
-              console.log('Order status changed:', updatedOrder.order_number, updatedOrder.status);
-              
-              // Play notification sound
-              playNotificationSound();
-              
-              // Show push notification on device
-              showOrderNotification(updatedOrder.order_number, updatedOrder.status);
-              
-              const newNotification: OrderNotification = {
-                id: `${updatedOrder.order_number}-${Date.now()}`,
-                orderNumber: updatedOrder.order_number,
-                status: updatedOrder.status,
-                statusLabel: statusLabels[updatedOrder.status] || updatedOrder.status,
-                timestamp: new Date(),
-                read: false,
-              };
-              
-              setNotifications(prev => [newNotification, ...prev].slice(0, 50)); // Keep last 50
-            }
+    const LAST_KEY = 'customer-order-last-status';
+    const check = async () => {
+      try {
+        const rows = await ordersApi.getStatuses(trackedOrders.slice(-20));
+        const last: Record<string, string> = JSON.parse(localStorage.getItem(LAST_KEY) || '{}');
+        const fresh: OrderNotification[] = [];
+        for (const r of rows) {
+          const prev = last[r.order_number];
+          if (prev && prev !== r.status) {
+            playNotificationSound();
+            showOrderNotification(r.order_number, r.status);
+            fresh.push({
+              id: `${r.order_number}-${Date.now()}`,
+              orderNumber: r.order_number,
+              status: r.status,
+              statusLabel: statusLabels[r.status] || r.status,
+              timestamp: new Date(),
+              read: false,
+            });
           }
+          last[r.order_number] = r.status;
         }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+        localStorage.setItem(LAST_KEY, JSON.stringify(last));
+        if (fresh.length) setNotifications(prev => [...fresh, ...prev].slice(0, 50));
+      } catch { /* ignore */ }
     };
+    check();
+    const interval = setInterval(check, 20000);
+    return () => clearInterval(interval);
   }, [trackedOrders]);
 
   // Add an order to track
