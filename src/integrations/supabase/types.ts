@@ -572,6 +572,14 @@ export type Database = {
     }
     Functions: {
       admin_list_products: { Args: never; Returns: Json }
+      get_order_by_number: { Args: { _order_number: string }; Returns: Json }
+      get_order_statuses: {
+        Args: { _order_numbers: string[] }
+        Returns: {
+          order_number: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
