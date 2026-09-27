@@ -1,6 +1,6 @@
 import { getCompanyProfile, CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
-import { buildPremiumPDF, docFileName, nextDocNumber, uploadPDF } from '@/lib/premiumPDF';
+import { buildPremiumPDF, docFileName, nextDocNumber, PremiumDocData, uploadPDF } from '@/lib/premiumPDF';
 
 interface QuoteItem {
   name: string;
@@ -36,6 +36,8 @@ interface QuoteData {
 interface QuoteResult {
   pdfUrl: string | null;
   quoteNumber: string;
+  docData: PremiumDocData;
+  profile: CompanyProfile;
 }
 
 export async function generateQuotePDF(
@@ -49,35 +51,33 @@ export async function generateQuotePDF(
   };
 
   const quoteNumber = await nextDocNumber();
-  const doc = await buildPremiumPDF(
-    {
-      docType: 'orcamento',
-      number: quoteNumber,
-      date: new Date(),
-      validityDays: data.validityDays ?? profile.quote_validity_days ?? 15,
-      customer: {
-        name: data.customerName || '',
-        phone: data.customerPhone,
-        email: data.customerEmail,
-        street: data.customerAddress,
-      },
-      items: data.items.map((i) => ({
-        description: i.description ? `${i.name} — ${i.description}` : i.name,
-        quantity: i.quantity,
-        unitPrice: i.price,
-        kind: 'product',
-        imageUrl: i.imageUrl,
-      })),
-      discount: data.discount,
-      shipping: data.shipping,
-      notes: profile.pdf_notes_text,
+  const docData: PremiumDocData = {
+    docType: 'orcamento',
+    number: quoteNumber,
+    date: new Date(),
+    validityDays: data.validityDays ?? profile.quote_validity_days ?? 15,
+    customer: {
+      name: data.customerName || '',
+      phone: data.customerPhone,
+      email: data.customerEmail,
+      street: data.customerAddress,
     },
-    profile
-  );
+    items: data.items.map((i) => ({
+      description: i.description ? `${i.name} — ${i.description}` : i.name,
+      quantity: i.quantity,
+      unitPrice: i.price,
+      kind: 'product',
+      imageUrl: i.imageUrl,
+    })),
+    discount: data.discount,
+    shipping: data.shipping,
+    notes: profile.pdf_notes_text,
+  };
+  const doc = await buildPremiumPDF(docData, profile);
 
   doc.save(docFileName("orcamento", quoteNumber));
   const pdfUrl = await uploadPDF(doc, quoteNumber);
-  return { pdfUrl, quoteNumber };
+  return { pdfUrl, quoteNumber, docData, profile };
 }
 
 /** Mensagem simples de WhatsApp (mantida para compatibilidade) */

@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { generateQuotePDF, generateWhatsAppMessage } from '@/lib/generateQuotePDF';
-import { getCompanyProfile } from '@/lib/companyProfile';
+import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { formatBRL } from '@/lib/formatCurrency';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,36 +118,9 @@ export default function Cart() {
         console.error('Erro ao salvar orçamento:', dbError);
       }
 
-      // Send to customer's WhatsApp with PDF link
-      const cleanPhone = customerPhone.replace(/\D/g, '');
-      const whatsappPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-      
-      const profile = await getCompanyProfile();
-
-      const itemsList = items.map(item =>
-        `📹 ${item.quantity}x ${item.name}\n💰 ${formatBRL(item.price)} cada\n💵 Total: ${formatBRL(item.price * item.quantity)}`
-      ).join('\n\n');
-
-      let message = `🛡️ *${profile.name}*\n\n` +
-        `📄 *ORÇAMENTO Nº ${result.quoteNumber}*\n\n` +
-        `Olá${customerName ? `, *${customerName}*` : ''}! Seu orçamento foi gerado com sucesso. ✅\n\n` +
-        `🛒 *PRODUTOS*\n${itemsList}\n\n` +
-        `💰 *RESUMO*\n` +
-        `Subtotal: ${formatBRL(subtotal)}\n` +
-        `Frete: ${shippingFee > 0 ? formatBRL(shippingFee) : 'A combinar'}\n` +
-        `━━━━━━━━━━━━\n` +
-        `💰 *TOTAL: ${formatBRL(total)}*\n\n`;
-
-      if (result.pdfUrl) {
-        message += `📥 *Baixar o orçamento em PDF:*\n${result.pdfUrl}\n\n`;
-      }
-
-      message += `📲 *Para fechar o pedido, fale com nossa equipe:*\nWhatsApp: ${profile.phone}\n\n` +
-        `⏰ _Orçamento válido por ${profile.quote_validity_days} dias._\n\n` +
-        `🛡️ ${profile.name} — ${profile.tagline}`;
-
-      // Open WhatsApp with the customer's number
-      window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+      // Template exclusivo de ORÇAMENTO (mesmos dados do PDF profissional)
+      const message = buildQuoteWhatsAppMessage(result.docData, result.profile, { pdfUrl: result.pdfUrl });
+      window.open(whatsappUrl(customerPhone, message), '_blank', 'noopener,noreferrer');
       
       // Show success state
       setQuoteSent(true);

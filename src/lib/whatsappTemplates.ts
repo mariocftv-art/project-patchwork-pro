@@ -106,5 +106,5 @@ export function buildAdminOrderMessage(data: OrderMessageData, profile: CompanyP
 export function whatsappLink(phone: string, message: string): string {
   const digits = (phone || '').replace(/\D/g, '');
   const normalized = digits.startsWith('55') ? digits : `55${digits}`;
-  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send?phone=${normalized}&text=${encodeURIComponent(message.normalize('NFC'))}`;
 }
