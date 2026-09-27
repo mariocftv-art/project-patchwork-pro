@@ -370,7 +370,7 @@ export default function Layout({ children }: LayoutProps) {
             <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
               <Link
                 to="/"
-                className="flex items-center gap-1 text-sm text-white hover:text-white/80 whitespace-nowrap"
+                className="flex items-center gap-1 text-sm text-background hover:text-primary whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
                 Categorias
@@ -379,7 +379,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={cat.path}
                   to={cat.path}
-                  className="text-sm text-white hover:text-white/80 whitespace-nowrap transition-colors"
+                  className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
                 >
                   {cat.name}
                 </Link>
