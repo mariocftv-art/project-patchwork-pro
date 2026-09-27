@@ -143,12 +143,13 @@ export const lineTotal = (it: DocItem) =>
 
 /* ============ Cláusulas do contrato ============ */
 
-/** Monta o texto padrão do contrato a partir dos itens e da garantia escolhida. {VALOR_TOTAL} é trocado na hora de gerar. */
-export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'warranty'>): string {
-  const scope = data.items
-    .filter((i) => i.description?.trim())
-    .map((i) => `• ${i.kind === 'service' ? '' : `${i.quantity} `}${i.description.trim()}.`.replace(/\.\.$/, '.'));
-  const parts: string[] = [
+/**
+ * Texto padrão do contrato. As marcações {ESCOPO}, {VALOR_TOTAL}, {PAGAMENTO} e {GARANTIA_*}
+ * são trocadas na hora de gerar, sempre a partir dos itens e dados atuais do documento.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function buildDefaultContractText(_data?: Pick<PremiumDocData, 'items' | 'warranty'>): string {
+  return [
     '1. OBJETO DO CONTRATO',
     'A CONTRATADA realizará o fornecimento, instalação, configuração e testes do sistema de CFTV descrito neste contrato, incluindo organização dos componentes e entrega do sistema em funcionamento.',
     '',
@@ -156,28 +157,99 @@ export function buildDefaultContractText(data: Pick<PremiumDocData, 'items' | 'w
     'Os equipamentos, materiais e serviços, com quantidades, valores unitários e totais, são os descritos na tabela de itens deste documento, totalizando {VALOR_TOTAL}.',
     '',
     '3. ESCOPO DA INSTALAÇÃO',
-    ...(scope.length ? scope : ['• (descreva os itens do escopo)']),
-    '• Instalação, configuração, testes e orientação básica de uso do sistema.',
-  ];
-  let n = 4;
-  const w = data.warranty;
-  if (w?.option && w.option !== 'none') {
-    const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
-    parts.push(
-      '',
-      `${n++}. GARANTIA — ${period.toUpperCase()}`,
-      `Todos os equipamentos e o serviço de instalação terão ${period} de garantia, observadas as condições de uso e as limitações decorrentes de mau uso, intervenção de terceiros, alterações elétricas, surtos, descargas atmosféricas, vandalismo ou danos externos.`
-    );
+    'O serviço será executado conforme os equipamentos, quantidades e serviços descritos neste contrato. O sistema contratado contempla:',
+    '{ESCOPO}',
+    '',
+    '4. GARANTIA — {GARANTIA_PERIODO}',
+    'A garantia seguirá o período de {GARANTIA_PERIODO_MIN} e as condições registradas neste documento. A garantia não cobre danos decorrentes de mau uso, alterações não autorizadas, intervenção de terceiros, vandalismo, surtos elétricos, descargas atmosféricas ou danos externos.',
+    '',
+    '5. VALOR E CONDIÇÕES',
+    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. {PAGAMENTO}',
+    '',
+    '6. ALTERAÇÃO DE ESCOPO',
+    'Qualquer alteração ou serviço adicional solicitado posteriormente poderá ser objeto de orçamento complementar e dependerá de aprovação das partes.',
+    '',
+    '7. ACESSO AO LOCAL E INFRAESTRUTURA',
+    'O cliente deverá disponibilizar acesso ao local e as condições necessárias para a execução do serviço. Quando houver infraestrutura elétrica, de rede ou física inadequada, eventuais adequações não previstas neste documento poderão ser cobradas separadamente, mediante aprovação do cliente.',
+    '',
+    '8. DISPOSIÇÕES GERAIS',
+    'A assinatura deste documento representa a concordância das partes com o escopo, o valor e as condições aqui descritos.',
+  ].join('\n');
+}
+
+function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals>) {
+  const p = data.payment;
+  if (!p?.method) return 'A forma e o cronograma de pagamento serão definidos e registrados entre as partes.';
+  if (p.method === 'parcelado')
+    return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)} (total parcelado de ${formatBRL(totals.installmentTotal)}).`;
+  if (p.method === 'personalizado') return `Condição de pagamento: ${(p.customText || '').trim().replace(/\n+/g, '; ')}.`;
+  return `Forma de pagamento: ${PAYMENT_LABELS[p.method]}.`;
+}
+
+export function warrantyPeriod(w?: DocWarranty): string {
+  if (!w?.option || w.option === 'none') return '';
+  return w.option === 'custom' ? (w.customPeriod || '').trim() : WARRANTY_LABELS[w.option];
+}
+
+/**
+ * Troca as marcações pelo conteúdo atual. Em contratos antigos (sem {ESCOPO}), os tópicos
+ * logo abaixo do título de ESCOPO são refeitos a partir dos itens reais.
+ * Remove a cláusula de garantia se nenhuma foi escolhida e renumera as cláusulas.
+ */
+export function resolveContractText(data: PremiumDocData): string {
+  const raw = data.contractText || '';
+  if (!raw.trim()) return '';
+  const totals = computeTotals(data);
+  const scope = buildScopeLines(data.items);
+  let lines = raw.split('\n');
+
+  if (!raw.includes('{ESCOPO}')) {
+    const hi = lines.findIndex((l) => /^\d+\.\s.*ESCOPO/i.test(l.trim()));
+    if (hi >= 0) {
+      let end = hi + 1;
+      while (end < lines.length && !/^\d+\.\s/.test(lines[end].trim())) end++;
+      const body = lines.slice(hi + 1, end);
+      const rest = body.filter((l) => !/^\s*[•\-✓]/.test(l));
+      const firstBullet = body.findIndex((l) => /^\s*[•\-✓]/.test(l));
+      const intro = firstBullet >= 0 ? body.slice(0, firstBullet).filter((l) => !/^\s*[•\-✓]/.test(l)) : rest;
+      const tail = firstBullet >= 0 ? body.slice(firstBullet).filter((l) => !/^\s*[•\-✓]/.test(l)) : [];
+      lines = [...lines.slice(0, hi + 1), ...intro, '{ESCOPO}', ...tail, ...lines.slice(end)];
+    }
   }
-  parts.push(
-    '',
-    `${n++}. VALOR E CONDIÇÕES`,
-    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. A forma e o cronograma de pagamento serão definidos e registrados entre as partes.',
-    '',
-    `${n++}. DISPOSIÇÕES GERAIS`,
-    'Alterações de escopo ou serviços adicionais deverão ser previamente aprovados pelas partes e poderão gerar orçamento complementar. A assinatura deste documento representa a concordância com o escopo, valor e condições aqui descritos.'
-  );
-  return parts.join('\n');
+
+  // Garantia: sem garantia escolhida => remove a cláusula que usa as marcações
+  const period = warrantyPeriod(data.warranty);
+  if (!period) {
+    const gi = lines.findIndex((l) => l.includes('{GARANTIA_PERIODO}') && /^\d+\.\s/.test(l.trim()));
+    if (gi >= 0) {
+      let end = gi + 1;
+      while (end < lines.length && !/^\d+\.\s/.test(lines[end].trim())) end++;
+      lines.splice(gi, end - gi);
+    }
+  }
+
+  let n = 0;
+  const out = lines
+    .map((l) => (/^\d+\.\s/.test(l.trim()) ? l.trim().replace(/^\d+\./, `${++n}.`) : l))
+    .join('\n')
+    .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
+    .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
+    .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
+    .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
+    .replace(/\{GARANTIA_PERIODO_MIN\}/g, period);
+  return out;
+}
+
+const DOC_FILE_LABEL: Record<DocType, string> = {
+  orcamento: 'Orcamento',
+  contrato: 'Contrato',
+  os: 'OS',
+  recibo: 'Recibo',
+};
+
+/** Ex.: MR-Seguranca-Maxima-Orcamento-MR-2026-0007.pdf */
+export function docFileName(docType: DocType, number: string) {
+  return `MR-Seguranca-Maxima-${DOC_FILE_LABEL[docType] || 'Orcamento'}-${(number || 'previa').replace(/[^\w-]/g, '')}.pdf`;
 }
 
 /* ============ Validação antes de gerar ============ */
