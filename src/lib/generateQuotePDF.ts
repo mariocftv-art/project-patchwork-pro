@@ -1,6 +1,6 @@
 import { getCompanyProfile, CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
-import { buildPremiumPDF, nextDocNumber, uploadPDF } from '@/lib/premiumPDF';
+import { buildPremiumPDF, docFileName, nextDocNumber, uploadPDF } from '@/lib/premiumPDF';
 
 interface QuoteItem {
   name: string;
@@ -75,7 +75,7 @@ export async function generateQuotePDF(
     profile
   );
 
-  doc.save(`orcamento-${quoteNumber}.pdf`);
+  doc.save(docFileName("orcamento", quoteNumber));
   const pdfUrl = await uploadPDF(doc, quoteNumber);
   return { pdfUrl, quoteNumber };
 }

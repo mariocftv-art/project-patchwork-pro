@@ -182,6 +182,13 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         setPdfUrl(null);
       }
       setErrors([]);
+      // Nunca reaproveitar a prévia de outro documento
+      setPreviewBlob(null);
+      setPreviewPages([]);
+      setPreviewUrl((old) => {
+        if (old) URL.revokeObjectURL(old);
+        return null;
+      });
       setStep('edit');
       if (record && mode === 'preview' && !duplicate) {
         const d = recordToDoc(record);
@@ -566,6 +573,10 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
                 value={data.contractText || ''}
                 onChange={(e) => set('contractText', e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Automático no PDF: {'{ESCOPO}'} vira a lista real dos itens (ex.: "Instalação de 5 câmeras"), {'{VALOR_TOTAL}'} o total,
+                {' {PAGAMENTO}'} a forma de pagamento e {'{GARANTIA_PERIODO}'} a garantia escolhida (sem garantia, a cláusula sai sozinha).
+              </p>
               <div className="flex items-center gap-2">
                 <Switch checked={!!data.showSignatures} onCheckedChange={(v) => set('showSignatures', v)} />
                 <span className="text-sm">Mostrar campos de assinatura</span>

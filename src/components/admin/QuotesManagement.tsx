@@ -18,7 +18,8 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { formatBRL } from '@/lib/formatCurrency';
 import { getCompanyProfile } from '@/lib/companyProfile';
-import { buildPremiumPDF, DOC_TYPE_LABELS, DocType } from '@/lib/premiumPDF';
+import { buildPremiumPDF, docFileName, DOC_TYPE_LABELS, DocType } from '@/lib/premiumPDF';
+import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import QuoteEditor, { QuoteRecord, QUOTE_STATUSES, recordToDoc } from './QuoteEditor';
 
 const selectCls = 'h-9 rounded-md border border-input bg-background px-2 text-sm';
@@ -69,19 +70,13 @@ export default function QuotesManagement() {
   const download = async (q: QuoteRecord) => {
     const profile = await getCompanyProfile(true);
     const doc = await buildPremiumPDF(recordToDoc(q), profile);
-    doc.save(`${(DOC_TYPE_LABELS[q.doc_type as DocType] || 'orcamento').toLowerCase().replace(/\s+/g, '-')}-${q.quote_number}.pdf`);
+    doc.save(docFileName((q.doc_type as DocType) || 'orcamento', q.quote_number));
   };
 
   const send = async (q: QuoteRecord) => {
     const profile = await getCompanyProfile();
-    const phone = ((q.customer?.whatsapp || q.customer_phone || '') as string).replace(/\D/g, '');
-    const to = phone ? (phone.startsWith('55') ? phone : `55${phone}`) : '';
-    const label = DOC_TYPE_LABELS[q.doc_type as DocType] || 'Orçamento';
-    const msg =
-      `🛡️ *${profile.name}*\n\n📄 *${label.toUpperCase()} Nº ${q.quote_number}*\n\nOlá, *${q.customer_name}*!\n` +
-      `💰 *Total: ${formatBRL(Number(q.total))}*\n\n` +
-      (q.pdf_url ? `📎 Veja o PDF:\n${q.pdf_url}` : '');
-    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+    const msg = buildQuoteWhatsAppMessage(recordToDoc(q), profile, { pdfUrl: q.pdf_url });
+    window.open(whatsappUrl((q.customer?.whatsapp || q.customer_phone || '') as string, msg), '_blank', 'noopener,noreferrer');
     if (q.status === 'rascunho') changeStatus(q.id, 'enviado');
   };
 
