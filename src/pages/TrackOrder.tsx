@@ -78,13 +78,8 @@ export default function TrackOrder() {
     queryFn: async () => {
       if (!searchedOrder) return null;
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_number', searchedOrder.toUpperCase())
-        .maybeSingle();
-      
-      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await ordersApi.getByOrderNumber(searchedOrder.toUpperCase());
       if (!data) return null;
       
       return {

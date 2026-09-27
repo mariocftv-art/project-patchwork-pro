@@ -289,26 +289,25 @@ export const ordersApi = {
       status: order.status
     };
     
-    const { data, error } = await supabase
-      .from('orders')
-      .insert(insertData)
-      .select()
-      .single();
-    
+    // Sem .select(): visitantes podem gravar, mas não ler pedidos (proteção ativa)
+    const { error } = await supabase.from('orders').insert(insertData);
     if (error) throw error;
-    return data as unknown as Order;
+    return { ...order, id: '', created_at: new Date().toISOString() } as unknown as Order;
   },
 
   async getByOrderNumber(orderNumber: string): Promise<Order | null> {
-    // This will only work for admins due to RLS
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_number', orderNumber)
-      .maybeSingle();
-    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('get_order_by_number', { _order_number: orderNumber });
     if (error) throw error;
-    return data as unknown as Order | null;
+    return (data || null) as Order | null;
+  },
+
+  async getStatuses(orderNumbers: string[]): Promise<{ order_number: string; status: string }[]> {
+    if (orderNumbers.length === 0) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('get_order_statuses', { _order_numbers: orderNumbers });
+    if (error) throw error;
+    return data || [];
   },
 
   async list(): Promise<Order[]> {

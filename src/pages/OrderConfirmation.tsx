@@ -61,11 +61,8 @@ export default function OrderConfirmation() {
 
     // Estado real do pedido vem do banco (sem depender de notificação do navegador)
     const loadOrder = async () => {
-      const { data } = await supabase
-        .from('orders')
-        .select('order_number, customer_name, customer_phone, items, subtotal, total, status, shipping_address')
-        .eq('order_number', orderNumber)
-        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await ordersApi.getByOrderNumber(orderNumber).catch(() => null);
 
       if (data) {
         setStatus(data.status || 'pending');
