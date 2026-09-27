@@ -81,7 +81,7 @@ export default function QuotesManagement() {
       `🛡️ *${profile.name}*\n\n📄 *${label.toUpperCase()} Nº ${q.quote_number}*\n\nOlá, *${q.customer_name}*!\n` +
       `💰 *Total: ${formatBRL(Number(q.total))}*\n\n` +
       (q.pdf_url ? `📎 Veja o PDF:\n${q.pdf_url}` : '');
-    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
     if (q.status === 'rascunho') changeStatus(q.id, 'enviado');
   };
 

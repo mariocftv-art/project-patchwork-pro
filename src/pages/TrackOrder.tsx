@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import OrderStatusTimeline from '@/components/OrderStatusTimeline';
 import { formatBRL } from '@/lib/formatCurrency';
+import { ordersApi } from '@/lib/supabaseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
@@ -78,13 +79,8 @@ export default function TrackOrder() {
     queryFn: async () => {
       if (!searchedOrder) return null;
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_number', searchedOrder.toUpperCase())
-        .maybeSingle();
-      
-      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await ordersApi.getByOrderNumber(searchedOrder.toUpperCase());
       if (!data) return null;
       
       return {
@@ -176,44 +172,30 @@ export default function TrackOrder() {
     }
   };
 
-  // Real-time subscription for order updates
+  // Atualização automática (consulta segura a cada 15s)
   useEffect(() => {
     if (!searchedOrder) return;
-
-    const channel = supabase
-      .channel('order-status-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `order_number=eq.${searchedOrder.toUpperCase()}`
-        },
-        (payload) => {
-          console.log('Order updated in real-time:', payload);
+    let last: string | null = null;
+    const check = async () => {
+      try {
+        const [row] = await ordersApi.getStatuses([searchedOrder.toUpperCase()]);
+        if (!row) return;
+        if (last && row.status !== last) {
           queryClient.invalidateQueries({ queryKey: ['track-order', searchedOrder] });
-          
-          const newStatus = (payload.new as any).status;
-          const statusInfo = statusConfig[newStatus];
+          const statusInfo = statusConfig[row.status];
           if (statusInfo) {
             setStatusChanged(true);
             playNotificationSound();
-            
-            toast({
-              title: "📦 Status atualizado!",
-              description: `Seu pedido agora está: ${statusInfo.label}`,
-            });
-            
+            toast({ title: "📦 Status atualizado!", description: `Seu pedido agora está: ${statusInfo.label}` });
             setTimeout(() => setStatusChanged(false), 3000);
           }
         }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+        last = row.status;
+      } catch { /* ignore */ }
     };
+    check();
+    const interval = setInterval(check, 15000);
+    return () => clearInterval(interval);
   }, [searchedOrder, queryClient, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -422,12 +404,7 @@ export default function TrackOrder() {
                 Endereço de Entrega
               </h3>
               <p className="text-muted-foreground">
-                {order.shipping_address.street}, {order.shipping_address.number}
-                {order.shipping_address.complement && ` - ${order.shipping_address.complement}`}
-                <br />
                 {order.shipping_address.neighborhood}, {order.shipping_address.city} - {order.shipping_address.state}
-                <br />
-                CEP: {order.shipping_address.cep}
               </p>
             </div>
           )}

@@ -81,7 +81,7 @@ async function openOrderWhatsApp(order: Order) {
     },
     profile
   );
-  window.open(whatsappLink(order.customer_phone || profile.whatsapp, message), '_blank');
+  window.open(whatsappLink(order.customer_phone || profile.whatsapp, message), '_blank', 'noopener,noreferrer');
 }
 
 export default function OrdersManagement() {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, Truck } from 'lucide-react';
+import { Heart, Bell } from 'lucide-react';
 import { Product } from '@/lib/supabaseApi';
 import { useWishlist } from '@/hooks/useWishlist';
 
@@ -17,6 +17,13 @@ export default function ProductCard({ product }: ProductCardProps) {
     toggleWishlist.mutate(product.id);
   };
 
+  const handleNotify = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const msg = `Olá! Me avise quando chegar: ${product.title}${product.sku ? ` (${product.sku})` : ""}`;
+    window.open(`https://wa.me/5511962579428?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+  };
+
   const discount = product.original_price 
     ? Math.round((1 - product.price / product.original_price) * 100) 
     : 0;
@@ -25,12 +32,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const installmentValue = (product.price / 8).toFixed(2);
   const [reais, centavos] = product.price.toFixed(2).split('.');
 
-  // Free shipping for products above R$79
-  const hasFreeShipping = product.price >= 79;
-
   return (
     <Link to={`/produto/${product.id}`} className="block h-full">
-      <div className="ml-card p-2 sm:p-4 h-full flex flex-col">
+      <div className={`ml-card p-2 sm:p-4 h-full flex flex-col ${product.stock === 0 ? "opacity-60" : ""}`}>
         {/* Image Container */}
         <div className="relative mb-2 sm:mb-3">
           <div className="aspect-square overflow-hidden rounded">
@@ -86,25 +90,24 @@ export default function ProductCard({ product }: ProductCardProps) {
             em 8x R$ {installmentValue}
           </p>
 
-          {/* Free Shipping */}
-          {hasFreeShipping && (
-            <p className="text-[10px] sm:text-xs text-ml-green font-medium flex items-center gap-0.5 sm:gap-1 mt-1 sm:mt-2">
-              <Truck className="w-3 h-3 sm:w-4 sm:h-4" />
-              Frete grátis
-            </p>
-          )}
-
           {/* Stock Warning */}
           {product.stock > 0 && product.stock <= 5 && (
-            <p className="text-[10px] sm:text-xs text-orange-500 mt-1 sm:mt-2">
+            <p className="text-[10px] sm:text-xs text-foreground font-medium mt-1 sm:mt-2">
               Últimas {product.stock} unidades!
             </p>
           )}
 
           {product.stock === 0 && (
-            <p className="text-[10px] sm:text-xs text-destructive font-medium mt-1 sm:mt-2">
-              Produto esgotado
-            </p>
+            <>
+              <p className="text-[10px] sm:text-xs text-destructive font-medium mt-1 sm:mt-2">Produto esgotado</p>
+              <button
+                type="button"
+                onClick={handleNotify}
+                className="mt-2 w-full inline-flex items-center justify-center gap-1 rounded bg-foreground text-background text-[10px] sm:text-xs font-semibold py-1.5 hover:bg-ml-dark-gray"
+              >
+                <Bell className="w-3 h-3" /> Avise-me quando chegar
+              </button>
+            </>
           )}
         </div>
       </div>

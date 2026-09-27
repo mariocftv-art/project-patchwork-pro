@@ -92,6 +92,11 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Faixa de frete */}
+      <div className="bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
+        🚚 Frete grátis em compras acima de R$ 79
+      </div>
+
       {/* Header */}
       <header className="ml-header sticky top-0 z-50">
         {/* Top Header */}
@@ -106,14 +111,9 @@ export default function Layout({ children }: LayoutProps) {
                   alt="MR Segurança Máxima" 
                   className="w-20 h-20 object-contain"
                 />
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-ml-dark-gray leading-tight">
-                    Segurança Máxima
-                  </span>
-                  <span className="text-xs text-ml-gray">
-                    CNPJ: 45.858.215/0001-86
-                  </span>
-                </div>
+                <span className="text-lg font-bold text-ml-dark-gray leading-tight">
+                  Segurança Máxima
+                </span>
               </div>
             </Link>
 
@@ -240,14 +240,9 @@ export default function Layout({ children }: LayoutProps) {
                     alt="MR Segurança Máxima" 
                     className="w-9 h-9 object-contain"
                   />
-                  <div className="flex flex-col leading-none">
-                    <span className="text-[10px] font-bold text-ml-dark-gray">
-                      Segurança Máxima
-                    </span>
-                    <span className="text-[7px] text-ml-gray">
-                      CNPJ: 45.858.215/0001-86
-                    </span>
-                  </div>
+                  <span className="text-xs font-bold text-ml-dark-gray leading-none">
+                    Segurança Máxima
+                  </span>
                 </div>
               </Link>
 
@@ -370,12 +365,12 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Categories Bar */}
-        <div className="bg-[#40E0D0] border-b border-[#36c2b4]">
+        <div className="bg-foreground border-b border-primary">
           <div className="container mx-auto px-4">
             <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
               <Link
                 to="/"
-                className="flex items-center gap-1 text-sm text-white hover:text-white/80 whitespace-nowrap"
+                className="flex items-center gap-1 text-sm text-background hover:text-primary whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
                 Categorias
@@ -384,7 +379,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={cat.path}
                   to={cat.path}
-                  className="text-sm text-white hover:text-white/80 whitespace-nowrap transition-colors"
+                  className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
                 >
                   {cat.name}
                 </Link>
@@ -400,61 +395,53 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#40E0D0] border-t border-[#36c2b4] mt-8 text-white">
+      <footer className="bg-foreground text-background mt-8 border-t-4 border-primary">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h4 className="font-semibold mb-3 text-sm">Sobre</h4>
-              <ul className="space-y-2 text-sm opacity-90">
-                <li><a href="#" className="hover:text-white">Quem somos</a></li>
-                <li><a href="#" className="hover:text-white">Trabalhe conosco</a></li>
-                <li><a href="#" className="hover:text-white">Termos de uso</a></li>
+              <h4 className="font-semibold mb-3 text-sm text-primary">Empresa</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="font-semibold">MR Segurança Máxima</li>
+                <li>CNPJ: 45.858.215/0001-86</li>
+                <li><Link to="/servicos" className="underline-offset-2 hover:underline">Serviços</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-3 text-sm">Ajuda</h4>
-              <ul className="space-y-2 text-sm opacity-90">
-                <li><a href="#" className="hover:text-white">Central de ajuda</a></li>
-                <li><a href="#" className="hover:text-white">Como comprar</a></li>
-                <li><Link to="/rastrear-pedido" className="hover:text-white">Rastrear Pedido</Link></li>
-                <li><a href="#" className="hover:text-white">Garantias</a></li>
+              <h4 className="font-semibold mb-3 text-sm text-primary">Ajuda</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/rastrear-pedido" className="hover:underline">Rastrear pedido</Link></li>
+                <li><Link to="/privacidade" className="hover:underline">Política de Privacidade</Link></li>
+                <li><Link to="/termos" className="hover:underline">Termos de Uso</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-3 text-sm">Pagamento</h4>
-              <ul className="space-y-2 text-sm opacity-90">
+              <h4 className="font-semibold mb-3 text-sm text-primary">Pagamento</h4>
+              <ul className="space-y-2 text-sm">
                 <li>💳 Cartão de Crédito</li>
                 <li>📱 PIX</li>
-                <li>📄 Boleto</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-3 text-sm">Contato</h4>
-              <ul className="space-y-2 text-sm opacity-90">
+              <h4 className="font-semibold mb-3 text-sm text-primary">Contato</h4>
+              <ul className="space-y-2 text-sm">
                 <li>📞 {siteContent.contact.phone}</li>
                 <li>📧 {siteContent.contact.email}</li>
                 {siteContent.contact.address && (
                   <li>📍 {siteContent.contact.address}</li>
                 )}
+                <li>
+                  <a href="https://instagram.com/linkmrstore" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
+                    <Instagram className="w-4 h-4" /> @linkmrstore
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/20 mt-8 pt-6 text-center text-xs opacity-80">
+          <div className="border-t border-background/20 mt-8 pt-6 text-center text-xs">
             {siteContent.footer.copyright}
           </div>
         </div>
       </footer>
-
-      {/* Instagram Button */}
-      <a
-        href="https://instagram.com/linkmrstore"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-20 left-3 sm:left-6 z-50 flex items-center gap-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-full shadow-lg hover:scale-105 transition-transform"
-      >
-        <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
-        <span className="text-xs sm:text-sm font-medium hidden sm:inline">Seguir a página</span>
-      </a>
 
       {/* WhatsApp Button */}
       <a
