@@ -20,7 +20,8 @@ export default function Home() {
   const selectedCategory = searchParams.get('categoria');
   const searchQuery = searchParams.get('busca');
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<'relevance' | 'price-asc' | 'price-desc'>('relevance');
+  const setShowMobileFilters = (_: boolean) => {};
 
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products'],
@@ -98,127 +99,83 @@ export default function Home() {
     );
   }
 
+  if (sortBy === 'price-asc') {
+    filteredProducts.sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0) || a.price - b.price);
+  } else if (sortBy === 'price-desc') {
+    filteredProducts.sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0) || b.price - a.price);
+  }
+
+  const chipBase = 'shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap';
+  const chipOff = 'bg-card text-foreground border border-border hover:border-foreground';
+  const chipOn = 'bg-foreground text-background border border-foreground';
+
   return (
-    <div>
-      {/* Promo Banner - only show when no filters active */}
+    <div className="space-y-5">
       {!selectedCategory && !searchQuery && <PromoBanner />}
 
-      <div className="flex gap-6">
-      {/* Sidebar Filters */}
-      <aside className={`
-        ${showMobileFilters ? 'fixed inset-0 z-50 bg-white' : 'hidden'} 
-        lg:block lg:relative lg:bg-transparent lg:z-auto
-        w-full lg:w-56 flex-shrink-0
-      `}>
-        <div className="p-4 lg:p-0">
-          {/* Mobile Header */}
-          <div className="flex items-center justify-between lg:hidden mb-4 pb-4 border-b">
-            <h2 className="font-semibold text-foreground">Filtros</h2>
-            <button onClick={() => setShowMobileFilters(false)}>
-              <X className="w-6 h-6 text-ml-gray" />
+      <section className="w-full min-w-0">
+        {/* Barra compacta de navegação/filtros */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+          <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto pb-1 -mb-1 [scrollbar-width:none]">
+            <button
+              onClick={clearFilters}
+              className={`${chipBase} ${!selectedCategory && !searchQuery ? chipOn : chipOff}`}
+            >
+              Todos
             </button>
-          </div>
-
-          {/* Breadcrumb */}
-          {(selectedCategory || searchQuery) && (
-            <div className="mb-4">
+            {categoryCounts.map((cat) => (
               <button
-                onClick={clearFilters}
-                className="text-sm text-ml-blue hover:underline flex items-center gap-1"
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat.slug)}
+                className={`${chipBase} ${selectedCategory === cat.slug ? chipOn : chipOff}`}
               >
-                ← Voltar para todos
+                {cat.name}
               </button>
-            </div>
-          )}
-
-          {/* Categories */}
-          <div className="mb-6">
-            <h3 className="font-semibold text-foreground text-sm mb-3">Categorias</h3>
-            <ul className="space-y-1">
-              {categoryCounts.map((cat) => (
-                <li key={cat.id}>
-                  <button
-                    onClick={() => handleCategoryClick(cat.slug)}
-                    className={`w-full text-left ml-filter-item flex justify-between items-center ${
-                      selectedCategory === cat.slug ? 'ml-filter-item-active' : ''
-                    }`}
-                  >
-                    <span>{cat.name}</span>
-                    <span className="text-ml-gray text-xs">({cat.count})</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            ))}
           </div>
-
-          {/* Price Range */}
-          <div className="mb-6">
-            <h3 className="font-semibold text-foreground text-sm mb-3">Preço</h3>
-            <ul className="space-y-1">
-              {priceRanges.map((range) => (
-                <li key={range.id}>
-                  <button
-                    onClick={() => setSelectedPrice(selectedPrice === range.id ? null : range.id)}
-                    className={`w-full text-left ml-filter-item ${
-                      selectedPrice === range.id ? 'ml-filter-item-active' : ''
-                    }`}
-                  >
-                    {range.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-
-          {/* Mobile Apply Button */}
-          <button
-            onClick={() => setShowMobileFilters(false)}
-            className="lg:hidden w-full ml-btn-primary mt-4"
-          >
-            Aplicar filtros
-          </button>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+            <span className="hidden sm:inline">Ordenar por</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="bg-card border border-border rounded-md px-3 py-1.5 text-sm text-foreground"
+            >
+              <option value="relevance">Mais relevantes</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+            </select>
+          </label>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        {/* Results Header */}
-        <div className="mb-4">
-          {searchQuery && (
-            <h1 className="text-xl font-light text-foreground mb-1">
-              Resultados para "{searchQuery}"
-            </h1>
-          )}
-          {selectedCategory && !searchQuery && (
-            <h1 className="text-xl font-light text-foreground mb-1">
-              {categoryCounts.find(c => c.slug === selectedCategory)?.name}
-            </h1>
-          )}
-          <p className="text-sm text-ml-gray">
+        <div className="flex items-baseline justify-between mb-3">
+          <h1 className="text-lg md:text-xl font-semibold text-foreground">
+            {searchQuery
+              ? `Resultados para "${searchQuery}"`
+              : selectedCategory
+                ? categoryCounts.find(c => c.slug === selectedCategory)?.name ?? 'Produtos'
+                : 'Produtos'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
             {filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}
           </p>
         </div>
 
-        {/* Products Grid */}
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-border">
-            <p className="text-ml-gray mb-4">Nenhum produto encontrado.</p>
-            <button onClick={clearFilters} className="ml-btn-primary text-sm">
+          <div className="text-center py-12 bg-card rounded-lg">
+            <p className="text-muted-foreground mb-4">Nenhum produto encontrado.</p>
+            <button onClick={clearFilters} className="bg-primary text-primary-foreground font-medium px-6 py-2.5 rounded-md text-sm">
               Ver todos os produtos
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
-      </div>
-      </div>
+      </section>
 
-      {/* Service Gallery - only show on main page without filters */}
       {!selectedCategory && !searchQuery && <ServiceGallery />}
     </div>
   );
