@@ -294,6 +294,10 @@ const INK: RGB = [28, 28, 32];
 const MUTED: RGB = [105, 105, 112];
 const PAPER: RGB = [251, 249, 243];
 const SURFACE: RGB = [244, 242, 236];
+const BLUE: RGB = [21, 101, 192]; // #1565C0
+const BLUE_2: RGB = [25, 118, 210]; // #1976D2
+const BLUE_LIGHT: RGB = [234, 243, 255]; // #EAF3FF
+const RED_SOFT: RGB = [198, 40, 40]; // #C62828
 let EXTRA = 0;
 const G = (base: number) => base + EXTRA;
 
@@ -674,9 +678,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     columnStyles: {
       0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold', textColor: MUTED },
       1: { cellWidth: 'auto', halign: 'left' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 28, halign: 'right' },
-      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLACK, fontSize: 9.6 },
+      2: { cellWidth: 20, halign: 'center', textColor: INK },
+      3: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: BLUE_2 },
+      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLUE, fontSize: 9.8 },
     },
     margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 },
     rowPageBreak: 'avoid',
@@ -743,16 +747,17 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   y = ensureSpace(doc, y, sumH + totalBoxH + 4);
   const boxW = 92;
   const boxX = RIGHT - boxW;
-  doc.setFillColor(...PAPER);
+  doc.setFillColor(...BLUE_LIGHT);
   doc.setDrawColor(...t.gold);
   doc.setLineWidth(0.35);
   doc.rect(boxX, y, boxW, sumH, 'FD');
   doc.setFontSize(9);
   summary.forEach(([l, v], i) => {
-    doc.setTextColor(...MUTED);
+    const isDiscount = l === 'Desconto';
+    doc.setTextColor(...(isDiscount ? RED_SOFT : MUTED));
     doc.setFont('helvetica', 'normal');
     doc.text(l, boxX + 4, y + 6 + i * 6);
-    doc.setTextColor(...INK);
+    doc.setTextColor(...(isDiscount ? RED_SOFT : BLUE));
     doc.setFont('helvetica', 'bold');
     doc.text(v, RIGHT - 4, y + 6 + i * 6, { align: 'right' });
   });
@@ -771,8 +776,12 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const totalLabel = data.docType === 'recibo' ? 'VALOR RECEBIDO' : `VALOR TOTAL DO ${DOC_TYPE_LABELS[data.docType].toUpperCase()}`;
   doc.text(totalLabel, LEFT + 9, y + 13);
   doc.setTextColor(...WHITE);
-  doc.setFontSize(20);
-  doc.text(formatBRL(totals.total), RIGHT - 6, y + 14.5, { align: 'right' });
+  doc.setFontSize(22);
+  const totalStr = formatBRL(totals.total);
+  doc.text(totalStr, RIGHT - 6, y + 14.5, { align: 'right' });
+  const tw = doc.getTextWidth(totalStr);
+  doc.setFillColor(...BLUE_2);
+  doc.rect(RIGHT - 6 - tw, y + 16.8, tw, 0.9, 'F');
   y += totalBoxH + G(7);
 
   /* ---- Observações ---- */
@@ -874,8 +883,11 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     } else if (pay.method === 'personalizado') {
       payLines.push(...(pay.customText || '').split('\n').filter(Boolean));
     } else {
-      payLines.push(`${PAYMENT_LABELS[pay.method].toUpperCase()}: ${formatBRL(totals.total)}`);
+      payLines.push(`FORMA DE PAGAMENTO: ${PAYMENT_LABELS[pay.method].toUpperCase()}`);
     }
+    if (data.docType !== 'recibo') payLines.push('STATUS: A COMBINAR COM A MR SEGURANÇA MÁXIMA');
+  } else if (data.docType === 'orcamento') {
+    payLines.push('PAGAMENTO: A COMBINAR COM A MR SEGURANÇA MÁXIMA');
   }
   const w = data.warranty;
   const warrantyLines: string[] = [];

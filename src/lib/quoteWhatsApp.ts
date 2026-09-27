@@ -98,20 +98,24 @@ export function buildQuoteWhatsAppMessage(
 
   push('💰 *RESUMO FINANCEIRO*', `Subtotal: ${formatBRL(t.products + t.services)}`);
   if (t.shipping > 0) push(`Frete: ${formatBRL(t.shipping)}`);
-  push(`Desconto: ${formatBRL(t.discount)}`, SEP, `💵 *VALOR TOTAL: ${formatBRL(t.total)}*`, SEP);
+  if (t.discount > 0) push(`Desconto: - ${formatBRL(t.discount)}`);
+  push(SEP, `💵 *VALOR TOTAL: ${formatBRL(t.total)}*`, SEP);
 
   const p = data.payment;
+  push('💳 *FORMA DE PAGAMENTO*');
   if (p?.method) {
-    push('💳 *PAGAMENTO*');
     if (p.method === 'parcelado') {
-      push(`Forma: Parcelado`, `Parcelamento: ${t.installments}x de ${formatBRL(t.installmentValue)} (total ${formatBRL(t.installmentTotal)})`);
+      push(`• Forma escolhida: Parcelado — ${t.installments}x de ${formatBRL(t.installmentValue)} (total ${formatBRL(t.installmentTotal)})`);
     } else if (p.method === 'personalizado') {
-      push(...(p.customText || '').split('\n').filter((l) => l.trim()));
+      push(...(p.customText || '').split('\n').filter((l) => l.trim()).map((l) => `• ${l}`));
     } else {
-      push(`Forma: ${PAYMENT_LABELS[p.method]}`);
+      push(`• Forma escolhida: ${PAYMENT_LABELS[p.method]}`);
     }
-    push(SEP);
+    push('• Status: A combinar com a MR Segurança Máxima');
+  } else {
+    push('• A combinar com a MR Segurança Máxima');
   }
+  push(SEP);
 
   const w = data.warranty;
   if (w?.option) {
