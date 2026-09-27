@@ -54,7 +54,7 @@ export function printPages(pages: string[]) {
   const imgs = Array.from(root.querySelectorAll('img'));
   Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise((r) => (i.onload = r))))).then(() => {
     window.print();
-    setTimeout(cleanup, 1500);
+    setTimeout(cleanup, 60000);
   });
 }
 
