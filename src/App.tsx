@@ -1,3 +1,4 @@
+import { Privacy, Terms } from "./pages/Legal";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,6 +36,8 @@ const App = () => (
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/servicos" element={<Services />} />
             <Route path="/rastrear-pedido" element={<TrackOrder />} />
+            <Route path="/privacidade" element={<Privacy />} />
+            <Route path="/termos" element={<Terms />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
