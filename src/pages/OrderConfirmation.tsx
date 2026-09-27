@@ -112,14 +112,14 @@ export default function OrderConfirmation() {
       localStorage.setItem(WHATSAPP_CONFIRMED_KEY, JSON.stringify(confirmedOrders));
     }
     setWhatsappConfirmed(true);
-    window.open(whatsappLink(profile.whatsapp, buildAdminOrderMessage(messageData, profile)), "_blank");
+    window.open(whatsappLink(profile.whatsapp, buildAdminOrderMessage(messageData, profile)), '_blank', 'noopener,noreferrer');
   };
 
   const handleSendCopyToMe = () => {
     if (!orderData?.customerPhone) return;
     window.open(
       whatsappLink(orderData.customerPhone, buildCustomerOrderMessage(messageData, profile)),
-      "_blank"
+      '_blank', 'noopener,noreferrer'
     );
   };
 

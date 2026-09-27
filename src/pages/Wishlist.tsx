@@ -103,13 +103,6 @@ export default function Wishlist() {
                   em 8x R$ {installmentValue}
                 </p>
 
-                {hasFreeShipping && (
-                  <p className="flex items-center gap-1 text-sm text-ml-green mt-2">
-                    <Truck className="w-4 h-4" />
-                    Frete grátis
-                  </p>
-                )}
-
                 <div className="flex gap-2 mt-4">
                   <button
                     onClick={() => handleAddToCart(item)}

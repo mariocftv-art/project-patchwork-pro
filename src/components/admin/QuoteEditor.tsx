@@ -328,7 +328,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       frame?.contentWindow?.focus();
       frame?.contentWindow?.print();
     } catch {
-      if (previewUrl) window.open(previewUrl, '_blank');
+      if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -351,7 +351,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       `Olá, *${data.customer.name}*!\n💰 *Total: ${formatBRL(totals.total)}*\n\n` +
       (pdfUrl ? `📎 Veja o PDF:\n${pdfUrl}` : '');
     const to = phone ? (phone.startsWith('55') ? phone : `55${phone}`) : '';
-    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
   };
 
   return (

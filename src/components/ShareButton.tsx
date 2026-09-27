@@ -28,21 +28,21 @@ export default function ShareButton({ title, url }: ShareButtonProps) {
   const handleWhatsApp = () => {
     window.open(
       `https://wa.me/?text=${encodeURIComponent(`${title} - ${shareUrl}`)}`,
-      '_blank'
+      '_blank', 'noopener,noreferrer'
     );
   };
 
   const handleFacebook = () => {
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-      '_blank'
+      '_blank', 'noopener,noreferrer'
     );
   };
 
   const handleTwitter = () => {
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`,
-      '_blank'
+      '_blank', 'noopener,noreferrer'
     );
   };
 

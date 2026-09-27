@@ -147,7 +147,7 @@ export default function Cart() {
         `🛡️ ${profile.name} — ${profile.tagline}`;
 
       // Open WhatsApp with the customer's number
-      window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
       
       // Show success state
       setQuoteSent(true);
@@ -187,7 +187,7 @@ export default function Cart() {
 
     const message = generateWhatsAppMessage(items, total, customerName);
     const whatsappNumber = siteContent.contact.whatsapp || '5511962579428';
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank', 'noopener,noreferrer');
   };
 
   if (cartLoading) {

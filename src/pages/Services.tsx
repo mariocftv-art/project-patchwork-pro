@@ -102,7 +102,7 @@ export default function Services() {
 *Mensagem:* ${formData.message || 'Sem mensagem adicional'}`;
 
     const whatsappUrl = `https://wa.me/5511962579428?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     toast({
       title: 'Redirecionando para WhatsApp',

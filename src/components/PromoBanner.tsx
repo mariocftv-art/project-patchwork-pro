@@ -8,7 +8,7 @@ const banners = [
     title: 'Câmeras de Segurança',
     subtitle: 'Até 40% OFF',
     description: 'Monitoramento 24h para sua casa',
-    bgColor: 'bg-gradient-to-r from-ml-blue to-blue-600',
+    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
     link: '/?categoria=câmeras',
     image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'
   },
@@ -17,7 +17,7 @@ const banners = [
     title: 'Frete Grátis',
     subtitle: 'Em todos os produtos',
     description: 'Para compras acima de R$ 199',
-    bgColor: 'bg-gradient-to-r from-ml-green to-green-600',
+    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
     link: '/',
     image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400&h=300&fit=crop'
   },
@@ -26,7 +26,7 @@ const banners = [
     title: 'Cercas Elétricas',
     subtitle: 'Instalação Inclusa',
     description: 'Proteção total para seu perímetro',
-    bgColor: 'bg-gradient-to-r from-orange-500 to-red-500',
+    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
     link: '/?categoria=cercas',
     image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=300&fit=crop'
   },
@@ -35,7 +35,7 @@ const banners = [
     title: 'DVR e NVR',
     subtitle: 'Promoção Especial',
     description: 'Grave e monitore de qualquer lugar',
-    bgColor: 'bg-gradient-to-r from-purple-600 to-indigo-600',
+    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
     link: '/?categoria=dvr',
     image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=300&fit=crop'
   }
