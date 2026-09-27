@@ -365,7 +365,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Categories Bar */}
-        <div className="bg-[#40E0D0] border-b border-[#36c2b4]">
+        <div className="bg-foreground border-b border-primary">
           <div className="container mx-auto px-4">
             <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
               <Link
