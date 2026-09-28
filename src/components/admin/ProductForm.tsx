@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -63,6 +64,7 @@ const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
+  const [gallery, setGallery] = useState<string[]>(() => [...(product?.gallery_urls ?? []), "", "", "", ""].slice(0, 4));
   const { toast } = useToast();
 
   const { data: categories = [] } = useQuery({
