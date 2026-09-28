@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -63,6 +64,7 @@ const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
+  const [gallery, setGallery] = useState<string[]>(() => [...(product?.gallery_urls ?? []), "", "", "", ""].slice(0, 4));
   const { toast } = useToast();
 
   const { data: categories = [] } = useQuery({
@@ -117,6 +119,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       model: data.model?.trim() || null,
       sku: data.sku?.trim() || null,
       image_url: data.image_url?.trim() || null,
+      gallery_urls: gallery.map((g) => g.trim()).filter(Boolean).slice(0, 4),
       stock: data.stock,
       featured: !!data.featured,
       on_sale: !!data.on_sale,
@@ -318,7 +321,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
 
         <div className="col-span-2">
-          <Label htmlFor="image_url">URL da Imagem</Label>
+          <Label htmlFor="image_url">Imagem 1 (principal)</Label>
           <Input
             id="image_url"
             {...register('image_url')}
@@ -326,6 +329,23 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
             placeholder="https://exemplo.com/imagem.jpg"
           />
         </div>
+
+        {[0, 1, 2, 3].map((i) => (
+          <div className="col-span-2" key={i}>
+            <Label htmlFor={`gallery_${i}`}>Imagem {i + 2} (opcional)</Label>
+            <Input
+              id={`gallery_${i}`}
+              value={gallery[i] ?? ''}
+              onChange={(e) => {
+                const next = [...gallery];
+                next[i] = e.target.value;
+                setGallery(next);
+              }}
+              className="form-input mt-1"
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
+          </div>
+        ))}
 
         <div className="col-span-2 flex items-center gap-6">
           <div className="flex items-center gap-2">
