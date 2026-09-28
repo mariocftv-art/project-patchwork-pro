@@ -126,7 +126,7 @@ export default function Product() {
             <div className="mb-4">
               {product.original_price && (
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-ml-gray line-through">
+                  <span className="text-sm text-price-old font-medium line-through">
                     R$ {product.original_price.toFixed(2)}
                   </span>
                   <span className="text-sm text-ml-green font-semibold">
@@ -134,7 +134,7 @@ export default function Product() {
                   </span>
                 </div>
               )}
-              <p className="text-3xl lg:text-4xl font-light text-foreground">
+              <p className="text-3xl lg:text-4xl font-normal text-price">
                 R$ {reais}
                 <span className="text-lg align-top">{centavos}</span>
               </p>

@@ -119,7 +119,7 @@ export default function NotificationsPopover() {
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative text-ml-dark-gray hover:text-ml-blue">
+          <Button variant="ghost" size="icon" className="relative text-ml-dark-gray hover:bg-foreground/10 hover:text-foreground data-[state=open]:bg-foreground/10">
             <Bell className="w-5 h-5" />
             {adminPendingCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
@@ -214,7 +214,7 @@ export default function NotificationsPopover() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-ml-dark-gray hover:text-ml-blue">
+        <Button variant="ghost" size="icon" className="relative text-ml-dark-gray hover:bg-foreground/10 hover:text-foreground data-[state=open]:bg-foreground/10">
           <Bell className="w-5 h-5" />
           {customerUnreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">

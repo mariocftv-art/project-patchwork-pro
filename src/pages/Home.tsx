@@ -45,7 +45,7 @@ export default function Home() {
   const categoryCounts = allCategoryCounts.filter(c => c.count > 0);
 
   // Filter products (esgotados por último)
-  let filteredProducts = [...products].sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
+  let filteredProducts = (products ?? []).filter((p): p is Product => !!p && typeof p.title === 'string').sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
   
   if (selectedCategory) {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
@@ -54,7 +54,7 @@ export default function Home() {
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
     filteredProducts = filteredProducts.filter(p => 
-      p.title.toLowerCase().includes(query) || 
+      (p.title ?? '').toLowerCase().includes(query) || 
       (p.description?.toLowerCase() || '').includes(query) ||
       (p.category?.toLowerCase() || '').includes(query) ||
       (p.subcategory?.toLowerCase() || '').includes(query) ||
