@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Product() {
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
+  const [activeImg, setActiveImg] = useState(0);
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
@@ -95,13 +96,38 @@ export default function Product() {
           {/* Image Column */}
           <div className="lg:col-span-5">
             <div className="sticky top-24">
-              <div className="aspect-square rounded-lg overflow-hidden bg-white border border-border">
-                <img
-                  src={product.image_url || '/placeholder.svg'}
-                  alt={product.title}
-                  className="w-full h-full object-contain p-4"
-                />
-              </div>
+              {(() => {
+                const imgs = [product.image_url, ...(product.gallery_urls ?? [])]
+                  .filter((u): u is string => !!u && u.trim() !== '')
+                  .filter((u, i, a) => a.indexOf(u) === i)
+                  .slice(0, 5);
+                const main = imgs[activeImg] ?? imgs[0] ?? '/placeholder.svg';
+                return (
+                  <div className="flex gap-3">
+                    {imgs.length > 1 && (
+                      <div className="flex flex-col gap-2 w-16 shrink-0">
+                        {imgs.map((u, i) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onMouseEnter={() => setActiveImg(i)}
+                            onClick={() => setActiveImg(i)}
+                            aria-label={`Ver imagem ${i + 1}`}
+                            className={`aspect-square rounded-md overflow-hidden bg-card border-2 transition-colors ${
+                              i === activeImg ? 'border-primary' : 'border-border hover:border-muted-foreground'
+                            }`}
+                          >
+                            <img src={u} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex-1 aspect-square rounded-lg overflow-hidden bg-card border border-border">
+                      <img src={main} alt={product.title} className="w-full h-full object-contain p-4" />
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="mt-4 flex justify-center gap-2">
                 <ShareButton title={product.title} />
               </div>
