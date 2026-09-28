@@ -74,13 +74,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Original Price (if discounted) */}
           {product.original_price && (
-            <p className="text-[10px] sm:text-xs text-ml-gray line-through">
+            <p className="text-[10px] sm:text-xs text-price-old font-medium line-through">
               R$ {product.original_price.toFixed(2)}
             </p>
           )}
 
           {/* Price */}
-          <p className="text-base sm:text-xl font-semibold text-foreground">
+          <p className="text-base sm:text-xl font-semibold text-price">
             R$ {reais}
             <span className="text-[10px] sm:text-xs align-top">{centavos}</span>
           </p>
