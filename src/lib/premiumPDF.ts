@@ -836,8 +836,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       const isHead = /^\d+\.\s/.test(line) || (line === line.toUpperCase() && line.length < 60 && /[A-Z]/.test(line));
       const isBullet = /^[•\-✓]/.test(line);
       if (isHead) {
-        y = ensureSpace(doc, y, 14);
-        y += 2;
+        y = ensureSpace(doc, y, 12);
+        y += 1.2;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.6);
         doc.setTextColor(...BLACK);
@@ -847,7 +847,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setDrawColor(...t.gold);
         doc.setLineWidth(0.3);
         doc.line(LEFT + 3.5, y + 1.6, LEFT + 3.5 + Math.min(doc.getTextWidth(line), CONTENT_W - 4), y + 1.6);
-        y += 6;
+        y += 5.2;
         return;
       }
       doc.setFont('helvetica', 'normal');
@@ -866,9 +866,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setFontSize(9);
         doc.setTextColor(...INK);
         doc.text(l, LEFT + indent, y);
-        y += 4.6;
+        y += 4.4;
       });
-      y += 0.8;
+      y += 0.5;
     });
     y += G(4);
   }
@@ -929,14 +929,14 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
 
   /* ---- Assinaturas ---- */
   if (data.showSignatures) {
-    y = ensureSpace(doc, y, 34);
-    y += 10;
+    y = ensureSpace(doc, y, 32);
+    y += 9;
     const sw = (CONTENT_W - 16) / 2;
     const sigs = [
       { title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
       {
         title: data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
-        lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : ''].filter(Boolean),
+        lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : '', 'Assinatura: ______________________'].filter(Boolean),
       },
     ];
     sigs.forEach((s, i) => {
@@ -952,7 +952,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       doc.setTextColor(...MUTED);
       s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
     });
-    y += 22;
+    y += 24;
   }
 
   /* ---- Elementos fixos em todas as páginas ---- */
