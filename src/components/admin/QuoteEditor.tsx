@@ -113,6 +113,17 @@ const LABOR_SUGGESTIONS = [
 
 const selectCls = 'w-full h-10 rounded-md border border-input bg-background px-3 text-sm';
 
+// Serviços Técnicos Especializados — mão de obra, separada dos produtos físicos
+const TECH_SERVICES: Record<string, string[]> = {
+  'CFTV': ['Instalação técnica de câmera', 'Substituição de câmera', 'Remanejamento de câmera', 'Configuração de DVR', 'Configuração de NVR', 'Configuração de acesso remoto', 'Configuração do aplicativo no celular', 'Organização técnica do rack', 'Organização de cabeamento', 'Manutenção de sistema de CFTV', 'Diagnóstico técnico', 'Testes e configuração final'],
+  'Alarmes': ['Instalação de central de alarme', 'Instalação de sensores', 'Configuração de central de alarme', 'Configuração de zonas', 'Manutenção técnica de alarme', 'Diagnóstico e testes de alarme'],
+  'Cerca elétrica': ['Instalação técnica de cerca elétrica', 'Manutenção de cerca elétrica', 'Substituição de componentes da cerca', 'Revisão de central de cerca', 'Testes de funcionamento da cerca'],
+  'Controle de acesso': ['Instalação de controlador de acesso', 'Instalação de leitor de tags', 'Instalação de fechadura eletromagnética', 'Configuração de controle de acesso', 'Cadastro de usuários e tags', 'Testes de abertura e fechamento'],
+  'Interfones e porteiros': ['Instalação de interfone', 'Instalação de porteiro eletrônico', 'Instalação de monofone', 'Configuração de central de portaria', 'Manutenção técnica de interfone', 'Diagnóstico e testes de interfone'],
+  'Automação': ['Instalação de módulo de automação', 'Configuração de equipamentos de automação', 'Integração de dispositivos compatíveis', 'Manutenção e diagnóstico de automação'],
+  'Complementares': ['Passagem de cabos', 'Substituição de cabeamento', 'Instalação de infraestrutura', 'Retirada de equipamento', 'Reinstalação de equipamento', 'Visita técnica', 'Manutenção preventiva', 'Manutenção corretiva', 'Configuração e entrega técnica'],
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -136,13 +147,29 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const { data: products = [] } = useQuery({
-    queryKey: ['quote-editor-products'],
+    queryKey: ['quote-editor-products-v2'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('id,title,price,image_url,sku').order('title');
+      const { data } = await supabase.from('products').select('id,title,price,image_url,sku,category').order('title');
       return data || [];
     },
     enabled: open,
   });
+  const { data: cats = [] } = useQuery({
+    queryKey: ['quote-editor-categories'],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('slug,name').order('name');
+      return data || [];
+    },
+    enabled: open,
+  });
+  const productGroups = (() => {
+    const map = new Map<string, typeof products>();
+    for (const p of products) {
+      const name = cats.find((c) => c.slug === p.category)?.name || 'Acessórios e outros produtos';
+      map.set(name, [...(map.get(name) || []), p]);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+  })();
 
   useEffect(() => {
     if (!open) return;
@@ -449,20 +476,38 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             <section>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <h3 className="font-semibold">Itens e mão de obra</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <select
-                    className={`${selectCls} w-56`}
+                    className={`${selectCls} w-full sm:w-60`}
                     value=""
                     onChange={(e) => {
                       const p = products.find((x) => x.id === e.target.value);
                       if (p) set('items', [...data.items.filter((i) => i.description.trim()), { description: p.title, quantity: 1, unitPrice: Number(p.price) || 0, kind: 'product', imageUrl: p.image_url || undefined }]);
                     }}
                   >
-                    <option value="">+ Produto do catálogo</option>
-                    {products.map((p) => <option key={p.id} value={p.id}>{p.sku ? `${p.sku} — ` : ''}{p.title}</option>)}
+                    <option value="">+ Produto (por categoria)</option>
+                    {productGroups.map(([g, list]) => (
+                      <optgroup key={g} label={g}>
+                        {list.map((p) => <option key={p.id} value={p.id}>{p.sku ? `${p.sku} — ` : ''}{p.title}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <select
+                    className={`${selectCls} w-full sm:w-60`}
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) set('items', [...data.items.filter((i) => i.description.trim()), { description: e.target.value, quantity: 1, unitPrice: 0, kind: 'service' }]);
+                    }}
+                  >
+                    <option value="">+ Serviço Técnico Especializado</option>
+                    {Object.entries(TECH_SERVICES).map(([g, list]) => (
+                      <optgroup key={g} label={`Serviços de ${g}`}>
+                        {list.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                   <Button size="sm" variant="outline" onClick={() => set('items', [...data.items, { description: '', quantity: 1, unitPrice: 0, kind: 'product' }])}><Plus className="h-4 w-4 mr-1" />Item</Button>
-                  <Button size="sm" variant="outline" onClick={() => set('items', [...data.items, { description: 'Mão de obra — Instalação', quantity: 1, unitPrice: 0, kind: 'service' }])}><Plus className="h-4 w-4 mr-1" />Mão de obra</Button>
+                  <Button size="sm" variant="outline" onClick={() => set('items', [...data.items, { description: 'Serviço técnico', quantity: 1, unitPrice: 0, kind: 'service' }])}><Plus className="h-4 w-4 mr-1" />Serviço livre</Button>
                 </div>
               </div>
               <datalist id="labor-suggestions">{LABOR_SUGGESTIONS.map((s) => <option key={s} value={s} />)}</datalist>
