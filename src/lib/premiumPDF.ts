@@ -416,26 +416,28 @@ function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: str
     doc.addImage(logo, 'PNG', LEFT - 1, 4, 24, 24);
     tx = LEFT + 27;
   }
-  doc.setTextColor(...WHITE);
+  // Nome: "MR" em dourado + restante em branco, espaçamento justo
+  const name = (profile.name || 'MR SEGURANÇA MÁXIMA').toUpperCase().trim();
+  const [firstWord, ...rest] = name.split(/\s+/);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text((profile.name || '').toUpperCase(), tx, 14);
+  doc.setFontSize(17);
+  doc.setCharSpace(-0.15);
+  doc.setTextColor(...t.gold);
+  doc.text(firstWord, tx, 14);
+  const fw = doc.getTextWidth(firstWord + ' ');
+  doc.setTextColor(...WHITE);
+  doc.text(rest.join(' '), tx + fw, 14);
+  doc.setCharSpace(0);
   doc.setFillColor(...t.red);
   doc.rect(tx, 16.6, 16, 0.7, 'F');
   doc.setTextColor(...t.gold);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.6);
   doc.text('CÂMERAS E ALARMES', tx, 22);
   doc.setTextColor(215, 215, 215);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.8);
   doc.text('MONITORAMENTO 24H', tx, 26.5);
-
-  // contato discreto à direita
-  doc.setFontSize(7.6);
-  doc.setTextColor(215, 215, 215);
-  const right = [profile.phone ? `WhatsApp ${profile.phone}` : '', profile.cnpj ? `CNPJ ${profile.cnpj}` : '', profile.email || '', profile.instagram ? `Instagram ${profile.instagram}` : '']
-    .filter(Boolean);
-  right.forEach((l, i) => doc.text(l, RIGHT, 11 + i * 4.4, { align: 'right' }));
 
   // título do documento
   let y = h + 11;
@@ -480,15 +482,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   const wa = profile.phone || profile.whatsapp;
-  doc.text(
-    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : ''].filter(Boolean).join('   •   '),
-    LEFT + 15,
-    y + 12.5
-  );
-  if (profile.instagram) {
-    doc.setTextColor(...t.gold);
-    doc.text(`Siga no Instagram: ${profile.instagram}`, LEFT + 15, y + 16.5);
-  }
+  if (wa) doc.text(`WhatsApp: ${wa}`, LEFT + 15, y + 12.5);
   const slogan = (profile.footer_slogan || '').trim();
   if (slogan) {
     doc.setTextColor(...t.gold);
@@ -542,6 +536,13 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     red: hexToRgb(profile.pdf_red_color, [200, 16, 46]),
   };
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  // Helvetica só cobre Latin-1: emojis/símbolos viravam "Ø=Þáþ". Remove-os de todo texto.
+  const clean = (s: unknown) =>
+    typeof s === 'string' ? s.replace(/[^\u0009\u000A\u000D\u0020-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g, '').replace(/^\s+(?=\S)/, (m) => m) : s;
+  const origText = doc.text.bind(doc);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (doc as any).text = (txt: any, ...args: any[]) =>
+    origText(Array.isArray(txt) ? txt.map(clean) : clean(txt), ...args);
   const logo = (await tryLoad(profile.logo_url)) || (await tryLoad(logoMRTransparent));
   const title = DOC_TITLES[data.docType] || 'ORÇAMENTO';
   const totals = computeTotals(data);
@@ -835,8 +836,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       const isHead = /^\d+\.\s/.test(line) || (line === line.toUpperCase() && line.length < 60 && /[A-Z]/.test(line));
       const isBullet = /^[•\-✓]/.test(line);
       if (isHead) {
-        y = ensureSpace(doc, y, 14);
-        y += 2;
+        y = ensureSpace(doc, y, 12);
+        y += 1.2;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.6);
         doc.setTextColor(...BLACK);
@@ -846,7 +847,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setDrawColor(...t.gold);
         doc.setLineWidth(0.3);
         doc.line(LEFT + 3.5, y + 1.6, LEFT + 3.5 + Math.min(doc.getTextWidth(line), CONTENT_W - 4), y + 1.6);
-        y += 6;
+        y += 5.2;
         return;
       }
       doc.setFont('helvetica', 'normal');
@@ -865,9 +866,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setFontSize(9);
         doc.setTextColor(...INK);
         doc.text(l, LEFT + indent, y);
-        y += 4.6;
+        y += 4.4;
       });
-      y += 0.8;
+      y += 0.5;
     });
     y += G(4);
   }
@@ -928,14 +929,14 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
 
   /* ---- Assinaturas ---- */
   if (data.showSignatures) {
-    y = ensureSpace(doc, y, 34);
-    y += 10;
+    y = ensureSpace(doc, y, 32);
+    y += 9;
     const sw = (CONTENT_W - 16) / 2;
     const sigs = [
       { title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
       {
         title: data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
-        lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : ''].filter(Boolean),
+        lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : '', 'Assinatura: ______________________'].filter(Boolean),
       },
     ];
     sigs.forEach((s, i) => {
@@ -951,7 +952,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       doc.setTextColor(...MUTED);
       s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
     });
-    y += 22;
+    y += 24;
   }
 
   /* ---- Elementos fixos em todas as páginas ---- */
