@@ -416,26 +416,28 @@ function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: str
     doc.addImage(logo, 'PNG', LEFT - 1, 4, 24, 24);
     tx = LEFT + 27;
   }
-  doc.setTextColor(...WHITE);
+  // Nome: "MR" em dourado + restante em branco, espaçamento justo
+  const name = (profile.name || 'MR SEGURANÇA MÁXIMA').toUpperCase().trim();
+  const [firstWord, ...rest] = name.split(/\s+/);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text((profile.name || '').toUpperCase(), tx, 14);
+  doc.setFontSize(17);
+  doc.setCharSpace(-0.15);
+  doc.setTextColor(...t.gold);
+  doc.text(firstWord, tx, 14);
+  const fw = doc.getTextWidth(firstWord + ' ');
+  doc.setTextColor(...WHITE);
+  doc.text(rest.join(' '), tx + fw, 14);
+  doc.setCharSpace(0);
   doc.setFillColor(...t.red);
   doc.rect(tx, 16.6, 16, 0.7, 'F');
   doc.setTextColor(...t.gold);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.6);
   doc.text('CÂMERAS E ALARMES', tx, 22);
   doc.setTextColor(215, 215, 215);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.8);
   doc.text('MONITORAMENTO 24H', tx, 26.5);
-
-  // contato discreto à direita
-  doc.setFontSize(7.6);
-  doc.setTextColor(215, 215, 215);
-  const right = [profile.phone ? `WhatsApp ${profile.phone}` : '', profile.cnpj ? `CNPJ ${profile.cnpj}` : '', profile.email || '', profile.instagram ? `Instagram ${profile.instagram}` : '']
-    .filter(Boolean);
-  right.forEach((l, i) => doc.text(l, RIGHT, 11 + i * 4.4, { align: 'right' }));
 
   // título do documento
   let y = h + 11;
@@ -480,15 +482,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   const wa = profile.phone || profile.whatsapp;
-  doc.text(
-    [wa ? `WhatsApp: ${wa}` : '', profile.cnpj ? `CNPJ: ${profile.cnpj}` : ''].filter(Boolean).join('   •   '),
-    LEFT + 15,
-    y + 12.5
-  );
-  if (profile.instagram) {
-    doc.setTextColor(...t.gold);
-    doc.text(`Siga no Instagram: ${profile.instagram}`, LEFT + 15, y + 16.5);
-  }
+  if (wa) doc.text(`WhatsApp: ${wa}`, LEFT + 15, y + 12.5);
   const slogan = (profile.footer_slogan || '').trim();
   if (slogan) {
     doc.setTextColor(...t.gold);
@@ -542,6 +536,13 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     red: hexToRgb(profile.pdf_red_color, [200, 16, 46]),
   };
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  // Helvetica só cobre Latin-1: emojis/símbolos viravam "Ø=Þáþ". Remove-os de todo texto.
+  const clean = (s: unknown) =>
+    typeof s === 'string' ? s.replace(/[^\u0009\u000A\u000D\u0020-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g, '').replace(/^\s+(?=\S)/, (m) => m) : s;
+  const origText = doc.text.bind(doc);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (doc as any).text = (txt: any, ...args: any[]) =>
+    origText(Array.isArray(txt) ? txt.map(clean) : clean(txt), ...args);
   const logo = (await tryLoad(profile.logo_url)) || (await tryLoad(logoMRTransparent));
   const title = DOC_TITLES[data.docType] || 'ORÇAMENTO';
   const totals = computeTotals(data);
