@@ -170,6 +170,62 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_signatures: {
+        Row: {
+          consent_text: string
+          created_by: string | null
+          created_by_email: string | null
+          doc_hash: string
+          id: string
+          party: string
+          quote_id: string
+          signature_image: string
+          signed_at: string
+          signer_document: string | null
+          signer_name: string
+          user_agent: string | null
+          version: number
+        }
+        Insert: {
+          consent_text: string
+          created_by?: string | null
+          created_by_email?: string | null
+          doc_hash: string
+          id?: string
+          party: string
+          quote_id: string
+          signature_image: string
+          signed_at?: string
+          signer_document?: string | null
+          signer_name: string
+          user_agent?: string | null
+          version: number
+        }
+        Update: {
+          consent_text?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          doc_hash?: string
+          id?: string
+          party?: string
+          quote_id?: string
+          signature_image?: string
+          signed_at?: string
+          signer_document?: string | null
+          signer_name?: string
+          user_agent?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signatures_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installation_services: {
         Row: {
           active: boolean | null
