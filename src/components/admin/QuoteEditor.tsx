@@ -131,10 +131,11 @@ interface Props {
   /** 'edit' abre o formulário; 'preview' abre direto na pré-visualização */
   mode?: 'edit' | 'preview';
   duplicate?: boolean;
+  defaultDocType?: DocType;
   onSaved: () => void;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved, defaultDocType }: Props) {
   const [data, setData] = useState<PremiumDocData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [status, setStatus] = useState('rascunho');
@@ -187,7 +188,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         setPdfUrl(duplicate ? null : record.pdf_url);
       } else {
         setData({
-          docType: 'orcamento',
+          docType: defaultDocType || 'orcamento',
           number: '',
           date: new Date(),
           validityDays: profile.quote_validity_days || 15,
@@ -324,13 +325,48 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         updated_at: new Date().toISOString(),
         created_by: auth.user?.id ?? null,
       };
+      if (!url) throw new Error('Falha ao salvar o PDF');
+      // Contrato já assinado: nunca sobrescrever — gera um aditivo como novo documento
+      const locked = !!recordId && final.docType === 'contrato' && SIGNED_STATUSES.includes(record?.status || '');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const q = supabase.from('quotes') as any;
-      const res = recordId
-        ? await q.update(payload).eq('id', recordId).select('id').maybeSingle()
+      let targetId = locked ? null : recordId;
+      let finalNumber = number;
+      if (locked) {
+        finalNumber = await nextDocNumber();
+        Object.assign(payload, {
+          quote_number: finalNumber,
+          status: 'rascunho',
+          service_title: `ADITIVO AO CONTRATO ${number}${final.serviceTitle ? ' — ' + final.serviceTitle : ''}`,
+          notes: [`Aditivo contratual ao contrato ${number}, que permanece válido e inalterado.`, final.notes].filter(Boolean).join('\n'),
+        });
+      }
+      const res = targetId
+        ? await q.update(payload).eq('id', targetId).select('id').maybeSingle()
         : await q.insert(payload).select('id').maybeSingle();
       if (res.error) throw res.error;
-      setRecordId(res.data?.id ?? recordId);
+      targetId = res.data?.id ?? targetId;
+      if (!targetId) throw new Error('Registro não salvo');
+      // Histórico de versões
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const qv = supabase.from('quote_versions' as any) as any;
+      const { data: last } = await qv.select('version').eq('quote_id', targetId).order('version', { ascending: false }).limit(1).maybeSingle();
+      const version = (last?.version || 0) + 1;
+      const vres = await qv.insert({
+        quote_id: targetId,
+        version,
+        change_type: locked ? 'aditivo' : version === 1 ? (duplicate ? 'duplicado' : 'criacao') : 'edicao',
+        status: payload.status,
+        snapshot: payload,
+        total: payload.total,
+        pdf_url: url,
+        created_by: auth.user?.id ?? null,
+        created_by_email: auth.user?.email ?? null,
+      });
+      if (vres.error) throw vres.error;
+      if (locked) toast({ title: 'Aditivo criado', description: `O contrato ${number} assinado foi preservado. Novo documento: ${finalNumber}.` });
+      setRecordId(targetId);
+      final.number = finalNumber;
       setData(final);
       setPdfUrl(url);
       const blob = doc.output('blob');
@@ -652,10 +688,18 @@ export const QUOTE_STATUSES = [
   { value: 'enviado', label: 'Enviado' },
   { value: 'aprovado', label: 'Aprovado' },
   { value: 'recusado', label: 'Recusado' },
+  { value: 'aguardando_assinatura', label: 'Aguardando assinatura' },
+  { value: 'assinado', label: 'Assinado' },
   { value: 'em_execucao', label: 'Em execução' },
   { value: 'concluido', label: 'Concluído' },
   { value: 'cancelado', label: 'Cancelado' },
 ];
+
+export const CONTRACT_STATUSES = QUOTE_STATUSES.filter((s) =>
+  ['rascunho', 'aguardando_assinatura', 'assinado', 'em_execucao', 'concluido', 'cancelado'].includes(s.value),
+);
+
+export const SIGNED_STATUSES = ['assinado', 'em_execucao', 'concluido'];
 
 function Field({ label, v, on, className, ph }: { label: string; v?: string; on: (v: string) => void; className?: string; ph?: string }) {
   return (

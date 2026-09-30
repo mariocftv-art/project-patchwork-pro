@@ -16,6 +16,7 @@ import CategoriesForm from '@/components/admin/CategoriesForm';
 import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
 import OrdersManagement from '@/components/admin/OrdersManagement';
 import QuotesManagement from '@/components/admin/QuotesManagement';
+import ContractsManagement from '@/components/admin/ContractsManagement';
 import SalesDashboard from '@/components/admin/SalesDashboard';
 import CompanyProfileForm from '@/components/admin/CompanyProfileForm';
 import { Button } from '@/components/ui/button';
@@ -98,6 +99,10 @@ export default function Admin() {
             <ClipboardList className="w-4 h-4" />
             Orçamentos
           </TabsTrigger>
+          <TabsTrigger value="contracts" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Contratos Feitos
+          </TabsTrigger>
           <TabsTrigger value="branding" className="flex items-center gap-2">
             <Palette className="w-4 h-4" />
             Personalização
@@ -174,6 +179,10 @@ export default function Admin() {
             Gerenciar Orçamentos
           </h2>
           <QuotesManagement />
+        </TabsContent>
+
+        <TabsContent value="contracts" className="space-y-4">
+          <ContractsManagement />
         </TabsContent>
 
         {/* Products Tab */}

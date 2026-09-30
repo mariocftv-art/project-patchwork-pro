@@ -395,6 +395,59 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_versions: {
+        Row: {
+          change_note: string | null
+          change_type: string
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          id: string
+          pdf_url: string | null
+          quote_id: string
+          snapshot: Json
+          status: string | null
+          total: number | null
+          version: number
+        }
+        Insert: {
+          change_note?: string | null
+          change_type?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          pdf_url?: string | null
+          quote_id: string
+          snapshot: Json
+          status?: string | null
+          total?: number | null
+          version: number
+        }
+        Update: {
+          change_note?: string | null
+          change_type?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          pdf_url?: string | null
+          quote_id?: string
+          snapshot?: Json
+          status?: string | null
+          total?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotes: {
         Row: {
           contract_text: string | null
