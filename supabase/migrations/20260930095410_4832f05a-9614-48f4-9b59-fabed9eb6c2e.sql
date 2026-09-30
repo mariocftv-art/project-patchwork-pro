@@ -1,0 +1,1 @@
+ALTER TABLE public.contract_signatures ADD COLUMN signed_pdf_path text;

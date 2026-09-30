@@ -181,6 +181,7 @@ export type Database = {
           quote_id: string
           signature_image: string
           signed_at: string
+          signed_pdf_path: string | null
           signer_document: string | null
           signer_name: string
           user_agent: string | null
@@ -196,6 +197,7 @@ export type Database = {
           quote_id: string
           signature_image: string
           signed_at?: string
+          signed_pdf_path?: string | null
           signer_document?: string | null
           signer_name: string
           user_agent?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           quote_id?: string
           signature_image?: string
           signed_at?: string
+          signed_pdf_path?: string | null
           signer_document?: string | null
           signer_name?: string
           user_agent?: string | null
