@@ -45,7 +45,7 @@ function maskDoc(q: QuoteRecord) {
 }
 
 function clientName(q: QuoteRecord) {
-  return (q.customer?.company as string) || q.customer_name;
+  return q.customer_name;
 }
 
 export default function ContractsManagement() {
@@ -97,7 +97,7 @@ export default function ContractsManagement() {
       if (from && d < from) return false;
       if (to && d > to) return false;
       if (!s) return true;
-      const text = [q.customer_name, q.customer?.company, q.quote_number, q.customer_phone, q.customer?.whatsapp].filter(Boolean).some((v) => String(v).toLowerCase().includes(s));
+      const text = [q.customer_name, q.customer?.fantasy, q.quote_number, q.customer_phone, q.customer?.whatsapp].filter(Boolean).some((v) => String(v).toLowerCase().includes(s));
       const docs = sd.length >= 3 && [q.customer?.cpf, q.customer?.cnpj, q.customer_phone].some((v) => String(v || '').replace(/\D/g, '').includes(sd));
       return text || docs;
     });
@@ -307,6 +307,7 @@ export default function ContractsManagement() {
         record={editor.record}
         mode={editor.mode}
         onSaved={refresh}
+        defaultDocType="contrato"
       />
     </div>
   );

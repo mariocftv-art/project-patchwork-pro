@@ -131,10 +131,11 @@ interface Props {
   /** 'edit' abre o formulário; 'preview' abre direto na pré-visualização */
   mode?: 'edit' | 'preview';
   duplicate?: boolean;
+  defaultDocType?: DocType;
   onSaved: () => void;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved, defaultDocType }: Props) {
   const [data, setData] = useState<PremiumDocData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [status, setStatus] = useState('rascunho');
@@ -187,7 +188,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         setPdfUrl(duplicate ? null : record.pdf_url);
       } else {
         setData({
-          docType: 'orcamento',
+          docType: defaultDocType || 'orcamento',
           number: '',
           date: new Date(),
           validityDays: profile.quote_validity_days || 15,
