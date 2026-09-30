@@ -67,6 +67,15 @@ export interface PremiumDocData {
   notes?: string;
   contractText?: string;
   showSignatures?: boolean;
+  /** Assinaturas eletrônicas confirmadas (imagem PNG em data URL) */
+  signatures?: { contratante?: DocSignature; contratada?: DocSignature };
+}
+
+export interface DocSignature {
+  image: string;
+  name: string;
+  signedAt: string;
+  ratio?: number;
 }
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
@@ -928,19 +937,41 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Assinaturas ---- */
-  if (data.showSignatures) {
-    y = ensureSpace(doc, y, 32);
-    y += 9;
+  if (data.showSignatures || data.signatures?.contratante || data.signatures?.contratada) {
+    const hasImg = !!(data.signatures?.contratante || data.signatures?.contratada);
+    y = ensureSpace(doc, y, hasImg ? 46 : 32);
+    y += hasImg ? 22 : 9;
     const sw = (CONTENT_W - 16) / 2;
+    const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const sc = data.signatures?.contratante;
+    const sm = data.signatures?.contratada;
     const sigs = [
-      { title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE', lines: [`Nome: ${c.name || ''}`, 'Data: ____/____/________'] },
       {
+        sig: sc,
+        title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
+        lines: [`Nome: ${sc?.name || c.name || ''}`, sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
+      },
+      {
+        sig: sm,
         title: data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
-        lines: [profile.name, profile.responsible_name ? `Responsável: ${profile.responsible_name}` : '', 'Assinatura: ______________________'].filter(Boolean),
+        lines: [
+          profile.name,
+          sm ? `Responsável: ${sm.name}` : profile.responsible_name ? `Responsável: ${profile.responsible_name}` : '',
+          sm ? `Assinado eletronicamente em ${fmt(sm.signedAt)}` : 'Data: ____/____/________',
+        ].filter(Boolean),
       },
     ];
     sigs.forEach((s, i) => {
       const x = LEFT + i * (sw + 16);
+      if (s.sig?.image) {
+        try {
+          const ih = 18;
+          const iw = Math.min(sw - 6, ih * (s.sig.ratio || 3));
+          doc.addImage(s.sig.image, 'PNG', x + (sw - iw) / 2, y - ih - 0.5, iw, ih);
+        } catch (e) {
+          console.error('assinatura', e);
+        }
+      }
       doc.setDrawColor(...BLACK);
       doc.setLineWidth(0.4);
       doc.line(x, y, x + sw, y);
