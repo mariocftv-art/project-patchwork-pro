@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FileSignature, Search, Eye, Pencil, Download, Printer, Send, History, Plus, Loader2 } from 'lucide-react';
+import { FileSignature, Search, Eye, Pencil, Download, Printer, Send, History, Plus, Loader2, PenLine, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +11,8 @@ import { getCompanyProfile } from '@/lib/companyProfile';
 import { buildPremiumPDF, docFileName } from '@/lib/premiumPDF';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
+import SignaturePad from './SignaturePad';
+import { listSignatures, signContract, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
 import QuoteEditor, { QuoteRecord, CONTRACT_STATUSES, QUOTE_STATUSES, recordToDoc } from './QuoteEditor';
 
 const selectCls = 'h-9 rounded-md border border-input bg-background px-2 text-sm max-w-full';
@@ -80,6 +82,58 @@ export default function ContractsManagement() {
     },
   });
 
+  const { data: signatures = [] } = useQuery({ queryKey: ['admin-contract-signatures'], queryFn: listSignatures });
+  const [signing, setSigning] = useState<QuoteRecord | null>(null);
+  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string } | null>(null);
+
+  const contentVersion = (id: string) => versions.filter((v) => v.quote_id === id && v.change_type !== 'status')[0]?.version || 1;
+  const sigsOf = (id: string) => {
+    const v = contentVersion(id);
+    return signatures.filter((s) => s.quote_id === id && s.version === v);
+  };
+  const signLabel = (id: string) => {
+    const s = sigsOf(id);
+    const c = s.some((x) => x.party === 'contratante');
+    const m = s.some((x) => x.party === 'contratada');
+    if (c && m) return 'Assinado pelas partes';
+    if (c) return 'Aguardando assinatura da empresa';
+    if (m) return 'Aguardando assinatura do cliente';
+    return 'Assinatura pendente das duas partes';
+  };
+
+  const confirmSignature = async (png: string) => {
+    if (!pad) return;
+    try {
+      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures);
+      toast({ title: 'Assinatura registrada', description: r.both ? 'Contrato assinado pelas duas partes. PDF assinado salvo.' : 'PDF atualizado e salvo. Falta a outra parte.' });
+      setPad(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['admin-contract-signatures'] }),
+        qc.invalidateQueries({ queryKey: ['admin-contract-versions'] }),
+        qc.invalidateQueries({ queryKey: ['admin-contracts'] }),
+      ]);
+      const fresh = (qc.getQueryData(['admin-contracts']) as QuoteRecord[] | undefined)?.find((x) => x.id === pad.q.id);
+      if (fresh) setSigning(fresh);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Assinatura não registrada', description: 'Nada foi salvo. Verifique a conexão e tente de novo.', variant: 'destructive' });
+    }
+  };
+
+  const printForPen = async (q: QuoteRecord) => {
+    setBusyId(q.id);
+    try {
+      const profile = await getCompanyProfile(true);
+      const doc = await buildPremiumPDF({ ...recordToDoc(q), showSignatures: true }, profile);
+      printPages(await renderPdfPages(doc.output('blob')));
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Não foi possível abrir a impressão', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin-contracts'] });
     qc.invalidateQueries({ queryKey: ['admin-contract-versions'] });
@@ -134,6 +188,12 @@ export default function ContractsManagement() {
   };
 
   const fetchPdf = async (q: QuoteRecord, url?: string | null): Promise<Blob> => {
+    if (url === undefined) {
+      const signed = sigsOf(q.id).find((x) => x.signed_pdf_path);
+      if (signed?.signed_pdf_path) {
+        try { return await signedPdfBlob(signed.signed_pdf_path); } catch { return (await buildSignedPdf(q, sigsOf(q.id))).output('blob'); }
+      }
+    }
     const u = url ?? q.pdf_url;
     if (u) {
       const r = await fetch(u);
@@ -248,6 +308,7 @@ export default function ContractsManagement() {
                     <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground mt-1">
                       <span>CPF/CNPJ: {maskDoc(q)}</span>
                       <span>Criado: {new Date(q.created_at).toLocaleDateString('pt-BR')}</span>
+                      <span className={sigsOf(q.id).length === 2 ? 'text-price font-semibold' : 'text-destructive font-semibold'}>{signLabel(q.id)}</span>
                       <span>Alterado: {new Date(q.updated_at || q.created_at).toLocaleString('pt-BR')}</span>
                     </div>
                   </div>
@@ -262,6 +323,7 @@ export default function ContractsManagement() {
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'preview' })}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'edit' })}><Pencil className="h-4 w-4 mr-1" />Editar / nova versão</Button>
+                  <Button size="sm" onClick={() => setSigning(q)}><PenLine className="h-4 w-4 mr-1" />Assinar</Button>
                   <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => download(q, undefined, vs[0]?.version)}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
                   <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => print(q)}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
                   <Button size="sm" variant="outline" onClick={() => send(q)}><Send className="h-4 w-4 mr-1" />WhatsApp</Button>
@@ -301,6 +363,58 @@ export default function ContractsManagement() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!signing && !pad} onOpenChange={(v) => !v && setSigning(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Assinaturas — {signing?.quote_number} (versão {signing ? contentVersion(signing.id) : ''})</DialogTitle></DialogHeader>
+          {signing && (() => {
+            const s = sigsOf(signing.id);
+            const parties: { p: Party; label: string; btn: string; name: string; doc: string }[] = [
+              { p: 'contratante', label: 'CONTRATANTE', btn: '✍️ ASSINAR CONTRATO', name: signing.customer_name, doc: String(signing.customer?.cnpj || signing.customer?.cpf || '') },
+              { p: 'contratada', label: 'CONTRATADA — MR Segurança Máxima', btn: '✍️ ASSINAR COMO CONTRATADA', name: '', doc: '45.858.215/0001-86' },
+            ];
+            return (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">{signLabel(signing.id)}</p>
+                {parties.map((x) => {
+                  const done = s.find((r) => r.party === x.p);
+                  return (
+                    <div key={x.p} className="rounded border border-border p-3 space-y-2">
+                      <p className="text-xs font-bold tracking-wide">{x.label}</p>
+                      {done ? (
+                        <>
+                          <p className="text-sm flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-price" />{done.signer_name} — {new Date(done.signed_at).toLocaleString('pt-BR')}</p>
+                          <img src={done.signature_image} alt={`Assinatura de ${done.signer_name}`} className="h-14 bg-card rounded border border-border px-2" />
+                        </>
+                      ) : (
+                        <SignForm defaultName={x.p === 'contratante' ? x.name : ''} btn={x.btn} onStart={(name) => setPad({ q: signing, party: x.p, name, document: x.doc })} />
+                      )}
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
+                  Assinatura eletrônica simples (desenho na tela), registrada com data, hora, versão e código de integridade do documento. Não equivale a certificado digital ICP-Brasil; para casos que exigem isso, use um serviço de assinatura qualificada.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => download(signing)}><Download className="h-4 w-4 mr-1" />PDF</Button>
+                  <Button size="sm" variant="outline" onClick={() => print(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
+                  <Button size="sm" variant="outline" disabled={busyId === signing.id} onClick={() => printForPen(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir para assinar à caneta</Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {pad && (
+        <SignaturePad
+          title={pad.party === 'contratante' ? 'CONTRATANTE' : 'CONTRATADA — MR SEGURANÇA MÁXIMA'}
+          signerName={pad.name}
+          contractLabel={`Contrato ${pad.q.quote_number}`}
+          onCancel={() => setPad(null)}
+          onConfirm={confirmSignature}
+        />
+      )}
+
       <QuoteEditor
         open={editor.open}
         onOpenChange={(v) => setEditor((e) => ({ ...e, open: v }))}
@@ -309,6 +423,22 @@ export default function ContractsManagement() {
         onSaved={refresh}
         defaultDocType="contrato"
       />
+    </div>
+  );
+}
+
+function SignForm({ defaultName, btn, onStart }: { defaultName: string; btn: string; onStart: (name: string) => void }) {
+  const [name, setName] = useState(defaultName);
+  const [ok, setOk] = useState(false);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm flex items-center gap-1 text-destructive"><Clock className="h-4 w-4" />Pendente</p>
+      <Input placeholder="Nome completo de quem assina" value={name} onChange={(e) => setName(e.target.value)} />
+      <label className="flex items-start gap-2 text-xs">
+        <input type="checkbox" className="mt-0.5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
+        <span>Li integralmente o contrato e concordo em assiná-lo eletronicamente.</span>
+      </label>
+      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3} onClick={() => onStart(name.trim())}>{btn}</Button>
     </div>
   );
 }

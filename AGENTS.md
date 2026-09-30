@@ -4,3 +4,4 @@
 - Escopo do contrato e WhatsApp saem dos itens do documento (docScope.ts categoriza; placeholders {ESCOPO}/{PAGAMENTO}/{GARANTIA_PERIODO}) — nunca texto fixo de produtos.
 - Fotos de outros sites no PDF passam pela função image-proxy (CORS), só http(s) público e imagens até 5 MB.
 - Versões de documentos ficam em quote_versions (só inserção, admin); contrato assinado nunca é sobrescrito — edição gera aditivo novo. Why: preservar prova jurídica.
+- Assinaturas em contract_signatures (só inserção, admin) + PDF assinado no bucket privado signed-contracts; hash SHA-256 do snapshot da versão. Why: prova e privacidade.

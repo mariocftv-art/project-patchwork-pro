@@ -5,3 +5,4 @@
 - [ ] 6-8. Imagens nos documentos, dados cliente/empresa, campos obrigatórios em vermelho
 - [ ] 9-11. Contrato personalizado, paginação e padrão visual
 - [x] Contratos Feitos: lista, versões, histórico, aditivo p/ assinados
+- [x] Assinatura eletrônica de contratos (cliente e empresa, PDF assinado privado)
