@@ -75,12 +75,12 @@ export default function Admin() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="admin-mobile max-w-6xl mx-auto w-full min-w-0 overflow-x-hidden">
       <div className="flex items-center justify-between gap-4 mb-8">
-        <h1 className="font-display text-3xl font-bold text-foreground">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
           ⚙️ Painel Administrativo
         </h1>
-        <Button variant="outline" size="sm" onClick={() => signOut()} className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => signOut()} className="flex items-center gap-2 min-h-11 shrink-0">
           <LogOut className="w-4 h-4" />
           Sair
         </Button>
