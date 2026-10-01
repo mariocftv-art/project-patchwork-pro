@@ -9,6 +9,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import ShareButton from '@/components/ShareButton';
 import ShippingCalculator from '@/components/ShippingCalculator';
 import { useToast } from '@/hooks/use-toast';
+import { ProductDescription, ShippingInstallBox, RelatedBlocks } from '@/components/product/ProductExtrasView';
 
 export default function Product() {
   const { id } = useParams<{ id: string }>();
@@ -44,10 +45,9 @@ export default function Product() {
   }
 
   const inWishlist = isInWishlist(product.id);
-  const discount = product.original_price
-    ? Math.round((1 - product.price / product.original_price) * 100)
-    : 0;
-  const hasFreeShipping = product.price >= 79;
+  const onPromo = !!product.promo_active && !!product.original_price;
+  const discount = onPromo ? Math.round((1 - product.price / product.original_price!) * 100) : 0;
+  const savings = onPromo ? product.original_price! - product.price : 0;
   const installmentValue = (product.price / 8).toFixed(2);
   const [reais, centavos] = product.price.toFixed(2).split('.');
 
@@ -123,7 +123,10 @@ export default function Product() {
                         ))}
                       </div>
                     )}
-                    <div className="flex-1 aspect-square rounded-lg overflow-hidden bg-card border border-border">
+                    <div className="relative flex-1 aspect-square rounded-lg overflow-hidden bg-card border border-border">
+                      {onPromo && (
+                        <span className="absolute top-2 left-2 z-10 rounded bg-destructive text-destructive-foreground text-sm font-bold px-2 py-1">{discount}% OFF</span>
+                      )}
                       <img src={main} alt={product.title} className="w-full h-full object-contain p-4" />
                     </div>
                   </div>
@@ -151,36 +154,32 @@ export default function Product() {
 
             {/* Price Section */}
             <div className="mb-4">
-              {product.original_price && (
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-price-old font-medium line-through">
-                    R$ {product.original_price.toFixed(2)}
-                  </span>
-                  <span className="text-sm text-ml-green font-semibold">
-                    {discount}% OFF
-                  </span>
-                </div>
+              {onPromo && (
+                <p className="text-sm text-price-old font-medium line-through mb-1">
+                  R$ {product.original_price!.toFixed(2)}
+                </p>
               )}
-              <p className="text-3xl lg:text-4xl font-normal text-price">
+              <p className={`text-3xl lg:text-4xl ${onPromo ? 'font-bold text-promo' : 'font-normal text-price'}`}>
                 R$ {reais}
                 <span className="text-lg align-top">{centavos}</span>
               </p>
               <p className="text-ml-green text-sm mt-1">
                 em 8x R$ {installmentValue} sem juros
               </p>
+              {onPromo && (
+                <p className="text-sm text-promo font-semibold mt-1">Você economiza R$ {savings.toFixed(2)}</p>
+              )}
+              {product.includes_installation && (
+                <div className="mt-3 rounded-lg border border-promo/40 p-3 text-sm">
+                  <p className="text-promo font-semibold">✓ Instalação profissional inclusa — Grande São Paulo</p>
+                  <p className="text-ml-gray">Configuração do acesso pelo celular + 1 ano de garantia</p>
+                </div>
+              )}
             </div>
 
             {/* Shipping Calculator */}
             <div className="mb-4">
               <ShippingCalculator productPrice={product.price} />
-            </div>
-
-            {/* Description */}
-            <div className="mb-6">
-              <h3 className="font-medium text-foreground mb-2">Descrição</h3>
-              <p className="text-sm text-ml-gray leading-relaxed">
-                {product.description}
-              </p>
             </div>
 
             {/* Stock */}
@@ -195,6 +194,10 @@ export default function Product() {
                 </p>
               )}
             </div>
+
+            <ShippingInstallBox withInstall={!!product.includes_installation} />
+
+            <ProductDescription product={product} />
           </div>
 
           {/* Buy Box Column */}
@@ -209,7 +212,7 @@ export default function Product() {
 
               {/* Price in Buy Box */}
               <div className="mb-4">
-                <p className="text-2xl font-light text-foreground">
+                <p className={`text-2xl ${onPromo ? 'font-bold text-promo' : 'font-light text-foreground'}`}>
                   R$ {product.price.toFixed(2)}
                 </p>
                 <p className="text-sm text-ml-green">
@@ -287,6 +290,8 @@ export default function Product() {
             </div>
           </div>
         </div>
+
+        <RelatedBlocks product={product} />
       </div>
     </div>
   );
