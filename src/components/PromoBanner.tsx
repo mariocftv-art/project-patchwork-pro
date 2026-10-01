@@ -1,8 +1,21 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import artMaisSeguros from '@/assets/banners/banner-mais-seguros.jpg.asset.json';
+import artMaisSeguranca from '@/assets/banners/banner-mais-seguranca.jpg.asset.json';
 
-const banners = [
+type Banner = {
+  id: number;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  bgColor: string;
+  link: string;
+  image?: string;
+  art?: string; // arte oficial ocupando o slide inteiro
+};
+
+const banners: Banner[] = [
   {
     id: 1,
     title: 'Câmeras de Segurança',
@@ -14,12 +27,10 @@ const banners = [
   },
   {
     id: 2,
-    title: 'Frete Grátis',
-    subtitle: 'Em todos os produtos',
-    description: 'Para compras acima de R$ 199',
-    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
-    link: '/',
-    image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400&h=300&fit=crop'
+    title: 'Mais segurança para o que realmente importa',
+    bgColor: 'bg-foreground',
+    link: '/servicos',
+    art: artMaisSeguranca.url,
   },
   {
     id: 3,
@@ -32,6 +43,13 @@ const banners = [
   },
   {
     id: 4,
+    title: 'Sua casa e seu patrimônio mais seguros',
+    bgColor: 'bg-foreground',
+    link: '/?categoria=câmeras',
+    art: artMaisSeguros.url,
+  },
+  {
+    id: 5,
     title: 'DVR e NVR',
     subtitle: 'Promoção Especial',
     description: 'Grave e monitore de qualquer lugar',
@@ -72,7 +90,16 @@ export default function PromoBanner() {
           className="flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
         >
-          {banners.map((banner) => (
+          {banners.map((banner) => banner.art ? (
+            <Link
+              key={banner.id}
+              to={banner.link}
+              aria-label={banner.title}
+              className={`flex-shrink-0 w-full ${banner.bgColor} relative overflow-hidden flex items-center justify-center min-h-[140px] sm:min-h-[180px] md:min-h-[280px]`}
+            >
+              <img src={banner.art} alt={banner.title} className="w-full h-[140px] sm:h-[180px] md:h-[280px] object-contain" />
+            </Link>
+          ) : (
             <Link
               key={banner.id}
               to={banner.link}
