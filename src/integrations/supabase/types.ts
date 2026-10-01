@@ -414,6 +414,7 @@ export type Database = {
           gallery_urls: string[]
           id: string
           ideal_for: string | null
+          image_illustrative: boolean
           image_url: string | null
           includes_installation: boolean
           model: string | null
@@ -446,6 +447,7 @@ export type Database = {
           gallery_urls?: string[]
           id?: string
           ideal_for?: string | null
+          image_illustrative?: boolean
           image_url?: string | null
           includes_installation?: boolean
           model?: string | null
@@ -478,6 +480,7 @@ export type Database = {
           gallery_urls?: string[]
           id?: string
           ideal_for?: string | null
+          image_illustrative?: boolean
           image_url?: string | null
           includes_installation?: boolean
           model?: string | null
