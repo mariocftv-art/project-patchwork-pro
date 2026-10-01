@@ -40,11 +40,13 @@ Deno.serve(async (req) => {
 
     // Preço vem do banco, nunca do navegador
     const ids = items.map((i) => i.product_id);
-    const { data: prods } = await admin.from('products').select('id, title, price').in('id', ids);
+    const { data: prods } = await admin.from('products').select('id, title, price, promo_enabled, promo_price, promo_until').in('id', ids);
     const mpItems = items.map((i) => {
       const p = prods?.find((x) => x.id === i.product_id);
       if (!p) throw new Error('Produto inválido');
-      return { id: p.id, title: p.title.slice(0, 250), quantity: i.quantity, unit_price: Number(p.price), currency_id: 'BRL' };
+      const promo = p.promo_enabled && p.promo_price != null && Number(p.promo_price) > 0 && Number(p.promo_price) < Number(p.price)
+        && (!p.promo_until || new Date(p.promo_until).getTime() > Date.now());
+      return { id: p.id, title: p.title.slice(0, 250), quantity: i.quantity, unit_price: promo ? Number(p.promo_price) : Number(p.price), currency_id: 'BRL' };
     });
     const total = mpItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
