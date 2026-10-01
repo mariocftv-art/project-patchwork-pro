@@ -143,7 +143,7 @@ export const saveSubscriptionToServer = async (
 
     // Gravação segura (função no banco): cria ou acrescenta o pedido à inscrição
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: ok, error } = await (supabase.rpc as any)('save_push_subscription', {
+    const { data: ok, error } = await (supabase as any).rpc('save_push_subscription', {
       _endpoint: subscriptionData.endpoint || '',
       _p256dh: keys.p256dh,
       _auth: keys.auth,
