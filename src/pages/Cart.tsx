@@ -329,7 +329,7 @@ export default function Cart() {
               onClick={() => navigate('/checkout')}
               className="w-full ml-btn-primary"
             >
-              Finalizar Compra
+              {payOnline ? 'Finalizar Compra' : 'Solicitar pedido pelo WhatsApp'}
             </button>
 
             <Button
@@ -355,9 +355,10 @@ export default function Cart() {
               <Shield className="w-4 h-4 text-ml-green" />
               <span>Compra 100% segura</span>
             </div>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs text-ml-gray">💳 8x sem juros</span>
-              <span className="text-xs text-ml-gray">📱 5% no PIX</span>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {acceptedMethods.map((m) => (
+                <span key={m.key} className="text-xs text-ml-gray">{m.emoji} {m.label}</span>
+              ))}
             </div>
           </div>
         </div>
