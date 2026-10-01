@@ -132,6 +132,9 @@ export default function Product() {
                   </div>
                 );
               })()}
+              {product.image_illustrative && (
+                <p className="mt-2 text-center text-xs text-muted-foreground">Imagem ilustrativa</p>
+              )}
               <div className="mt-4 flex justify-center gap-2">
                 <ShareButton title={product.title} />
               </div>

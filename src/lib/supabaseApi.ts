@@ -26,6 +26,7 @@ export interface Product {
   created_at: string | null;
   updated_at: string | null;
   promo_enabled?: boolean;
+  image_illustrative?: boolean;
   promo_price?: number | null;
   promo_until?: string | null;
   includes_installation?: boolean;
@@ -147,13 +148,14 @@ export const categoriesApi = {
  * é informação interna e o banco bloqueia a leitura por clientes.
  */
 const PUBLIC_PRODUCT_COLUMNS =
-  'id,title,description,price,original_price,category,subcategory,brand,model,sku,image_url,gallery_urls,stock,featured,on_sale,status,created_at,updated_at,promo_enabled,promo_price,promo_until,includes_installation,related_ids,bundle_ids,summary,features,specs,box_items,ideal_for';
+  'id,title,description,price,original_price,category,subcategory,brand,model,sku,image_url,gallery_urls,stock,featured,on_sale,status,created_at,updated_at,promo_enabled,promo_price,promo_until,includes_installation,related_ids,bundle_ids,summary,features,specs,box_items,ideal_for,image_illustrative';
 
 export const productsApi = {
   async list(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select(PUBLIC_PRODUCT_COLUMNS)
+      .or('status.is.null,status.neq.inactive')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
