@@ -16,7 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, Palette, FileText, MessageCircle, Loader2, Upload } from 'lucide-react';
+import { Building2, Palette, FileText, MessageCircle, Loader2, Upload, CreditCard } from 'lucide-react';
+import MercadoPagoForm from './MercadoPagoForm';
 
 export default function CompanyProfileForm() {
   const { toast } = useToast();
@@ -92,7 +93,10 @@ export default function CompanyProfileForm() {
           <TabsTrigger value="brand" className="gap-2"><Palette className="w-4 h-4" /> Identidade visual</TabsTrigger>
           <TabsTrigger value="pdf" className="gap-2"><FileText className="w-4 h-4" /> Orçamento / PDF</TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</TabsTrigger>
+          <TabsTrigger value="payment" className="gap-2"><CreditCard className="w-4 h-4" /> Pagamento</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="payment"><MercadoPagoForm /></TabsContent>
 
         <TabsContent value="company" className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">

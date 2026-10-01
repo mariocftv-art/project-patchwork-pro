@@ -56,6 +56,7 @@ interface Order {
   shipping_fee: number;
   total: number;
   payment_method: string | null;
+  payment_status?: string | null;
   shipping_address: ShippingAddress | null;
   created_at: string;
 }
@@ -242,6 +243,9 @@ export default function OrdersManagement() {
                       <Badge className={`${statusInfo.badgeClass} border`}>
                         <span className="mr-1">{statusInfo.emoji}</span>
                         {statusInfo.label}
+                      </Badge>
+                      <Badge variant="outline">
+                        {order.payment_status === 'pago' ? '💰 Pago' : order.payment_status === 'cancelado' ? '❌ Cancelado' : '⏳ Aguardando'}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">

@@ -11,6 +11,7 @@ import InstallAppBanner, { InstallAppButton, useInstallPrompt } from './InstallA
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PAYMENT_METHODS, usePaymentSettings } from '@/lib/paymentSettings';
 
 interface LayoutProps {
   children: ReactNode;
@@ -54,6 +55,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems: cartCount } = useCart();
+  const { data: paySettings } = usePaymentSettings();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
   const { canInstall, isIOS, install } = useInstallPrompt();
@@ -437,8 +439,9 @@ export default function Layout({ children }: LayoutProps) {
             <div>
               <h4 className="font-semibold mb-3 text-sm text-primary">Pagamento</h4>
               <ul className="space-y-2 text-sm">
-                <li>💳 Cartão de Crédito</li>
-                <li>📱 PIX</li>
+                {PAYMENT_METHODS.filter((m) => (paySettings?.methods ?? ['credit_card', 'pix']).includes(m.key)).map((m) => (
+                  <li key={m.key}>{m.emoji} {m.label}</li>
+                ))}
               </ul>
             </div>
             <div>

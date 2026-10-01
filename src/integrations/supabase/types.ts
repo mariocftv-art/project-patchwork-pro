@@ -295,8 +295,11 @@ export type Database = {
           customer_phone: string | null
           id: string
           items: Json
+          mp_payment_id: string | null
+          mp_preference_id: string | null
           order_number: string
           payment_method: string | null
+          payment_status: string
           shipping_address: Json | null
           shipping_fee: number
           status: string | null
@@ -311,8 +314,11 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           items: Json
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
           order_number: string
           payment_method?: string | null
+          payment_status?: string
           shipping_address?: Json | null
           shipping_fee?: number
           status?: string | null
@@ -327,13 +333,70 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           items?: Json
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
           order_number?: string
           payment_method?: string | null
+          payment_status?: string
           shipping_address?: Json | null
           shipping_fee?: number
           status?: string | null
           subtotal?: number
           total?: number
+        }
+        Relationships: []
+      }
+      payment_secrets: {
+        Row: {
+          access_token: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          account_name: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          methods: string[]
+          mode: string
+          public_key: string | null
+          token_last4: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          methods?: string[]
+          mode?: string
+          public_key?: string | null
+          token_last4?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          methods?: string[]
+          mode?: string
+          public_key?: string | null
+          token_last4?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

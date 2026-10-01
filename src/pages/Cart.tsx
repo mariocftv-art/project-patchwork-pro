@@ -21,10 +21,14 @@ import { formatBRL } from '@/lib/formatCurrency';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { PAYMENT_METHODS, usePaymentSettings, isOnlinePaymentOn } from '@/lib/paymentSettings';
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, isLoading: cartLoading } = useCart();
+  const { data: paySettings } = usePaymentSettings();
+  const payOnline = isOnlinePaymentOn(paySettings);
+  const acceptedMethods = PAYMENT_METHODS.filter((m) => (paySettings?.methods ?? ['credit_card', 'pix']).includes(m.key));
   const siteContent = useSiteContent();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -325,7 +329,7 @@ export default function Cart() {
               onClick={() => navigate('/checkout')}
               className="w-full ml-btn-primary"
             >
-              Finalizar Compra
+              {payOnline ? 'Finalizar Compra' : 'Solicitar pedido pelo WhatsApp'}
             </button>
 
             <Button
@@ -351,9 +355,10 @@ export default function Cart() {
               <Shield className="w-4 h-4 text-ml-green" />
               <span>Compra 100% segura</span>
             </div>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs text-ml-gray">💳 8x sem juros</span>
-              <span className="text-xs text-ml-gray">📱 5% no PIX</span>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {acceptedMethods.map((m) => (
+                <span key={m.key} className="text-xs text-ml-gray">{m.emoji} {m.label}</span>
+              ))}
             </div>
           </div>
         </div>
