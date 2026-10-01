@@ -68,12 +68,18 @@ function hexToHsl(hex: string): [number, number, number] | null {
   return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
 }
 
+const pick = (v: string | undefined, def: string) =>
+  v && v.toLowerCase() !== def.toLowerCase() ? hexToHsl(v) : null;
+
+const THEME_VARS = ['--primary', '--ml-header-dark', '--ml-header', '--ml-light-blue', '--primary-foreground', '--foreground', '--accent', '--ml-blue', '--ring', '--card-foreground', '--popover-foreground', '--price', '--price-old'];
+
 const fmt = (h: number, s: number, l: number) => `${h} ${s}% ${Math.max(0, Math.min(100, l))}%`;
 
 export function applyTheme(p: Partial<CompanyProfile>) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement.style;
-  const primary = hexToHsl(p.theme_primary || DEFAULT_THEME.theme_primary);
+  THEME_VARS.forEach((k) => root.removeProperty(k));
+  const primary = pick(p.theme_primary, DEFAULT_THEME.theme_primary);
   if (primary) {
     const [h, s, l] = primary;
     root.setProperty('--primary', fmt(h, s, l));
@@ -82,15 +88,15 @@ export function applyTheme(p: Partial<CompanyProfile>) {
     root.setProperty('--ml-light-blue', fmt(h, s, 94));
     root.setProperty('--primary-foreground', l > 55 ? '0 0% 13%' : '0 0% 100%');
   }
-  const dark = hexToHsl(p.theme_dark || DEFAULT_THEME.theme_dark);
+  const dark = pick(p.theme_dark, DEFAULT_THEME.theme_dark);
   if (dark && dark[2] <= 35) {
     const v = fmt(...dark);
     ['--foreground', '--accent', '--ml-blue', '--ring', '--card-foreground', '--popover-foreground'].forEach((k) =>
       root.setProperty(k, v),
     );
   }
-  const price = hexToHsl(p.theme_price || DEFAULT_THEME.theme_price);
+  const price = pick(p.theme_price, DEFAULT_THEME.theme_price);
   if (price) root.setProperty('--price', fmt(...price));
-  const old = hexToHsl(p.theme_price_old || DEFAULT_THEME.theme_price_old);
+  const old = pick(p.theme_price_old, DEFAULT_THEME.theme_price_old);
   if (old) root.setProperty('--price-old', fmt(...old));
 }
