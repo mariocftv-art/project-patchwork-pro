@@ -3,8 +3,8 @@ import { productsApi, Product, categoriesApi } from '@/lib/supabaseApi';
 import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
 import ServiceGallery from '@/components/ServiceGallery';
+import QuoteCTA from '@/components/QuoteCTA';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, X } from 'lucide-react';
 import { useState } from 'react';
 
 const priceRanges = [
@@ -44,8 +44,8 @@ export default function Home() {
   }));
   const categoryCounts = allCategoryCounts.filter(c => c.count > 0);
 
-  // Filter products (esgotados por último)
-  let filteredProducts = (products ?? []).filter((p): p is Product => !!p && typeof p.title === 'string').sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
+  // Filter products (esgotados por último; serviços de instalação ficam na página Instalações)
+  let filteredProducts = (products ?? []).filter((p): p is Product => !!p && typeof p.title === 'string' && p.category !== 'instalacoes').sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
   
   if (selectedCategory) {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
@@ -105,33 +105,32 @@ export default function Home() {
     filteredProducts.sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0) || b.price - a.price);
   }
 
-  const chipBase = 'shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap';
-  const chipOff = 'bg-card text-foreground border border-border hover:border-foreground';
-  const chipOn = 'bg-foreground text-background border border-foreground';
+  const isHome = !selectedCategory && !searchQuery;
 
   return (
     <div className="space-y-5">
-      {!selectedCategory && !searchQuery && <PromoBanner />}
+      {isHome && <PromoBanner />}
+      {isHome && <QuoteCTA />}
+      {isHome && <ServiceGallery />}
 
       <section className="w-full min-w-0">
-        {/* Barra compacta de navegação/filtros */}
-        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-          <div className="flex-1 min-w-0 flex gap-2 overflow-x-auto pb-1 -mb-1 [scrollbar-width:none]">
-            <button
-              onClick={clearFilters}
-              className={`${chipBase} ${!selectedCategory && !searchQuery ? chipOn : chipOff}`}
-            >
-              Todos
-            </button>
-            {categoryCounts.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryClick(cat.slug)}
-                className={`${chipBase} ${selectedCategory === cat.slug ? chipOn : chipOff}`}
-              >
-                {cat.name}
-              </button>
-            ))}
+        {(selectedCategory || searchQuery) && (
+          <button onClick={clearFilters} className="mb-2 text-sm font-medium text-foreground hover:underline">
+            ← Ver todos os produtos
+          </button>
+        )}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
+              {searchQuery
+                ? `Resultados para "${searchQuery}"`
+                : selectedCategory
+                  ? categoryCounts.find(c => c.slug === selectedCategory)?.name ?? 'Produtos'
+                  : 'Produtos'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
             <span className="hidden sm:inline">Ordenar por</span>
@@ -145,19 +144,6 @@ export default function Home() {
               <option value="price-desc">Maior preço</option>
             </select>
           </label>
-        </div>
-
-        <div className="flex items-baseline justify-between mb-3">
-          <h1 className="text-lg md:text-xl font-semibold text-foreground">
-            {searchQuery
-              ? `Resultados para "${searchQuery}"`
-              : selectedCategory
-                ? categoryCounts.find(c => c.slug === selectedCategory)?.name ?? 'Produtos'
-                : 'Produtos'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}
-          </p>
         </div>
 
         {filteredProducts.length === 0 ? (
@@ -176,7 +162,7 @@ export default function Home() {
         )}
       </section>
 
-      {!selectedCategory && !searchQuery && <ServiceGallery />}
+      {isHome && <QuoteCTA />}
     </div>
   );
 }
