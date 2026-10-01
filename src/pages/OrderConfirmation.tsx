@@ -130,6 +130,9 @@ export default function OrderConfirmation() {
         <div className="bg-white rounded-xl border border-border p-6 sm:p-8 text-center shadow-sm">
           <CheckCircle className="h-16 w-16 text-ml-green mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-1">Pedido realizado com sucesso!</h1>
+          <p className="text-foreground font-medium my-3 rounded-lg bg-muted p-3">
+            Recebemos seu pedido! Em até 24h úteis entraremos em contato pelo WhatsApp para combinar a entrega e, se aplicável, agendar a instalação.
+          </p>
           <p className="text-muted-foreground">
             Obrigado por comprar com a {profile.name}
             {orderData?.customerName && orderData.customerName !== 'Cliente'
