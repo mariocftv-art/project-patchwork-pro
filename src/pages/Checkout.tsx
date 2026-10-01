@@ -9,12 +9,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CreditCard, QrCode, MapPin, Loader2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { usePaymentSettings, isOnlinePaymentOn } from "@/lib/paymentSettings";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { cartItems, clearCart, isLoading: cartLoading } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: paySettings } = usePaymentSettings();
+  const payOnline = isOnlinePaymentOn(paySettings);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   // Store order data temporarily in state for confirmation page
@@ -134,7 +138,7 @@ export default function Checkout() {
         imageUrl: item.product?.image_url || undefined,
       }));
 
-      const finalTotal = formData.paymentMethod === 'pix' ? total * 0.95 : total;
+      const finalTotal = !payOnline && formData.paymentMethod === 'pix' ? total * 0.95 : total;
 
       console.log('Creating order with data:', {
         order_number: orderNumber,
@@ -165,8 +169,8 @@ export default function Checkout() {
         subtotal,
         shipping_fee: 0, // Frete a combinar
         total: finalTotal,
-        payment_method: formData.paymentMethod,
-        status: 'pending'
+        payment_method: payOnline ? 'mercadopago' : formData.paymentMethod,
+        status: payOnline ? 'payment_pending' : 'pending'
       });
 
       console.log('Order created successfully:', orderResult);
@@ -183,6 +187,20 @@ export default function Checkout() {
         total: finalTotal,
       }));
       
+      if (payOnline) {
+        const { data, error } = await supabase.functions.invoke('mp-create-preference', {
+          body: {
+            order_number: orderNumber,
+            return_url: window.location.origin,
+            items: cartProducts.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          },
+        });
+        if (error || !data?.url) throw new Error(data?.error || 'Não foi possível abrir o pagamento. Tente de novo.');
+        clearCart.mutate();
+        window.location.href = data.url;
+        return;
+      }
+
       // Show success animation
       setOrderCompleted(true);
       
@@ -375,6 +393,12 @@ export default function Checkout() {
                 <span className="bg-ml-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
                 Forma de Pagamento
               </h2>
+              {payOnline ? (
+                <div className="p-4 border rounded-lg">
+                  <p className="font-medium flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-ml-green" /> Pagamento seguro pelo Mercado Pago</p>
+                  <p className="text-sm text-muted-foreground mt-1">Ao continuar, você vai para a página do Mercado Pago para escolher a forma de pagamento. Nenhum dado de cartão passa por este site.</p>
+                </div>
+              ) : (<>
               <RadioGroup
                 value={formData.paymentMethod}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
@@ -408,6 +432,7 @@ export default function Checkout() {
                   ⚠️ O pagamento será finalizado via WhatsApp após a confirmação do pedido.
                 </p>
               </div>
+              </>)}
             </div>
           </div>
 
@@ -444,7 +469,7 @@ export default function Checkout() {
                   <span>Frete</span>
                   <span className="text-primary font-medium">A combinar</span>
                 </div>
-                {formData.paymentMethod === "pix" && (
+                {!payOnline && formData.paymentMethod === "pix" && (
                   <div className="flex justify-between text-sm text-ml-green">
                     <span>Desconto PIX (5%)</span>
                     <span>- R$ {(total * 0.05).toFixed(2)}</span>
@@ -453,12 +478,12 @@ export default function Checkout() {
                 <div className="flex justify-between text-lg font-bold pt-2 border-t">
                   <span>Total</span>
                   <span className="text-ml-blue">
-                    R$ {formData.paymentMethod === "pix" 
+                    R$ {!payOnline && formData.paymentMethod === "pix" 
                       ? (total * 0.95).toFixed(2) 
                       : total.toFixed(2)}
                   </span>
                 </div>
-                {formData.paymentMethod === "credit" && (
+                {!payOnline && formData.paymentMethod === "credit" && (
                   <p className="text-sm text-muted-foreground text-center">
                     ou 8x de R$ {(total / 8).toFixed(2)} sem juros
                   </p>
@@ -485,7 +510,7 @@ export default function Checkout() {
                     Processando...
                   </>
                 ) : (
-                  "Finalizar Compra"
+                  payOnline ? "Ir para o pagamento" : "Solicitar pedido pelo WhatsApp"
                 )}
               </Button>
 
