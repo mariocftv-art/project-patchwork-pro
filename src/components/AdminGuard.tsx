@@ -24,9 +24,20 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
     });
   }, [loading, user, isAdmin, claimed]);
 
+  // Ao entrar no painel: a tela de login já saiu da árvore; fecha teclado, libera rolagem e sobe ao topo.
+  useEffect(() => {
+    if (loading || !user || !isAdmin) return;
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+    document.body.removeAttribute('data-scroll-locked');
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [loading, user, isAdmin]);
+
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-background">
+      <div className="min-h-[70dvh] flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Verificando permissões...</p>
@@ -43,7 +54,7 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
   // Autenticado mas sem a role admin: acesso bloqueado
   if (!isAdmin) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-background p-4">
+      <div className="min-h-[70dvh] flex items-center justify-center bg-background p-4">
         <div className="text-center space-y-6 max-w-md">
           <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
             <ShieldX className="h-8 w-8 text-destructive" />
