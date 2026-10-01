@@ -254,3 +254,14 @@ display: none !important;
 /* Rolagem lateral sem barra visível (deslizar com o dedo continua) */
 .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Painel admin no celular: nada arrasta para o lado; toques de 44px */
+@media (max-width: 640px) {
+  .admin-mobile table { display: block; max-width: 100%; overflow-x: auto; }
+  .admin-mobile [role="tab"] { min-height: 44px; }
+  .admin-mobile input:not([type="checkbox"]):not([type="radio"]),
+  .admin-mobile select,
+  .admin-mobile button[role="combobox"] { min-height: 44px; width: 100%; }
+  .admin-mobile button { min-height: 44px; }
+  .admin-mobile img, .admin-mobile canvas { max-width: 100%; }
+}

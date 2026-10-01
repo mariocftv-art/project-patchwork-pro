@@ -52,7 +52,7 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
+    <div className="min-h-[70dvh] flex items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
@@ -102,7 +102,7 @@ const AdminLogin = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full ml-btn-primary" disabled={isSubmitting}>
+            <Button type="submit" className="w-full min-h-11 ml-btn-primary" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
