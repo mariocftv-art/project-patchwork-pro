@@ -28,6 +28,10 @@ export interface CompanyProfile {
   default_warranty_text: string;
   pdf_gold_color: string;
   pdf_red_color: string;
+  theme_primary: string;
+  theme_dark: string;
+  theme_price: string;
+  theme_price_old: string;
 }
 
 export const DEFAULT_CUSTOMER_TEMPLATE = `🛡️ *{EMPRESA}*
@@ -89,17 +93,17 @@ Desconto: {DESCONTO}
 {LINK_PEDIDO}`;
 
 export const defaultCompanyProfile: CompanyProfile = {
-  name: 'MR Segurança Máxima',
-  tagline: 'Sistemas de Segurança Eletrônica',
-  cnpj: '45.858.215/0001-86',
-  phone: '(11) 96257-9428',
-  whatsapp: '5511962579428',
-  email: 'contato@mrseguranca.com',
+  name: 'Minha Empresa',
+  tagline: '',
+  cnpj: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
   address: '',
-  city: 'São Paulo',
-  state: 'SP',
+  city: '',
+  state: '',
   website: '',
-  instagram: '@linkmrstore',
+  instagram: '',
   logo_url: null,
   primary_color: '#1E3A8A',
   secondary_color: '#0F172A',
@@ -110,13 +114,17 @@ export const defaultCompanyProfile: CompanyProfile = {
   quote_validity_days: 15,
   whatsapp_customer_template: DEFAULT_CUSTOMER_TEMPLATE,
   whatsapp_admin_template: DEFAULT_ADMIN_TEMPLATE,
-  responsible_name: 'Rogério',
-  footer_slogan: 'SEGURANÇA DE VERDADE. TRANQUILIDADE SEMPRE.',
+  responsible_name: '',
+  footer_slogan: '',
   default_warranty: '',
   default_warranty_text:
     'Todos os equipamentos instalados e configurados possuem garantia conforme as condições estabelecidas neste orçamento.',
   pdf_gold_color: '#C9A227',
   pdf_red_color: '#C8102E',
+  theme_primary: '#FFD600',
+  theme_dark: '#1A1A1A',
+  theme_price: '#1D4ED8',
+  theme_price_old: '#DC2626',
 };
 
 function normalize(row: Record<string, unknown> | null): CompanyProfile {
@@ -150,6 +158,7 @@ export async function getCompanyProfile(forceRefresh = false): Promise<CompanyPr
     console.error('[companyProfile] falha ao carregar, usando padrão:', e);
     cached = defaultCompanyProfile;
   }
+  import('@/lib/brand').then((b) => b.setBrand(cached as CompanyProfile));
   return cached;
 }
 
@@ -181,6 +190,10 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     default_warranty_text: profile.default_warranty_text,
     pdf_gold_color: profile.pdf_gold_color,
     pdf_red_color: profile.pdf_red_color,
+    theme_primary: profile.theme_primary,
+    theme_dark: profile.theme_dark,
+    theme_price: profile.theme_price,
+    theme_price_old: profile.theme_price_old,
   };
 
   if (profile.id) {
@@ -201,5 +214,6 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     if (error) throw error;
     cached = normalize(data as Record<string, unknown> | null);
   }
+  import('@/lib/brand').then((b) => b.setBrand(cached as CompanyProfile));
   return cached;
 }

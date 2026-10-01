@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { getBrand } from '@/lib/brand';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileSignature, Search, Eye, Pencil, Download, Printer, Send, History, Plus, Loader2, PenLine, CheckCircle2, Clock } from 'lucide-react';
@@ -370,7 +371,7 @@ export default function ContractsManagement() {
             const s = sigsOf(signing.id);
             const parties: { p: Party; label: string; btn: string; name: string; doc: string }[] = [
               { p: 'contratante', label: 'CONTRATANTE', btn: '✍️ ASSINAR CONTRATO', name: signing.customer_name, doc: String(signing.customer?.cnpj || signing.customer?.cpf || '') },
-              { p: 'contratada', label: 'CONTRATADA — MR Segurança Máxima', btn: '✍️ ASSINAR COMO CONTRATADA', name: '', doc: '45.858.215/0001-86' },
+              { p: 'contratada', label: `CONTRATADA — ${getBrand().name}`, btn: '✍️ ASSINAR COMO CONTRATADA', name: getBrand().responsible_name || '', doc: getBrand().cnpj },
             ];
             return (
               <div className="space-y-3">

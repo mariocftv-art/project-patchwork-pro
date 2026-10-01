@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getBrand, waNumber } from '@/lib/brand';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, settingsApi } from '@/lib/supabaseApi';
@@ -91,11 +92,11 @@ export default function Cart() {
           validityDays: 5,
         },
         {
-          name: 'MR Segurança Máxima',
-          cnpj: '45.858.215/0001-86',
-          address: siteContent.contact.address || 'São Paulo - SP',
-          phone: '(11) 96257-9428',
-          email: siteContent.contact.email,
+          name: getBrand().name,
+          cnpj: getBrand().cnpj,
+          address: siteContent.contact.address || [getBrand().city, getBrand().state].filter(Boolean).join(' - '),
+          phone: getBrand().phone,
+          email: siteContent.contact.email || getBrand().email,
         }
       );
 
@@ -159,7 +160,7 @@ export default function Cart() {
     }));
 
     const message = generateWhatsAppMessage(items, total, customerName);
-    const whatsappNumber = siteContent.contact.whatsapp || '5511962579428';
+    const whatsappNumber = siteContent.contact.whatsapp || waNumber();
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank', 'noopener,noreferrer');
   };
 

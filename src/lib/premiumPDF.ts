@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import logoMRTransparent from '@/assets/logo-mr-transparent.png';
+import logoMRTransparent from '@/assets/logo-generic.png';
 import { CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
 import { hexToRgb, RGB } from '@/lib/pdfBrand';

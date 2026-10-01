@@ -100,6 +100,10 @@ export type Database = {
           secondary_color: string | null
           state: string | null
           tagline: string | null
+          theme_dark: string | null
+          theme_price: string | null
+          theme_price_old: string | null
+          theme_primary: string | null
           updated_at: string
           website: string | null
           whatsapp: string | null
@@ -131,6 +135,10 @@ export type Database = {
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
+          theme_dark?: string | null
+          theme_price?: string | null
+          theme_price_old?: string | null
+          theme_primary?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null
@@ -162,6 +170,10 @@ export type Database = {
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
+          theme_dark?: string | null
+          theme_price?: string | null
+          theme_price_old?: string | null
+          theme_primary?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null
@@ -684,6 +696,7 @@ export type Database = {
     }
     Functions: {
       admin_list_products: { Args: never; Returns: Json }
+      claim_first_admin: { Args: never; Returns: boolean }
       get_order_by_number: { Args: { _order_number: string }; Returns: Json }
       get_order_statuses: {
         Args: { _order_numbers: string[] }

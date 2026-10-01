@@ -5,3 +5,5 @@
 - Fotos de outros sites no PDF passam pela função image-proxy (CORS), só http(s) público e imagens até 5 MB.
 - Versões de documentos ficam em quote_versions (só inserção, admin); contrato assinado nunca é sobrescrito — edição gera aditivo novo. Why: preservar prova jurídica.
 - Assinaturas em contract_signatures (só inserção, admin) + PDF assinado no bucket privado signed-contracts; hash SHA-256 do snapshot da versão. Why: prova e privacidade.
+- White-label: marca (nome, CNPJ, contatos, logo, cores do site) vem só de company_profile via src/lib/brand.ts (useBrand/getBrand/waLink/applyTheme); nunca fixar dados da empresa no código. Why: remixes sem dados do dono.
+- Primeiro admin de um site novo vem da RPC claim_first_admin (só funciona sem nenhum admin), chamada no AdminGuard. Why: remix pertence ao novo dono.

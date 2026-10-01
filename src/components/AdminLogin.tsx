@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { brandLogo, getBrand } from '@/lib/brand';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
-import logo from '@/assets/logo-mr-transparent.png';
 
 const emailSchema = z.string().email('E-mail inválido');
 const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
@@ -56,7 +56,7 @@ const AdminLogin = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <img src={logo} alt="MR Segurança Máxima" className="h-16 w-auto" />
+            <img src={brandLogo()} alt={getBrand().name} className="h-16 w-auto" />
           </div>
           <div className="flex items-center justify-center gap-2">
             <Shield className="h-5 w-5 text-accent" />

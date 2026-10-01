@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { waLink } from '@/lib/brand';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Package, Truck, CheckCircle2, Clock, AlertCircle, Phone, MapPin, Bell, BellOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -423,7 +424,7 @@ export default function TrackOrder() {
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               <a
-                href={`https://wa.me/5511962579428?text=Olá! Gostaria de informações sobre meu pedido ${order.order_number}`}
+                href={waLink(`Olá! Gostaria de informações sobre meu pedido ${order.order_number}`)}
                 target="_blank"
                 rel="noopener noreferrer"
               >

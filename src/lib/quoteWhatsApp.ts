@@ -56,7 +56,7 @@ export function buildQuoteWhatsAppMessage(
   const t = computeTotals(data);
   const label = DOC_TYPE_LABELS[data.docType];
   const L = label.toUpperCase();
-  const company = (profile.name || 'MR Segurança Máxima').trim();
+  const company = (profile.name || 'Minha Empresa').trim();
   const out: string[] = [];
   const push = (...l: string[]) => out.push(...l);
 

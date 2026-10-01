@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react';
+import { useBrand, brandLogo, waLink, waNumber, getBrand, loadBrand } from '@/lib/brand';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
@@ -10,7 +11,6 @@ import InstallAppBanner, { InstallAppButton, useInstallPrompt } from './InstallA
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import logoMR from '@/assets/logo-mr-transparent.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -36,17 +36,17 @@ interface SiteContent {
 const defaultContent: SiteContent = {
   categories: ['Câmeras', 'DVR', 'Cercas', 'Automação', 'Proteção', 'Instalações', 'Ofertas'],
   contact: {
-    phone: '(11) 96257-9428',
-    email: 'contato@mrseguranca.com',
-    whatsapp: '5511962579428',
+    phone: '',
+    email: '',
+    whatsapp: '',
     address: '',
   },
   about: {
-    title: 'MR Segurança Máxima',
+    title: '',
     description: '',
   },
   footer: {
-    copyright: '© 2011 MR Segurança Máxima - DCIM Segurança. Todos os direitos reservados.',
+    copyright: '',
   },
 };
 
@@ -60,6 +60,10 @@ export default function Layout({ children }: LayoutProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
   const [showIOSModal, setShowIOSModal] = useState(false);
+  const brand = useBrand();
+  const logoMR = brandLogo(brand);
+  const shortName = brand.name.replace(/^[^\p{L}\d]*(MR\s+)?/u, '');
+  useEffect(() => { loadBrand(); }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -108,11 +112,11 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center gap-3">
                 <img 
                   src={logoMR} 
-                  alt="MR Segurança Máxima" 
+                  alt={brand.name} 
                   className="w-20 h-20 object-contain"
                 />
                 <span className="text-lg font-bold text-ml-dark-gray leading-tight">
-                  Segurança Máxima
+                  {shortName}
                 </span>
               </div>
             </Link>
@@ -237,11 +241,11 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="flex items-center gap-1.5">
                   <img 
                     src={logoMR} 
-                    alt="MR Segurança Máxima" 
+                    alt={brand.name} 
                     className="w-9 h-9 object-contain"
                   />
                   <span className="text-xs font-bold text-ml-dark-gray leading-none">
-                    Segurança Máxima
+                    {shortName}
                   </span>
                 </div>
               </Link>
@@ -401,8 +405,8 @@ export default function Layout({ children }: LayoutProps) {
             <div>
               <h4 className="font-semibold mb-3 text-sm text-primary">Empresa</h4>
               <ul className="space-y-2 text-sm">
-                <li className="font-semibold">MR Segurança Máxima</li>
-                <li>CNPJ: 45.858.215/0001-86</li>
+                <li className="font-semibold">{brand.name}</li>
+                {brand.cnpj && <li>CNPJ: {brand.cnpj}</li>}
                 <li><Link to="/servicos" className="underline-offset-2 hover:underline">Serviços</Link></li>
               </ul>
             </div>
@@ -424,28 +428,30 @@ export default function Layout({ children }: LayoutProps) {
             <div>
               <h4 className="font-semibold mb-3 text-sm text-primary">Contato</h4>
               <ul className="space-y-2 text-sm">
-                <li>📞 {siteContent.contact.phone}</li>
-                <li>📧 {siteContent.contact.email}</li>
+                {(siteContent.contact.phone || brand.phone) && <li>📞 {siteContent.contact.phone || brand.phone}</li>}
+                {(siteContent.contact.email || brand.email) && <li>📧 {siteContent.contact.email || brand.email}</li>}
                 {siteContent.contact.address && (
                   <li>📍 {siteContent.contact.address}</li>
                 )}
+                {brand.instagram && (
                 <li>
-                  <a href="https://instagram.com/linkmrstore" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
-                    <Instagram className="w-4 h-4" /> @linkmrstore
+                  <a href={`https://instagram.com/${brand.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
+                    <Instagram className="w-4 h-4" /> {brand.instagram}
                   </a>
                 </li>
+                )}
               </ul>
             </div>
           </div>
           <div className="border-t border-background/20 mt-8 pt-6 text-center text-xs">
-            {siteContent.footer.copyright}
+            {siteContent.footer.copyright || `© ${new Date().getFullYear()} ${brand.name}. Todos os direitos reservados.`}
           </div>
         </div>
       </footer>
 
       {/* WhatsApp Button */}
       <a
-        href="https://wa.me/5511962579428?text=Olá! Gostaria de mais informações sobre os produtos."
+        href={waLink('Olá! Gostaria de mais informações sobre os produtos.', brand)}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 left-3 sm:left-6 z-50 flex items-center gap-2 bg-green-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-full shadow-lg hover:bg-green-600 hover:scale-105 transition-all"
