@@ -713,6 +713,15 @@ export type Database = {
         Returns: boolean
       }
       next_quote_number: { Args: never; Returns: string }
+      save_push_subscription: {
+        Args: {
+          _auth: string
+          _endpoint: string
+          _order_number: string
+          _p256dh: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
