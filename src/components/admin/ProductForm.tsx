@@ -189,7 +189,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="price">Preço de venda (R$)</Label>
+          <Label htmlFor="price">Preço normal (R$)</Label>
           <Input
             id="price"
             type="number"
