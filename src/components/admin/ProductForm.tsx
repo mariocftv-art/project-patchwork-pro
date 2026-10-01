@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Switch } from '@/components/ui/switch';
 import ProductExtrasFields, { ProductExtras, extrasFromProduct, extrasPayload } from './ProductExtrasFields';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
