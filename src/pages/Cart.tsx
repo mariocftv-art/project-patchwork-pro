@@ -196,7 +196,7 @@ export default function Cart() {
         <div className="bg-white rounded-lg">
           <div className="p-4 border-b border-border">
             <h1 className="text-xl font-light text-foreground">
-              Carrinho ({cartWithProducts.length} {cartWithProducts.length === 1 ? 'produto' : 'produtos'})
+              {(() => { const n = cartWithProducts.length; const u = cartWithProducts.reduce((s, i) => s + i.quantity, 0); return `Carrinho — ${n} ${n === 1 ? 'item' : 'itens'} (${u} ${u === 1 ? 'unidade' : 'unidades'})`; })()}
             </h1>
           </div>
 
@@ -291,7 +291,7 @@ export default function Cart() {
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-ml-gray">Produtos ({cartWithProducts.reduce((s, i) => s + i.quantity, 0)})</span>
+              <span className="text-ml-gray">Itens ({cartWithProducts.length}) / Unidades ({cartWithProducts.reduce((s, i) => s + i.quantity, 0)})</span>
               <span className="text-foreground">R$ {subtotal.toFixed(2)}</span>
             </div>
             

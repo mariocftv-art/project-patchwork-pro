@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { servicePhotosApi, ServicePhoto } from '@/lib/servicePhotosApi';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useBrand, waLink } from '@/lib/brand';
 
 export default function ServiceGallery() {
   const [selectedPhoto, setSelectedPhoto] = useState<ServicePhoto | null>(null);
-  
+  const brand = useBrand();
+
   const { data: photos = [], isLoading } = useQuery({
     queryKey: ['service-photos'],
     queryFn: () => servicePhotosApi.list(),
@@ -61,15 +63,24 @@ export default function ServiceGallery() {
               </div>
               
               {/* Description - Outside the image */}
-              <div className="p-4">
-                <h3 className="font-semibold text-foreground text-sm line-clamp-1">
+              <div className="p-4 flex flex-col gap-2">
+                <h3 title={photo.title} className="font-semibold text-foreground text-sm line-clamp-2">
                   {photo.title}
                 </h3>
                 {photo.description && (
-                  <p className="text-muted-foreground text-xs line-clamp-2 mt-1">
+                  <p className="text-muted-foreground text-xs line-clamp-2">
                     {photo.description}
                   </p>
                 )}
+                <a
+                  href={waLink(`Olá! Vi o serviço '${photo.title}' no site e gostaria de um orçamento parecido.`, brand)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="self-start mt-1 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" /> Quero algo assim
+                </a>
               </div>
             </div>
           ))}

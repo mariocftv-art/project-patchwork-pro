@@ -141,48 +141,17 @@ export const saveSubscriptionToServer = async (
       return false;
     }
 
-    // Check if subscription already exists
-    const { data: existing } = await supabase
-      .from('push_subscriptions')
-      .select('id, order_numbers')
-      .eq('endpoint', subscriptionData.endpoint || '')
-      .single();
-
-    if (existing) {
-      // Add order number to existing subscription if not already there
-      const orderNumbers = existing.order_numbers || [];
-      const normalizedOrderNumber = orderNumber.toUpperCase();
-      
-      if (!orderNumbers.includes(normalizedOrderNumber)) {
-        const { error } = await supabase
-          .from('push_subscriptions')
-          .update({
-            order_numbers: [...orderNumbers, normalizedOrderNumber],
-          })
-          .eq('id', existing.id);
-
-        if (error) {
-          console.error('[Push] Error updating subscription:', error);
-          return false;
-        }
-      }
-      console.log('[Push] Updated existing subscription with new order');
-    } else {
-      // Create new subscription
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .insert({
-          endpoint: subscriptionData.endpoint,
-          p256dh: keys.p256dh,
-          auth: keys.auth,
-          order_numbers: [orderNumber.toUpperCase()],
-        });
-
-      if (error) {
-        console.error('[Push] Error saving subscription:', error);
-        return false;
-      }
-      console.log('[Push] Saved new subscription');
+    // Gravação segura (função no banco): cria ou acrescenta o pedido à inscrição
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ok, error } = await (supabase as any).rpc('save_push_subscription', {
+      _endpoint: subscriptionData.endpoint || '',
+      _p256dh: keys.p256dh,
+      _auth: keys.auth,
+      _order_number: orderNumber,
+    });
+    if (error || ok !== true) {
+      console.error('[Push] Error saving subscription:', error);
+      return false;
     }
 
     return true;

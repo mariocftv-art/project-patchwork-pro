@@ -249,3 +249,7 @@ display: none !important;
     box-shadow: 0 0 0 5px hsl(50 100% 50%) !important;
   }
 }
+
+/* Rolagem lateral sem barra visível (deslizar com o dedo continua) */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
