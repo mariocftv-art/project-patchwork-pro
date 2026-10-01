@@ -69,7 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Content */}
         <div className="flex-1 flex flex-col">
           {/* Title */}
-          <h3 className="text-xs sm:text-sm text-foreground line-clamp-2 mb-1 sm:mb-2 min-h-[2rem] sm:min-h-[2.5rem]">
+          <h3 title={product.title} className="text-xs sm:text-sm leading-4 sm:leading-5 text-foreground line-clamp-2 mb-1 sm:mb-2 h-8 sm:h-10 overflow-hidden">
             {product.title}
           </h3>
 
