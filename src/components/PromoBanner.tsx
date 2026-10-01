@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import artMaisSeguros from '@/assets/banners/banner-mais-seguros.jpg.asset.json';
-import artMaisSeguranca from '@/assets/banners/banner-mais-seguranca.jpg.asset.json';
+const artMaisSeguros = { url: 'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-16-cameras.jpg' };
+const artMaisSeguranca = { url: 'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-monitoramento-24h.jpg' };
 
 type Banner = {
   id: number;
