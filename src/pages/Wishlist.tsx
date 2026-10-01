@@ -73,7 +73,7 @@ export default function Wishlist() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
           {wishlistWithProducts.map((item) => {
-            const hasFreeShipping = (item.product?.price || 0) >= 79;
+            const hasFreeShipping = false;
             const installmentValue = ((item.product?.price || 0) / 8).toFixed(2);
 
             return (

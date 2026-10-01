@@ -1,3 +1,4 @@
+import { waLink } from '@/lib/brand';
 import { useState } from 'react';
 import { getBrand, waNumber } from '@/lib/brand';
 import { Link, useNavigate } from 'react-router-dom';
@@ -59,9 +60,9 @@ export default function Cart() {
     0
   );
 
-  const freeShippingMin = settings?.free_shipping_min || 199;
-  const shippingFee = subtotal >= freeShippingMin ? 0 : settings?.shipping_fee || 15;
-  const total = subtotal + shippingFee;
+  // Entrega e instalação são combinadas com o cliente
+  const shippingFee = 0;
+  const total = subtotal;
 
   const handleGenerateQuote = async () => {
     if (!customerPhone.trim() || !customerEmail.trim() || !customerName.trim()) {
@@ -273,13 +274,6 @@ export default function Cart() {
                   </div>
                 </div>
 
-                {/* Free shipping message */}
-                {(item.product?.price || 0) >= 79 && (
-                  <div className="flex items-center gap-2 mt-3 text-sm text-ml-green">
-                    <Truck className="w-4 h-4" />
-                    <span>Frete grátis</span>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -299,18 +293,15 @@ export default function Cart() {
               <span className="text-foreground">R$ {subtotal.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between">
-              <span className="text-ml-gray">Frete</span>
-              <span className={shippingFee === 0 ? 'text-ml-green font-medium' : 'text-foreground'}>
-                {shippingFee === 0 ? 'Grátis' : `R$ ${shippingFee.toFixed(2)}`}
-              </span>
-            </div>
-
-            {subtotal < freeShippingMin && (
-              <p className="text-xs text-ml-blue">
-                Adicione R$ {(freeShippingMin - subtotal).toFixed(2)} para frete grátis!
+            <div>
+              <div className="flex justify-between">
+                <span className="text-foreground font-medium">Entrega e instalação:</span>
+                <span className="text-foreground">a combinar</span>
+              </div>
+              <p className="text-xs text-ml-gray mt-1">
+                Finalize o pedido e nossa equipe entra em contato em até 24h para agendar data, horário e forma de envio.
               </p>
-            )}
+            </div>
 
             <div className="border-t border-border pt-3">
               <div className="flex justify-between">
@@ -331,6 +322,15 @@ export default function Cart() {
             >
               {payOnline ? 'Finalizar Compra' : 'Solicitar pedido pelo WhatsApp'}
             </button>
+
+            <a
+              href={waLink('Olá! Tenho um carrinho montado no site e gostaria de combinar entrega e instalação antes de finalizar.')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+            >
+              💬 <span><strong>Prefere combinar antes?</strong> Fale com um técnico no WhatsApp</span>
+            </a>
 
             <Button
               variant="outline"

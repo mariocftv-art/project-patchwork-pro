@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ProductExtrasFields, { ProductExtras, extrasFromProduct, extrasPayload } from './ProductExtrasFields';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -66,6 +67,7 @@ const brl = (v: number) =>
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [gallery, setGallery] = useState<string[]>(() => [...(product?.gallery_urls ?? []), "", "", "", ""].slice(0, 4));
   const { toast } = useToast();
+  const [extras, setExtras] = useState<ProductExtras>(() => extrasFromProduct(product));
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -107,11 +109,16 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const margin = showMargin ? (profit / costPrice) * 100 : 0;
 
   const onSubmit = async (data: ProductFormData) => {
+    if (extras.promo_enabled && (!extras.promo_price || extras.promo_price >= data.price)) {
+      toast({ title: 'O preço promocional precisa ser menor que o preço normal', variant: 'destructive' });
+      return;
+    }
     const payload: Partial<Product> = {
       title: data.title.trim(),
-      description: data.description?.trim() || null,
+      description: extras.summary.trim() || null,
+      ...extrasPayload(extras),
       price: data.price,
-      original_price: data.original_price ?? null,
+      original_price: null,
       cost_price: data.cost_price ?? null,
       category: data.category,
       subcategory: data.subcategory?.trim() || null,
@@ -122,7 +129,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       gallery_urls: gallery.map((g) => g.trim()).filter(Boolean).slice(0, 4),
       stock: data.stock,
       featured: !!data.featured,
-      on_sale: !!data.on_sale,
+      on_sale: extras.promo_enabled,
       status: data.status || 'active',
     };
 
@@ -163,17 +170,6 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
           )}
         </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="description">Descrição</Label>
-          <Textarea
-            id="description"
-            {...register('description')}
-            className="form-input mt-1"
-            placeholder="Descrição detalhada do produto"
-            rows={3}
-          />
-        </div>
-
         <div>
           <Label htmlFor="cost_price">Preço de custo (R$)</Label>
           <Input
@@ -193,7 +189,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="price">Preço de venda (R$)</Label>
+          <Label htmlFor="price">Preço normal (R$)</Label>
           <Input
             id="price"
             type="number"
@@ -217,18 +213,6 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
             </p>
           </div>
         )}
-
-        <div>
-          <Label htmlFor="original_price">Preço Original (R$)</Label>
-          <Input
-            id="original_price"
-            type="number"
-            step="0.01"
-            {...register('original_price', { valueAsNumber: true })}
-            className="form-input mt-1"
-            placeholder="0.00 (opcional)"
-          />
-        </div>
 
         <div>
           <Label htmlFor="stock">Estoque</Label>
@@ -358,18 +342,10 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               Produto em destaque
             </Label>
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="on_sale"
-              checked={!!watch('on_sale')}
-              onCheckedChange={(checked) => setValue('on_sale', !!checked)}
-            />
-            <Label htmlFor="on_sale" className="cursor-pointer">
-              Em promoção
-            </Label>
-          </div>
         </div>
       </div>
+
+      <ProductExtrasFields value={extras} onChange={setExtras} normalPrice={Number(salePrice) || 0} productId={product?.id} />
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="submit" disabled={isSubmitting} className="btn-security">

@@ -402,65 +402,98 @@ export type Database = {
       }
       products: {
         Row: {
+          box_items: string[]
           brand: string | null
+          bundle_ids: string[]
           category: string | null
           cost_price: number | null
           created_at: string | null
           description: string | null
           featured: boolean | null
+          features: string[]
           gallery_urls: string[]
           id: string
+          ideal_for: string | null
           image_url: string | null
+          includes_installation: boolean
           model: string | null
           on_sale: boolean
           original_price: number | null
           price: number
+          promo_enabled: boolean
+          promo_price: number | null
+          promo_until: string | null
+          related_ids: string[]
           sku: string | null
+          specs: Json
           status: string
           stock: number
           subcategory: string | null
+          summary: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
+          box_items?: string[]
           brand?: string | null
+          bundle_ids?: string[]
           category?: string | null
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
           featured?: boolean | null
+          features?: string[]
           gallery_urls?: string[]
           id?: string
+          ideal_for?: string | null
           image_url?: string | null
+          includes_installation?: boolean
           model?: string | null
           on_sale?: boolean
           original_price?: number | null
           price?: number
+          promo_enabled?: boolean
+          promo_price?: number | null
+          promo_until?: string | null
+          related_ids?: string[]
           sku?: string | null
+          specs?: Json
           status?: string
           stock?: number
           subcategory?: string | null
+          summary?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
+          box_items?: string[]
           brand?: string | null
+          bundle_ids?: string[]
           category?: string | null
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
           featured?: boolean | null
+          features?: string[]
           gallery_urls?: string[]
           id?: string
+          ideal_for?: string | null
           image_url?: string | null
+          includes_installation?: boolean
           model?: string | null
           on_sale?: boolean
           original_price?: number | null
           price?: number
+          promo_enabled?: boolean
+          promo_price?: number | null
+          promo_until?: string | null
+          related_ids?: string[]
           sku?: string | null
+          specs?: Json
           status?: string
           stock?: number
           subcategory?: string | null
+          summary?: string | null
           title?: string
           updated_at?: string | null
         }

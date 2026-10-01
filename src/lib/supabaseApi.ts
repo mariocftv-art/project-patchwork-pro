@@ -25,6 +25,32 @@ export interface Product {
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
+  promo_enabled?: boolean;
+  promo_price?: number | null;
+  promo_until?: string | null;
+  includes_installation?: boolean;
+  related_ids?: string[];
+  bundle_ids?: string[];
+  summary?: string | null;
+  features?: string[];
+  specs?: { label: string; value: string }[];
+  box_items?: string[];
+  ideal_for?: string | null;
+  /** Só nas leituras públicas: preço normal (price já vem com a promoção aplicada). */
+  regular_price?: number;
+  promo_active?: boolean;
+}
+
+/** Promoção vale se ligada, com preço menor e dentro da validade. */
+export function isPromoActive(p: Pick<Product, 'price' | 'promo_enabled' | 'promo_price' | 'promo_until'>): boolean {
+  return !!p.promo_enabled && p.promo_price != null && Number(p.promo_price) > 0 && Number(p.promo_price) < Number(p.price)
+    && (!p.promo_until || new Date(p.promo_until).getTime() > Date.now());
+}
+
+/** Leitura pública: `price` passa a ser o preço cobrado; o normal fica em `regular_price`. */
+function withEffectivePrice(p: Product): Product {
+  const active = isPromoActive(p);
+  return { ...p, regular_price: Number(p.price), promo_active: active, price: active ? Number(p.promo_price) : Number(p.price), original_price: active ? Number(p.price) : null };
 }
 
 export interface StoreSettings {
@@ -121,7 +147,7 @@ export const categoriesApi = {
  * é informação interna e o banco bloqueia a leitura por clientes.
  */
 const PUBLIC_PRODUCT_COLUMNS =
-  'id,title,description,price,original_price,category,subcategory,brand,model,sku,image_url,gallery_urls,stock,featured,on_sale,status,created_at,updated_at';
+  'id,title,description,price,original_price,category,subcategory,brand,model,sku,image_url,gallery_urls,stock,featured,on_sale,status,created_at,updated_at,promo_enabled,promo_price,promo_until,includes_installation,related_ids,bundle_ids,summary,features,specs,box_items,ideal_for';
 
 export const productsApi = {
   async list(): Promise<Product[]> {
@@ -131,7 +157,7 @@ export const productsApi = {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return (data as unknown as Product[]) || [];
+    return ((data as unknown as Product[]) || []).map(withEffectivePrice);
   },
 
   /** Lista administrativa (inclui preço de custo) — só funciona para admins */
@@ -150,7 +176,7 @@ export const productsApi = {
       .maybeSingle();
     
     if (error) throw error;
-    return (data as unknown as Product) ?? null;
+    return data ? withEffectivePrice(data as unknown as Product) : null;
   },
 
   async create(product: Partial<Product>): Promise<Product> {

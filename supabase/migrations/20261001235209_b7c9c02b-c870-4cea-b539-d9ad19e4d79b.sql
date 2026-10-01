@@ -1,0 +1,1 @@
+GRANT INSERT (promo_enabled, promo_price, promo_until, includes_installation, related_ids, bundle_ids, summary, features, specs, box_items, ideal_for), UPDATE (promo_enabled, promo_price, promo_until, includes_installation, related_ids, bundle_ids, summary, features, specs, box_items, ideal_for) ON public.products TO authenticated;

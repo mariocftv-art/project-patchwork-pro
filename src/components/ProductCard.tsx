@@ -25,9 +25,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     window.open(waLink(msg), "_blank", "noopener,noreferrer");
   };
 
-  const discount = product.original_price 
-    ? Math.round((1 - product.price / product.original_price) * 100) 
-    : 0;
+  const onPromo = !!product.promo_active && !!product.original_price;
+  const discount = onPromo ? Math.round((1 - product.price / product.original_price!) * 100) : 0;
 
   // Calculate installments (8x sem juros)
   const installmentValue = (product.price / 8).toFixed(2);
@@ -60,7 +59,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Discount Badge */}
           {discount > 0 && (
-            <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-ml-green text-white text-[10px] sm:text-xs font-semibold px-1 sm:px-1.5 py-0.5 rounded">
+            <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded">
               {discount}% OFF
             </span>
           )}
@@ -74,14 +73,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
 
           {/* Original Price (if discounted) */}
-          {product.original_price && (
+          {onPromo && (
             <p className="text-[10px] sm:text-xs text-price-old font-medium line-through">
               R$ {product.original_price.toFixed(2)}
             </p>
           )}
 
           {/* Price */}
-          <p className="text-base sm:text-xl font-semibold text-price">
+          <p className={`text-base sm:text-xl ${onPromo ? 'font-bold text-promo' : 'font-semibold text-price'}`}>
             R$ {reais}
             <span className="text-[10px] sm:text-xs align-top">{centavos}</span>
           </p>
@@ -90,6 +89,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           <p className="text-[10px] sm:text-xs text-ml-gray mt-0.5 sm:mt-1">
             em 8x R$ {installmentValue}
           </p>
+
+          {product.includes_installation && (
+            <p className="text-[10px] sm:text-xs text-promo font-semibold mt-1">✓ Instalação inclusa</p>
+          )}
 
           {/* Stock Warning */}
           {product.stock > 0 && product.stock <= 5 && (

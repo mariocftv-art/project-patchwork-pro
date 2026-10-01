@@ -22,6 +22,7 @@ export default {
       colors: {
         price: "hsl(var(--price))",
         "price-old": "hsl(var(--price-old))",
+        promo: "hsl(var(--promo))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

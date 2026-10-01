@@ -104,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background">
       {/* Faixa de frete */}
       <div className="bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
-        🚚 Frete grátis em compras acima de R$ 199
+        🚚 <strong>Entrega e instalação combinadas com você</strong> — agendamos data e horário pelo WhatsApp
       </div>
 
       {/* Header */}

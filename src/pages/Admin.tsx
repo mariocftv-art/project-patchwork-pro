@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { productsApi, adminLogsApi, Product } from '@/lib/supabaseApi';
+import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,8 @@ import { useToast } from '@/hooks/use-toast';
 export default function Admin() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [onlyPromo, setOnlyPromo] = useState(false);
+  const [onlyInstall, setOnlyInstall] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
 
@@ -219,8 +221,19 @@ export default function Admin() {
             </Dialog>
           </div>
 
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={onlyPromo} onChange={(e) => setOnlyPromo(e.target.checked)} /> Ver só em promoção
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={onlyInstall} onChange={(e) => setOnlyInstall(e.target.checked)} /> Ver só com instalação
+            </label>
+          </div>
+
           <div className="grid gap-4">
-            {products.map((product) => (
+            {products
+              .filter((p) => (!onlyPromo || isPromoActive(p)) && (!onlyInstall || p.includes_installation))
+              .map((product) => (
               <div
                 key={product.id}
                 className="admin-card flex items-center gap-4"
@@ -236,14 +249,24 @@ export default function Admin() {
                     {product.category} • Estoque: {product.stock}
                   </p>
                 </div>
+                <div className="w-28 text-xs text-center" title="Promoção">
+                  {isPromoActive(product) ? (
+                    <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-promo" /> Promoção
+                      {product.promo_until && <span className="block text-muted-foreground">até {new Date(product.promo_until).toLocaleDateString('pt-BR')}</span>}
+                    </span>
+                  ) : <span className="text-muted-foreground">—</span>}
+                </div>
+                <div className="w-20 text-xs text-center" title="Instalação">
+                  {product.includes_installation ? <span className="inline-flex items-center gap-1"><Wrench className="w-4 h-4 text-promo" /> Inclui</span> : <span className="text-muted-foreground">—</span>}
+                </div>
                 <div className="text-right">
-                  <p className="font-bold text-primary">
-                    R$ {product.price.toFixed(2)}
-                  </p>
-                  {product.original_price && (
-                    <p className="text-sm text-muted-foreground line-through">
-                      R$ {product.original_price.toFixed(2)}
-                    </p>
+                  {isPromoActive(product) ? (
+                    <>
+                      <p className="text-sm text-muted-foreground line-through">R$ {Number(product.price).toFixed(2)}</p>
+                      <p className="font-bold text-promo">R$ {Number(product.promo_price).toFixed(2)}</p>
+                    </>
+                  ) : (
+                    <p className="font-bold text-primary">R$ {Number(product.price).toFixed(2)}</p>
                   )}
                   {product.cost_price != null && (
                     <p className="text-xs text-muted-foreground">
