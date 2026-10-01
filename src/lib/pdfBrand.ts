@@ -1,5 +1,5 @@
 import type jsPDF from 'jspdf';
-import logoMRTransparent from '@/assets/logo-mr-transparent.png';
+import logoMRTransparent from '@/assets/logo-generic.png';
 import { CompanyProfile } from '@/lib/companyProfile';
 
 export type RGB = [number, number, number];

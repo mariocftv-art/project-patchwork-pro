@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CompanyProfile, defaultCompanyProfile, getCompanyProfile } from '@/lib/companyProfile';
-import defaultLogo from '@/assets/logo-mr-transparent.png';
+import defaultLogo from '@/assets/logo-generic.png';
 
 export const DEFAULT_THEME = {
   theme_primary: '#FFD600',

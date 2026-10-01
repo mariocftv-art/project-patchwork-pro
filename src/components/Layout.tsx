@@ -62,7 +62,7 @@ export default function Layout({ children }: LayoutProps) {
   const [showIOSModal, setShowIOSModal] = useState(false);
   const brand = useBrand();
   const logoMR = brandLogo(brand);
-  const shortName = brand.name.replace(/^MR\s+/i, '');
+  const shortName = brand.name.replace(/^[^\p{L}\d]*(MR\s+)?/u, '');
   useEffect(() => { loadBrand(); }, []);
 
   const handleSignOut = async () => {
