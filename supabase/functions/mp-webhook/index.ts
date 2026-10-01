@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     if (!order || order.payment_status === payStatus) return ok();
 
     const update: Record<string, unknown> = { payment_status: payStatus, mp_payment_id: String(p.id), payment_method: methodMap[p.payment_type_id] || p.payment_type_id };
-    if (payStatus === 'pago' && order.status === 'pending') update.status = 'confirmed';
+    if (payStatus === 'pago' && ['pending', 'payment_pending', 'confirmed'].includes(order.status)) update.status = 'paid';
     if (payStatus === 'cancelado') update.status = 'cancelled';
     await admin.from('orders').update(update).eq('id', order.id);
 
