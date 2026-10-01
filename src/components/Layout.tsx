@@ -77,15 +77,19 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, []);
 
+  // Menu único: nomes iguais às categorias reais da loja
   const categories = [
-    ...siteContent.categories
-      .filter(cat => cat.toLowerCase() !== 'instalações')
-      .map(cat => ({
-        name: cat,
-        path: cat.toLowerCase() === 'ofertas' ? '/?ofertas=true' : `/?categoria=${cat.toLowerCase()}`,
-      })),
+    { name: 'Câmeras de Segurança', path: '/?categoria=câmeras' },
+    { name: 'DVR / NVR', path: '/?categoria=dvr' },
+    { name: 'Cercas Elétricas', path: '/?categoria=cercas' },
+    { name: 'Automação', path: '/?categoria=automação' },
+    { name: 'Interfones e Porteiros', path: '/?categoria=interfones' },
+    { name: 'Alarmes', path: '/?categoria=alarmes' },
+    { name: 'Cabos', path: '/?categoria=cabos' },
     { name: 'Instalações', path: '/servicos' },
   ];
+  const [catOpen, setCatOpen] = useState(false);
+  useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +102,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background">
       {/* Faixa de frete */}
       <div className="bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
-        🚚 Frete grátis em compras acima de R$ 79
+        🚚 Frete grátis em compras acima de R$ 199
       </div>
 
       {/* Header */}
@@ -293,16 +297,6 @@ export default function Layout({ children }: LayoutProps) {
                         <InstallAppButton className="w-full" />
                       </div>
                       
-                      {categories.map((cat) => (
-                        <Link
-                          key={cat.path}
-                          to={cat.path}
-                          className="block py-3 px-2 text-foreground hover:bg-secondary rounded transition-colors"
-                        >
-                          {cat.name}
-                        </Link>
-                      ))}
-                      <hr className="my-3" />
                       {isAdmin ? (
                         <>
                           <div className="px-2 py-2 text-xs text-muted-foreground">
@@ -369,26 +363,48 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Categories Bar */}
-        <div className="bg-foreground border-b border-primary">
-          <div className="container mx-auto px-4">
-            <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
-              <Link
-                to="/"
-                className="flex items-center gap-1 text-sm text-background hover:text-primary whitespace-nowrap"
+        <div className="bg-foreground border-b border-primary relative">
+          <div className="container mx-auto px-4 flex items-center gap-6">
+            <div
+              className="relative hidden md:block shrink-0"
+              onMouseEnter={() => setCatOpen(true)}
+              onMouseLeave={() => setCatOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setCatOpen((o) => !o)}
+                aria-expanded={catOpen}
+                className="flex items-center gap-1 py-2 text-sm text-background hover:text-primary whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
                 Categorias
-              </Link>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.path}
-                  to={cat.path}
-                  className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-            </nav>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {catOpen && (
+                <div className="absolute left-0 top-full z-50 w-64 rounded-b-md border border-border bg-card py-2 shadow-lg">
+                  {categories.map((cat) => (
+                    <Link key={cat.path} to={cat.path} className="block px-4 py-2 text-sm text-foreground hover:bg-secondary">
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="relative flex-1 min-w-0">
+              <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide pr-6">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.path}
+                    to={cat.path}
+                    className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </nav>
+              {/* Degradê indicando mais itens ao lado */}
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-foreground to-transparent md:hidden" />
+            </div>
           </div>
         </div>
       </header>
@@ -444,7 +460,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
           <div className="border-t border-background/20 mt-8 pt-6 text-center text-xs">
-            {siteContent.footer.copyright || `© ${new Date().getFullYear()} ${brand.name}. Todos os direitos reservados.`}
+            {`© 2011–${new Date().getFullYear()} ${brand.name.replace(/^[^\p{L}\d]+/u, '')}. Todos os direitos reservados.`}
           </div>
         </div>
       </footer>
