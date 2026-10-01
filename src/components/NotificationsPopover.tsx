@@ -42,7 +42,6 @@ const statusOptions = [
 ];
 
 // Admin emails that can see order notifications
-const ADMIN_EMAILS = ['pixmrshop@gmail.com', 'rogeriocftv.mr@gmail.com'];
 
 export default function NotificationsPopover() {
   const { user, isAdmin } = useAuth();
@@ -59,7 +58,7 @@ export default function NotificationsPopover() {
   } = useCustomerNotifications();
 
   // Check if current user is an authorized admin
-  const isAuthorizedAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAuthorizedAdmin = !!user && isAdmin;
 
   // Fetch pending orders for admin notifications
   const { data: pendingOrders = [] } = useQuery({

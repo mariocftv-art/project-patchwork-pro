@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { waLink } from '@/lib/brand';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -101,7 +102,7 @@ export default function Services() {
 *Serviço:* ${serviceName}
 *Mensagem:* ${formData.message || 'Sem mensagem adicional'}`;
 
-    const whatsappUrl = `https://wa.me/5511962579428?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = waLink(message);
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     toast({

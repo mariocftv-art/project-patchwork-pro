@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getBrand } from '@/lib/brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,7 @@ export default function AboutForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [companyName, setCompanyName] = useState('MR Segurança Máxima');
+  const [companyName, setCompanyName] = useState(getBrand().name);
   const [slogan, setSlogan] = useState('Protegendo o que é mais importante para você');
   const [history, setHistory] = useState('');
   const [mission, setMission] = useState('');

@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 
-const EMPRESA = 'MR Segurança Máxima';
-const CNPJ = '45.858.215/0001-86';
+import { useBrand } from '@/lib/brand';
 
 function Wrap({ title, children }: { title: string; children: React.ReactNode }) {
+  const b = useBrand();
   return (
     <article className="max-w-3xl mx-auto bg-card rounded-lg border border-border p-6 sm:p-8 text-sm leading-relaxed text-foreground space-y-4">
       <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="text-muted-foreground">Última atualização: setembro de 2026 · {EMPRESA} · CNPJ {CNPJ}</p>
+      <p className="text-muted-foreground">Última atualização: setembro de 2026 · {b.name}{b.cnpj ? ` · CNPJ ${b.cnpj}` : ''}</p>
       {children}
       <p><Link to="/" className="underline font-medium">← Voltar para a loja</Link></p>
     </article>
@@ -19,7 +19,7 @@ const H = ({ children }: { children: React.ReactNode }) => <h2 className="text-l
 export function Privacy() {
   return (
     <Wrap title="Política de Privacidade">
-      <p>Esta política explica como a {EMPRESA} trata seus dados pessoais, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 – LGPD).</p>
+      <p>Esta política explica como a {useBrand().name} trata seus dados pessoais, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 – LGPD).</p>
       <H>1. Dados coletados</H>
       <p>Nome, e-mail, telefone/WhatsApp, CPF (opcional), endereço de entrega e itens do pedido ou orçamento.</p>
       <H>2. Finalidade</H>
@@ -35,7 +35,7 @@ export function Privacy() {
       <H>7. Cookies e armazenamento local</H>
       <p>Usamos armazenamento local do navegador para carrinho, favoritos e acompanhamento de pedidos. Não usamos cookies de publicidade.</p>
       <H>8. Contato do encarregado</H>
-      <p>WhatsApp (11) 96257-9428.</p>
+      <p>WhatsApp {useBrand().phone}.</p>
     </Wrap>
   );
 }

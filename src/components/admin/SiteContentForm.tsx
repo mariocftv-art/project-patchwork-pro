@@ -26,17 +26,17 @@ interface SiteContent {
 const defaultContent: SiteContent = {
   categories: ['Câmeras', 'DVR', 'Cercas', 'Automação', 'Proteção', 'Ofertas'],
   contact: {
-    phone: '(11) 96257-9428',
-    email: 'contato@mrseguranca.com',
-    whatsapp: '5511962579428',
+    phone: '',
+    email: '',
+    whatsapp: '',
     address: '',
   },
   about: {
-    title: 'MR Segurança Máxima',
+    title: '',
     description: 'Especialistas em sistemas de segurança eletrônica. Oferecemos as melhores soluções em câmeras, alarmes, cercas elétricas e automação residencial.',
   },
   footer: {
-    copyright: '© 2024 MR Segurança. Todos os direitos reservados.',
+    copyright: '',
   },
 };
 

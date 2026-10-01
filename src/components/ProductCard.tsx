@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { waLink } from '@/lib/brand';
 import { Heart, Bell } from 'lucide-react';
 import { Product } from '@/lib/supabaseApi';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -21,7 +22,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     const msg = `Olá! Me avise quando chegar: ${product.title}${product.sku ? ` (${product.sku})` : ""}`;
-    window.open(`https://wa.me/5511962579428?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    window.open(waLink(msg), "_blank", "noopener,noreferrer");
   };
 
   const discount = product.original_price 

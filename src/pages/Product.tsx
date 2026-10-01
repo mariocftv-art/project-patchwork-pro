@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { waLink } from '@/lib/brand';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '@/lib/supabaseApi';
 import { Heart, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
@@ -242,7 +243,7 @@ export default function Product() {
               <div className="space-y-2">
                 {product.stock === 0 ? (
                   <a
-                    href={`https://wa.me/5511962579428?text=${encodeURIComponent(`Olá! Me avise quando chegar: ${product.title}${product.sku ? ` (${product.sku})` : ''}`)}`}
+                    href={waLink(`Olá! Me avise quando chegar: ${product.title}${product.sku ? ` (${product.sku})` : ''}`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full ml-btn-primary block text-center"
