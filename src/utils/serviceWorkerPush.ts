@@ -153,8 +153,6 @@ export const saveSubscriptionToServer = async (
       console.error('[Push] Error saving subscription:', error);
       return false;
     }
-    {
-    }
 
     return true;
   } catch (error) {
