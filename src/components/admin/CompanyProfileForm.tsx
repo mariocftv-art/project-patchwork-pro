@@ -8,6 +8,7 @@ import {
   getCompanyProfile,
   saveCompanyProfile,
 } from '@/lib/companyProfile';
+import { applyTheme, DEFAULT_THEME, setBrand } from '@/lib/brand';
 import { WHATSAPP_VARIABLES } from '@/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,11 @@ export default function CompanyProfileForm() {
   }, []);
 
   const set = <K extends keyof CompanyProfile>(key: K, value: CompanyProfile[K]) =>
-    setProfile((prev) => ({ ...prev, [key]: value }));
+    setProfile((prev) => {
+      const next = { ...prev, [key]: value };
+      if (String(key).startsWith('theme_')) applyTheme(next);
+      return next;
+    });
 
   const handleLogoUpload = async (file: File) => {
     setUploading(true);
@@ -57,6 +62,7 @@ export default function CompanyProfileForm() {
     try {
       const saved = await saveCompanyProfile(profile);
       setProfile(saved);
+      setBrand(saved);
       toast({ title: 'Personalização salva!', description: 'Já vale para os próximos PDFs e mensagens.' });
     } catch (e) {
       console.error(e);
@@ -107,7 +113,7 @@ export default function CompanyProfileForm() {
           </div>
           <div>
             <Label>WhatsApp (só números, com 55)</Label>
-            <Input value={profile.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5511962579428" />
+            <Input value={profile.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5511999999999" />
           </div>
           <div>
             <Label>Responsável / técnico</Label>
@@ -131,11 +137,11 @@ export default function CompanyProfileForm() {
           </div>
           <div className="sm:col-span-2">
             <Label>Site</Label>
-            <Input value={profile.website} onChange={(e) => set('website', e.target.value)} placeholder="www.mrseguranca.com.br" />
+            <Input value={profile.website} onChange={(e) => set('website', e.target.value)} placeholder="www.suaempresa.com.br" />
           </div>
           <div className="sm:col-span-2">
             <Label>Instagram</Label>
-            <Input value={profile.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@linkmrstore" />
+            <Input value={profile.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@suaempresa" />
           </div>
         </TabsContent>
 
@@ -149,7 +155,7 @@ export default function CompanyProfileForm() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Logo do orçamento</Label>
+              <Label>Logo da empresa (site, painel e PDFs)</Label>
               <p className="text-sm text-muted-foreground">PNG com fundo transparente funciona melhor.</p>
               <div className="flex gap-2 items-center">
                 <Input
@@ -163,12 +169,56 @@ export default function CompanyProfileForm() {
               </div>
               {profile.logo_url && (
                 <Button variant="ghost" size="sm" onClick={() => set('logo_url', null)}>
-                  Voltar para a logo padrão
+                  Remover logo
                 </Button>
               )}
             </div>
           </div>
 
+          <div className="space-y-3 rounded-lg border border-border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold">Cores do site e do painel</p>
+                <p className="text-xs text-muted-foreground">Você vê a mudança na hora. Clique em salvar para manter.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const next = { ...profile, ...DEFAULT_THEME };
+                  setProfile(next);
+                  applyTheme(next);
+                }}
+              >
+                Restaurar cores padrão
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {([
+                ['theme_primary', 'Cor principal (topo e botões)'],
+                ['theme_dark', 'Cor escura (faixas e rodapé)'],
+                ['theme_price', 'Cor dos preços'],
+                ['theme_price_old', 'Cor do preço riscado'],
+              ] as Array<[keyof CompanyProfile, string]>).map(([key, label]) => (
+                <div key={key as string}>
+                  <Label>{label}</Label>
+                  <div className="flex gap-2">
+                    <Input type="color" className="w-14 p-1 h-10" value={String(profile[key] || '#000000')} onChange={(e) => set(key, e.target.value as never)} />
+                    <Input value={String(profile[key] || '')} onChange={(e) => set(key, e.target.value as never)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 rounded-md bg-secondary p-3">
+              <span className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">Botão</span>
+              <span className="rounded-md bg-foreground px-3 py-1.5 text-sm text-primary">Faixa</span>
+              <span className="text-lg font-semibold text-price">R$ 199,90</span>
+              <span className="text-sm line-through text-price-old">R$ 249,90</span>
+            </div>
+            <p className="text-xs text-muted-foreground">A cor escura só é usada se for bem escura, para o texto continuar legível.</p>
+          </div>
+
+          <p className="font-semibold pt-2">Cores do orçamento / PDF</p>
           <div className="grid gap-4 sm:grid-cols-3">
             {([
               ['primary_color', 'Cor primária'],

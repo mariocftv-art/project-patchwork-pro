@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ShieldX } from 'lucide-react';
@@ -12,6 +13,16 @@ interface AdminGuardProps {
 const AdminGuard = ({ children }: AdminGuardProps) => {
   const navigate = useNavigate();
   const { user, loading, isAdmin, signOut } = useAuth();
+  const [claimed, setClaimed] = useState(false);
+
+  // Site novo (remix) sem nenhum admin: a primeira conta que entrar aqui vira admin.
+  useEffect(() => {
+    if (loading || !user || isAdmin || claimed) return;
+    setClaimed(true);
+    supabase.rpc('claim_first_admin' as never).then(({ data }) => {
+      if (data === true) window.location.reload();
+    });
+  }, [loading, user, isAdmin, claimed]);
 
   if (loading) {
     return (
