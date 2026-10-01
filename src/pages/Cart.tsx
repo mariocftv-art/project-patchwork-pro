@@ -21,10 +21,14 @@ import { formatBRL } from '@/lib/formatCurrency';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { PAYMENT_METHODS, usePaymentSettings, isOnlinePaymentOn } from '@/lib/paymentSettings';
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, isLoading: cartLoading } = useCart();
+  const { data: paySettings } = usePaymentSettings();
+  const payOnline = isOnlinePaymentOn(paySettings);
+  const acceptedMethods = PAYMENT_METHODS.filter((m) => (paySettings?.methods ?? ['credit_card', 'pix']).includes(m.key));
   const siteContent = useSiteContent();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');

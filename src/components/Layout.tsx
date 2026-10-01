@@ -55,6 +55,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems: cartCount } = useCart();
+  const { data: paySettings } = usePaymentSettings();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
   const { canInstall, isIOS, install } = useInstallPrompt();
