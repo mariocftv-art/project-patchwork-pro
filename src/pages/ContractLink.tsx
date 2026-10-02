@@ -87,8 +87,9 @@ export default function ContractLink() {
   const start = () => {
     setErr(null);
     const d = doc.replace(/\D/g, '');
-    const c = view?.record?.customer as Record<string, unknown> | undefined;
-    const expected = [c?.cpf, c?.cnpj, view?.record?.customer_cpf, view?.record?.customer_cnpj].map((x) => String(x ?? '').replace(/\D/g, '')).filter(Boolean);
+    const c = view?.record?.customer as unknown as Record<string, unknown> | undefined;
+    const r = view?.record as unknown as Record<string, unknown> | undefined;
+    const expected = [c?.cpf, c?.cnpj, r?.customer_cpf, r?.customer_cnpj].map((x) => String(x ?? '').replace(/\D/g, '')).filter(Boolean);
     if (!d || !expected.includes(d)) return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     setPad(true);
   };
