@@ -5,7 +5,7 @@ import { z } from 'npm:zod@3';
 const Body = z.object({
   order_number: z.string().regex(/^MR[0-9]{8,}$/),
   return_url: z.string().url().max(500),
-  items: z.array(z.object({ product_id: z.string().uuid(), quantity: z.number().int().min(1).max(999) })).min(1).max(100),
+  items: z.array(z.object({ product_id: z.string().regex(/^(svc:)?[0-9a-f-]{36}$/i), quantity: z.number().int().min(1).max(999) })).min(1).max(100),
 });
 
 const json = (b: unknown, s = 200) =>
@@ -39,14 +39,26 @@ Deno.serve(async (req) => {
     if (!order) return json({ error: 'Pedido não encontrado' }, 404);
 
     // Preço vem do banco, nunca do navegador
-    const ids = items.map((i) => i.product_id);
-    const { data: prods } = await admin.from('products').select('id, title, price, promo_enabled, promo_price, promo_until').in('id', ids);
+    const isSvc = (id: string) => id.startsWith('svc:');
+    const ids = items.filter((i) => !isSvc(i.product_id)).map((i) => i.product_id);
+    const svcIds = items.filter((i) => isSvc(i.product_id)).map((i) => i.product_id.slice(4));
+    const { data: prods } = ids.length
+      ? await admin.from('products').select('id, title, price, promo_enabled, promo_price, promo_until').in('id', ids)
+      : { data: [] as any[] };
+    const { data: svcs } = svcIds.length
+      ? await admin.from('installation_services').select('id, title, price, price_type, active, promo_enabled, promo_price, promo_until').in('id', svcIds)
+      : { data: [] as any[] };
+    const promoOn = (p: any) => p.promo_enabled && p.promo_price != null && Number(p.promo_price) > 0 && Number(p.promo_price) < Number(p.price)
+      && (!p.promo_until || new Date(p.promo_until).getTime() > Date.now());
     const mpItems = items.map((i) => {
-      const p = prods?.find((x) => x.id === i.product_id);
+      if (isSvc(i.product_id)) {
+        const s = svcs?.find((x: any) => x.id === i.product_id.slice(4));
+        if (!s || !s.active || s.price_type === 'consulta' || !(Number(s.price) > 0)) throw new Error('Serviço inválido');
+        return { id: i.product_id, title: s.title.slice(0, 250), quantity: i.quantity, unit_price: promoOn(s) ? Number(s.promo_price) : Number(s.price), currency_id: 'BRL' };
+      }
+      const p = prods?.find((x: any) => x.id === i.product_id);
       if (!p) throw new Error('Produto inválido');
-      const promo = p.promo_enabled && p.promo_price != null && Number(p.promo_price) > 0 && Number(p.promo_price) < Number(p.price)
-        && (!p.promo_until || new Date(p.promo_until).getTime() > Date.now());
-      return { id: p.id, title: p.title.slice(0, 250), quantity: i.quantity, unit_price: promo ? Number(p.promo_price) : Number(p.price), currency_id: 'BRL' };
+      return { id: p.id, title: p.title.slice(0, 250), quantity: i.quantity, unit_price: promoOn(p) ? Number(p.promo_price) : Number(p.price), currency_id: 'BRL' };
     });
     const total = mpItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
