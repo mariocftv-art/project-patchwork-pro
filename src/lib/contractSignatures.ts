@@ -140,7 +140,7 @@ export async function uploadCompanySignature(file: File) {
 }
 
 export async function getCompanySignature(): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(SIG_BUCKET).download(`${SIG_PATH}?t=${Date.now()}`.split('?')[0]);
+  const { data, error } = await supabase.storage.from(SIG_BUCKET).download(SIG_PATH);
   if (error || !data) return null;
   return await new Promise<string>((res, rej) => {
     const r = new FileReader();
