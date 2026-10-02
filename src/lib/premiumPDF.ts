@@ -76,6 +76,11 @@ export interface DocSignature {
   name: string;
   signedAt: string;
   ratio?: number;
+  /** CPF/CNPJ de quem assinou (rodapé de autenticidade) */
+  document?: string | null;
+  ip?: string | null;
+  /** Código de integridade do documento */
+  code?: string | null;
 }
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
@@ -984,6 +989,31 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
     });
     y += 24;
+
+    // Rodapé de autenticidade
+    const fmtDoc = (v?: string | null) => {
+      const x = String(v || '').replace(/\D/g, '');
+      if (x.length === 11) return x.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      if (x.length === 14) return x.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      return v || '';
+    };
+    const auth = [sc, sm].filter(Boolean) as DocSignature[];
+    if (auth.length) {
+      const code = (auth.find((a) => a.code)?.code || '').slice(0, 16).toUpperCase();
+      const lines = auth.map((a) => {
+        const dl = a.document ? `, ${String(a.document).replace(/\D/g, '').length > 11 ? 'CNPJ' : 'CPF'} ${fmtDoc(a.document)}` : '';
+        return `Assinado eletronicamente por ${a.name}${dl}, em ${fmt(a.signedAt)}${a.ip ? `, IP ${a.ip}` : ''}`;
+      });
+      if (code) lines.push(`Código do documento: ${code}`);
+      y = ensureSpace(doc, y, lines.length * 4 + 4);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(...MUTED);
+      lines.forEach((l) => {
+        const wrapped = doc.splitTextToSize(l, CONTENT_W) as string[];
+        wrapped.forEach((w) => { doc.text(w, LEFT, y); y += 3.6; });
+      });
+    }
   }
 
   /* ---- Elementos fixos em todas as páginas ---- */
