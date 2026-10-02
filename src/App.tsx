@@ -11,6 +11,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Wishlist from "./pages/Wishlist";
+import ServiceDetail from "./pages/ServiceDetail";
+import ContractLink from "./pages/ContractLink";
 import Services from "./pages/Services";
 import TrackOrder from "./pages/TrackOrder";
 import Admin from "./pages/Admin";
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/pedido-confirmado/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/servicos" element={<Services />} />
+            <Route path="/servicos/:id" element={<ServiceDetail />} />
+            <Route path="/contrato/:token" element={<ContractLink />} />
             <Route path="/rastrear-pedido" element={<TrackOrder />} />
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/termos" element={<Terms />} />
