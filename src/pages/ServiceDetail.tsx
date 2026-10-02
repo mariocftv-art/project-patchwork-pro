@@ -104,7 +104,7 @@ export default function ServiceDetail() {
           <div className="rounded-lg border border-border bg-muted/40 p-4">
             <p className="font-semibold">📅 Como funciona</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Depois de contratar, entramos em contato pelo WhatsApp em até 24h para agendar data e horário. A visita de avaliação é gratuita.
+              Depois de contratar, entramos em contato pelo WhatsApp em até 24h para agendar data e horário.
             </p>
           </div>
         </div>
