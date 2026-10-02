@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { getBrand } from '@/lib/brand';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FileSignature, Search, Eye, Pencil, Download, Printer, Send, History, Plus, Loader2, PenLine, CheckCircle2, Clock } from 'lucide-react';
+import { FileSignature, Search, Eye, Pencil, Download, Printer, Send, History, Plus, Loader2, PenLine, CheckCircle2, Clock, Link2, FileCheck, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +29,8 @@ interface Version {
   created_by_email: string | null;
   created_at: string;
 }
+
+interface LinkRow { id: string; quote_id: string; kind: 'sign' | 'download'; expires_at: string; created_at: string; created_by_email: string | null; opened_at: string | null; open_count: number; signed_at: string | null; revoked_at: string | null }
 
 const CHANGE_LABELS: Record<string, string> = {
   criacao: 'Criação',
@@ -139,6 +141,70 @@ export default function ContractsManagement() {
     qc.invalidateQueries({ queryKey: ['admin-contracts'] });
     qc.invalidateQueries({ queryKey: ['admin-contract-versions'] });
     qc.invalidateQueries({ queryKey: ['admin-quotes'] });
+  };
+
+  const { data: links = [] } = useQuery({
+    queryKey: ['admin-contract-links'],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from('contract_links' as any) as any).select('id,quote_id,kind,expires_at,created_at,created_by_email,opened_at,open_count,signed_at,revoked_at').order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as LinkRow[];
+    },
+  });
+  const linksOf = (id: string) => links.filter((l) => l.quote_id === id);
+  const [sendSigned, setSendSigned] = useState<QuoteRecord | null>(null);
+  const d = (v: string) => new Date(v).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const linkStatus = (l: LinkRow) => {
+    const what = l.kind === 'sign' ? 'Link de assinatura' : 'Link do PDF assinado';
+    let st = l.opened_at ? `aberto em ${d(l.opened_at)}` : 'ainda não aberto';
+    if (l.signed_at) st = `assinado em ${d(l.signed_at)}`;
+    if (l.revoked_at) st = `cancelado em ${d(l.revoked_at)}`;
+    else if (!l.signed_at && new Date(l.expires_at) < new Date()) st = 'expirado';
+    return `${what} enviado em ${d(l.created_at)}${l.created_by_email ? ` por ${l.created_by_email}` : ''} · válido até ${d(l.expires_at)} · ${st}`;
+  };
+  const makeLink = async (q: QuoteRecord, kind: 'sign' | 'download') => {
+    const { data, error } = await supabase.functions.invoke('contract-link', { body: { action: 'create', kind, quote_id: q.id } });
+    if (error || !data?.token) throw error || new Error('falhou');
+    qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
+    return `${window.location.origin}/contrato/${data.token}`;
+  };
+  const phoneOf = (q: QuoteRecord) => (q.customer?.whatsapp || q.customer_phone || '') as string;
+  const sendSignLink = async (q: QuoteRecord) => {
+    const win = window.open('', '_blank');
+    setBusyId(q.id);
+    try {
+      const link = await makeLink(q, 'sign');
+      const first = q.customer_name.split(' ')[0];
+      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale por 7 dias: ${link}`;
+      const url = whatsappUrl(phoneOf(q), msg);
+      if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
+      toast({ title: 'Link de assinatura criado', description: 'Válido por 7 dias.' });
+    } catch {
+      win?.close();
+      toast({ title: 'Não foi possível criar o link', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+  const sendSignedWhats = async (q: QuoteRecord) => {
+    const win = window.open('', '_blank');
+    try {
+      const link = await makeLink(q, 'download');
+      const msg = `Olá, ${q.customer_name.split(' ')[0]}! Seu contrato ${q.quote_number} da ${getBrand().name} está assinado pelas duas partes.\nBaixe o PDF assinado (link válido por 7 dias): ${link}`;
+      const url = whatsappUrl(phoneOf(q), msg);
+      if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      win?.close();
+      toast({ title: 'Não foi possível criar o link', variant: 'destructive' });
+    }
+  };
+  const revokeLink = async (id: string) => {
+    if (!window.confirm('Cancelar este link? Ele para de funcionar na hora.')) return;
+    const { error } = await supabase.functions.invoke('contract-link', { body: { action: 'revoke', link_id: id } });
+    if (error) return toast({ title: 'Não foi possível cancelar', variant: 'destructive' });
+    toast({ title: 'Link cancelado' });
+    qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
   };
 
   const versionsOf = (id: string) => versions.filter((v) => v.quote_id === id);
@@ -312,6 +378,14 @@ export default function ContractsManagement() {
                       <span className={sigsOf(q.id).length === 2 ? 'text-price font-semibold' : 'text-destructive font-semibold'}>{signLabel(q.id)}</span>
                       <span>Alterado: {new Date(q.updated_at || q.created_at).toLocaleString('pt-BR')}</span>
                     </div>
+                    {linksOf(q.id).slice(0, 2).map((l) => (
+                      <p key={l.id} className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2">
+                        <span>{linkStatus(l)}</span>
+                        {!l.revoked_at && !l.signed_at && new Date(l.expires_at) > new Date() && (
+                          <button type="button" className="text-destructive underline" onClick={() => revokeLink(l.id)}>cancelar link</button>
+                        )}
+                      </p>
+                    ))}
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-price">{formatBRL(Number(q.total))}</p>
@@ -325,6 +399,12 @@ export default function ContractsManagement() {
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'preview' })}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'edit' })}><Pencil className="h-4 w-4 mr-1" />Editar / nova versão</Button>
                   <Button size="sm" onClick={() => setSigning(q)}><PenLine className="h-4 w-4 mr-1" />Assinar</Button>
+                  {!sigsOf(q.id).some((x) => x.party === 'contratante') && (
+                    <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => sendSignLink(q)}><Link2 className="h-4 w-4 mr-1" />🔗 Enviar para o cliente assinar</Button>
+                  )}
+                  {sigsOf(q.id).length === 2 && (
+                    <Button size="sm" variant="outline" onClick={() => setSendSigned(q)}><FileCheck className="h-4 w-4 mr-1" />📄 Enviar contrato assinado</Button>
+                  )}
                   <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => download(q, undefined, vs[0]?.version)}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
                   <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => print(q)}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
                   <Button size="sm" variant="outline" onClick={() => send(q)}><Send className="h-4 w-4 mr-1" />WhatsApp</Button>
@@ -335,6 +415,20 @@ export default function ContractsManagement() {
           })}
         </div>
       )}
+
+      <Dialog open={!!sendSigned} onOpenChange={(v) => !v && setSendSigned(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Enviar contrato assinado — {sendSigned?.quote_number}</DialogTitle></DialogHeader>
+          {sendSigned && (
+            <div className="space-y-3">
+              <Button className="w-full min-h-11" variant="outline" onClick={() => download(sendSigned)}><Download className="h-4 w-4 mr-2" />Baixar o PDF assinado</Button>
+              <Button className="w-full min-h-11" variant="outline" disabled title="Falta configurar o envio de e-mails do site"><Mail className="h-4 w-4 mr-2" />Enviar por e-mail (em breve)</Button>
+              <Button className="w-full min-h-11" onClick={() => sendSignedWhats(sendSigned)}><Send className="h-4 w-4 mr-2" />Enviar por WhatsApp (link de 7 dias)</Button>
+              <p className="text-xs text-muted-foreground">O link do WhatsApp é individual, expira em 7 dias e fica registrado no contrato, com a data em que foi aberto.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!history} onOpenChange={(v) => !v && setHistory(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
