@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { getBrand, waNumber } from '@/lib/brand';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { productsApi, settingsApi } from '@/lib/supabaseApi';
+import { settingsApi } from '@/lib/supabaseApi';
+import { catalogForCart, isServiceCartId, SERVICE_PREFIX } from '@/lib/servicesApi';
 import { useCart } from '@/hooks/useCart';
 import { Minus, Plus, ShoppingCart, Truck, Shield, FileText, MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,8 +41,8 @@ export default function Cart() {
   const [quoteSent, setQuoteSent] = useState(false);
 
   const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => productsApi.list(),
+    queryKey: ['cart-catalog'],
+    queryFn: () => catalogForCart(),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -59,6 +60,11 @@ export default function Cart() {
     (sum, item) => sum + (item.product?.price || 0) * item.quantity,
     0
   );
+
+  const productLines = cartWithProducts.filter((i) => !isServiceCartId(i.product_id));
+  const serviceLines = cartWithProducts.filter((i) => isServiceCartId(i.product_id));
+  const sumOf = (l: typeof cartWithProducts) => l.reduce((t, i) => t + (i.product?.price || 0) * i.quantity, 0);
+  const linkOf = (pid: string) => (isServiceCartId(pid) ? `/servicos/${pid.slice(SERVICE_PREFIX.length)}` : `/produto/${pid}`);
 
   // Entrega e instalação são combinadas com o cliente
   const shippingFee = 0;
@@ -205,11 +211,19 @@ export default function Cart() {
             </h1>
           </div>
 
+          {[{ key: 'p', title: 'Produtos', lines: productLines }, { key: 's', title: 'Serviços Técnicos Especializados', lines: serviceLines }]
+            .filter((g) => g.lines.length > 0)
+            .map((g) => (
+          <div key={g.key} className="border-b border-border last:border-b-0">
+            <div className="px-4 pt-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">{g.title}</h2>
+              <span className="text-sm text-muted-foreground">Subtotal: R$ {sumOf(g.lines).toFixed(2)}</span>
+            </div>
           <div className="divide-y divide-border">
-            {cartWithProducts.map((item) => (
+            {g.lines.map((item) => (
               <div key={item.id} className="p-4">
                 <div className="flex gap-4">
-                  <Link to={`/produto/${item.product?.id}`}>
+                  <Link to={linkOf(item.product_id)}>
                     <img
                       src={item.product?.image_url || '/placeholder.svg'}
                       alt={item.product?.title}
@@ -219,7 +233,7 @@ export default function Cart() {
                   
                   <div className="flex-1 min-w-0">
                     <Link 
-                      to={`/produto/${item.product?.id}`}
+                      to={linkOf(item.product_id)}
                       className="text-sm text-foreground hover:text-ml-blue line-clamp-2"
                     >
                       {item.product?.title}
@@ -277,6 +291,8 @@ export default function Cart() {
               </div>
             ))}
           </div>
+          </div>
+            ))}
         </div>
       </div>
 
@@ -308,6 +324,9 @@ export default function Cart() {
                 <span className="text-foreground font-medium">Total</span>
                 <span className="text-xl text-foreground">R$ {total.toFixed(2)}</span>
               </div>
+              {serviceLines.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Sua contratação inclui agendamento combinado por WhatsApp.</p>
+              )}
               <p className="text-sm text-ml-green mt-1">
                 em 8x R$ {(total / 8).toFixed(2)} sem juros
               </p>

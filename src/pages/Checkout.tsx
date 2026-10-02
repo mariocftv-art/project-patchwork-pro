@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useQuery } from "@tanstack/react-query";
-import { productsApi, ordersApi } from "@/lib/supabaseApi";
+import { ordersApi } from "@/lib/supabaseApi";
+import { catalogForCart } from "@/lib/servicesApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,8 +41,8 @@ export default function Checkout() {
   });
 
   const { data: products = [] } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => productsApi.list(),
+    queryKey: ["cart-catalog"],
+    queryFn: () => catalogForCart(),
   });
 
   const cartProducts = cartItems.map((item) => {

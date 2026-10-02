@@ -156,7 +156,7 @@ export function buildScopeLines(items: ScopeItem[]): string[] {
   });
   (byCat.get('OUTRO') || []).forEach((i) => lines.push(`Fornecimento de ${qty(i.quantity)}x ${i.description.trim().replace(/\.$/, '')}.`));
 
-  // Serviços (mão de obra)
+  // Serviços Técnicos Especializados
   const svc = byCat.get('SERVICO') || [];
   const count = (re: RegExp) => svc.filter((s) => re.test(norm(s.description))).reduce((a, s) => a + qty(s.quantity), 0);
   const used = new Set<ScopeItem>();

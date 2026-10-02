@@ -102,7 +102,7 @@ const SERVICE_SUGGESTIONS = [
   'MANUTENÇÃO PREVENTIVA',
 ];
 const LABOR_SUGGESTIONS = [
-  'Mão de obra — Instalação por câmera',
+  'Serviço Técnico Especializado — Instalação por câmera',
   'Troca de câmera',
   'Manutenção',
   'Configuração',
@@ -113,7 +113,7 @@ const LABOR_SUGGESTIONS = [
 
 const selectCls = 'w-full h-10 rounded-md border border-input bg-background px-3 text-sm';
 
-// Serviços Técnicos Especializados — mão de obra, separada dos produtos físicos
+// Serviços Técnicos Especializados, separados dos produtos físicos
 const TECH_SERVICES: Record<string, string[]> = {
   'CFTV': ['Instalação técnica de câmera', 'Substituição de câmera', 'Remanejamento de câmera', 'Configuração de DVR', 'Configuração de NVR', 'Configuração de acesso remoto', 'Configuração do aplicativo no celular', 'Organização técnica do rack', 'Organização de cabeamento', 'Manutenção de sistema de CFTV', 'Diagnóstico técnico', 'Testes e configuração final'],
   'Alarmes': ['Instalação de central de alarme', 'Instalação de sensores', 'Configuração de central de alarme', 'Configuração de zonas', 'Manutenção técnica de alarme', 'Diagnóstico e testes de alarme'],
@@ -511,7 +511,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             {/* Itens */}
             <section>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <h3 className="font-semibold">Itens e mão de obra</h3>
+                <h3 className="font-semibold">Itens e Serviço Técnico Especializado</h3>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <select
                     className={`${selectCls} w-full sm:w-60`}
@@ -589,7 +589,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
                 </div>
                 <div className="sm:col-span-2 rounded-md bg-secondary p-3 text-sm">
                   <div className="flex justify-between"><span>Itens</span><span>{formatBRL(totals.products)}</span></div>
-                  <div className="flex justify-between"><span>Mão de obra</span><span>{formatBRL(totals.services)}</span></div>
+                  <div className="flex justify-between"><span>Serviço Técnico Especializado</span><span>{formatBRL(totals.services)}</span></div>
                   <div className="flex justify-between font-bold text-base mt-1"><span>Total</span><span>{formatBRL(totals.total)}</span></div>
                 </div>
               </div>

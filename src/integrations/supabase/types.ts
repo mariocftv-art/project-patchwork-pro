@@ -182,19 +182,79 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          expires_at: string
+          id: string
+          kind: string
+          open_count: number
+          opened_at: string | null
+          quote_id: string
+          revoked_at: string | null
+          signed_at: string | null
+          token: string
+          version: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at: string
+          id?: string
+          kind: string
+          open_count?: number
+          opened_at?: string | null
+          quote_id: string
+          revoked_at?: string | null
+          signed_at?: string | null
+          token: string
+          version?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string
+          id?: string
+          kind?: string
+          open_count?: number
+          opened_at?: string | null
+          quote_id?: string
+          revoked_at?: string | null
+          signed_at?: string | null
+          token?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_links_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_signatures: {
         Row: {
           consent_text: string
           created_by: string | null
           created_by_email: string | null
+          device: string | null
           doc_hash: string
           id: string
+          link_id: string | null
           party: string
           quote_id: string
+          remote: boolean
           signature_image: string
           signed_at: string
           signed_pdf_path: string | null
           signer_document: string | null
+          signer_ip: string | null
           signer_name: string
           user_agent: string | null
           version: number
@@ -203,14 +263,18 @@ export type Database = {
           consent_text: string
           created_by?: string | null
           created_by_email?: string | null
+          device?: string | null
           doc_hash: string
           id?: string
+          link_id?: string | null
           party: string
           quote_id: string
+          remote?: boolean
           signature_image: string
           signed_at?: string
           signed_pdf_path?: string | null
           signer_document?: string | null
+          signer_ip?: string | null
           signer_name: string
           user_agent?: string | null
           version: number
@@ -219,14 +283,18 @@ export type Database = {
           consent_text?: string
           created_by?: string | null
           created_by_email?: string | null
+          device?: string | null
           doc_hash?: string
           id?: string
+          link_id?: string | null
           party?: string
           quote_id?: string
+          remote?: boolean
           signature_image?: string
           signed_at?: string
           signed_pdf_path?: string | null
           signer_document?: string | null
+          signer_ip?: string | null
           signer_name?: string
           user_agent?: string | null
           version?: number
@@ -244,44 +312,77 @@ export type Database = {
       installation_services: {
         Row: {
           active: boolean | null
+          conditions: Json
           created_at: string
           description: string | null
           display_order: number | null
+          excluded: string[]
           features: string[] | null
           icon: string
           id: string
+          image_illustrative: boolean
           image_url: string | null
+          min_qty: number | null
           original_price: number | null
           price: number | null
+          price_type: string
+          promo_enabled: boolean
+          promo_price: number | null
+          promo_until: string | null
+          related_ids: string[]
+          summary: string | null
           title: string
+          unit: string
           updated_at: string
         }
         Insert: {
           active?: boolean | null
+          conditions?: Json
           created_at?: string
           description?: string | null
           display_order?: number | null
+          excluded?: string[]
           features?: string[] | null
           icon?: string
           id?: string
+          image_illustrative?: boolean
           image_url?: string | null
+          min_qty?: number | null
           original_price?: number | null
           price?: number | null
+          price_type?: string
+          promo_enabled?: boolean
+          promo_price?: number | null
+          promo_until?: string | null
+          related_ids?: string[]
+          summary?: string | null
           title: string
+          unit?: string
           updated_at?: string
         }
         Update: {
           active?: boolean | null
+          conditions?: Json
           created_at?: string
           description?: string | null
           display_order?: number | null
+          excluded?: string[]
           features?: string[] | null
           icon?: string
           id?: string
+          image_illustrative?: boolean
           image_url?: string | null
+          min_qty?: number | null
           original_price?: number | null
           price?: number | null
+          price_type?: string
+          promo_enabled?: boolean
+          promo_price?: number | null
+          promo_until?: string | null
+          related_ids?: string[]
+          summary?: string | null
           title?: string
+          unit?: string
           updated_at?: string
         }
         Relationships: []

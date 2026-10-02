@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ServiceCard from '@/components/services/ServiceCard';
+import { servicesApi } from '@/lib/servicesApi';
 import { waLink } from '@/lib/brand';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,15 +57,7 @@ export default function Services() {
 
   const { data: services = [] } = useQuery({
     queryKey: ['installation-services-public'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('installation_services')
-        .select('*')
-        .eq('active', true)
-        .order('display_order', { ascending: true });
-      if (error) throw error;
-      return data as InstallationService[];
-    },
+    queryFn: () => servicesApi.listActive(),
   });
 
   const { data: servicePhotos = [] } = useQuery({
@@ -132,67 +126,8 @@ export default function Services() {
         <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
           O que oferecemos
         </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => {
-            const IconComponent = iconMap[service.icon] || Camera;
-            return (
-              <div
-                key={service.id}
-                className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all"
-              >
-                {service.image_url ? (
-                  <div className="aspect-video w-full overflow-hidden">
-                    <img 
-                      src={service.image_url} 
-                      alt={service.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-video w-full bg-primary/5 flex items-center justify-center">
-                    <IconComponent className="w-16 h-16 text-primary/30" />
-                  </div>
-                )}
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <IconComponent className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {service.title}
-                      </h3>
-                      {service.price ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {service.original_price && service.original_price > service.price && (
-                            <span className="text-muted-foreground line-through text-sm">
-                              R$ {service.original_price.toFixed(2).replace('.', ',')}
-                            </span>
-                          )}
-                          <span className="text-primary font-bold">
-                            A partir de R$ {service.price.toFixed(2).replace('.', ',')}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm italic">Sob consulta</p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {service.description}
-                  </p>
-                  <ul className="space-y-2">
-                    {service.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle className="w-4 h-4 text-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {services.map((service) => <ServiceCard key={service.id} s={service} />)}
         </div>
       </section>
 
