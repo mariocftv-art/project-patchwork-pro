@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         token: t, quote_id: quoteId, kind, expires_at: expires, created_by: u.user.id, created_by_email: u.user.email,
       }).select('id, expires_at').single();
       if (error) throw error;
-      await admin.from('admin_logs').insert({ user_id: u.user.id, action: kind === 'sign' ? 'contract_sign_link' : 'contract_pdf_link', details: { quote_id: quoteId, link_id: link.id } }).then(() => {}, () => {});
+      await admin.from('admin_logs').insert({ user_id: u.user.id, action: kind === 'sign' ? 'contract_sign_link' : 'contract_pdf_link', user_email: u.user.email, entity_type: 'contract', entity_id: quoteId, details: { link_id: link.id, expires_at: link.expires_at } }).then(() => {}, () => {});
       return json({ token: t, expires_at: link.expires_at });
     }
 
