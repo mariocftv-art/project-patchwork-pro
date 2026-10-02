@@ -658,7 +658,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     head: [['ITEM', 'DESCRIÇÃO', 'QUANT.', 'VALOR UNIT.', 'TOTAL']],
     body: data.items.map((it, i) => [
       String(i + 1).padStart(2, '0'),
-      it.description + (it.kind === 'service' ? '\n(Serviço / mão de obra)' : ''),
+      it.description + (it.kind === 'service' ? '\n(Serviço Técnico Especializado)' : ''),
       String(it.quantity),
       formatBRL(Number(it.unitPrice) || 0),
       formatBRL(lineTotal(it)),
@@ -745,7 +745,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const summary: Array<[string, string]> = [];
   if (totals.services > 0 && totals.products > 0) {
     summary.push(['Equipamentos', formatBRL(totals.products)]);
-    summary.push(['Serviços / mão de obra', formatBRL(totals.services)]);
+    summary.push(['Serviço Técnico Especializado', formatBRL(totals.services)]);
   } else {
     summary.push(['Subtotal', formatBRL(totals.products + totals.services)]);
   }

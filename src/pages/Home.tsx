@@ -4,7 +4,7 @@ import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
 import ServiceGallery from '@/components/ServiceGallery';
 import QuoteCTA from '@/components/QuoteCTA';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 
 const priceRanges = [
@@ -112,6 +112,15 @@ export default function Home() {
       {isHome && <PromoBanner />}
       {isHome && <QuoteCTA />}
       {isHome && <ServiceGallery />}
+      {isHome && (
+        <section className="rounded-xl bg-secondary text-secondary-foreground p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold">Já tem o equipamento? A gente instala.</h2>
+            <p className="text-sm md:text-base opacity-90 mt-1">Serviço Técnico Especializado avulso, com garantia, para quem já comprou as câmeras em outro lugar.</p>
+          </div>
+          <Link to="/servicos" className="ml-btn-primary inline-flex items-center justify-center min-h-11 px-5 whitespace-nowrap">Ver serviços e preços →</Link>
+        </section>
+      )}
 
       <section className="w-full min-w-0">
         {(selectedCategory || searchQuery) && (
