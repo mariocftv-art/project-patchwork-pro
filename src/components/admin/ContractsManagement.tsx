@@ -163,9 +163,11 @@ export default function ContractsManagement() {
     else if (!l.signed_at && new Date(l.expires_at) < new Date()) st = 'expirado';
     return `${what} enviado em ${d(l.created_at)}${l.created_by_email ? ` por ${l.created_by_email}` : ''} · válido até ${d(l.expires_at)} · ${st}`;
   };
+  let lastExp = '';
   const makeLink = async (q: QuoteRecord, kind: 'sign' | 'download') => {
     const { data, error } = await supabase.functions.invoke('contract-link', { body: { action: 'create', kind, quote_id: q.id } });
     if (error || !data?.token) throw error || new Error('falhou');
+    lastExp = data.expires_at;
     qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
     return `${window.location.origin}/assinar/${data.token}`;
   };
@@ -176,7 +178,7 @@ export default function ContractsManagement() {
     try {
       const link = await makeLink(q, 'sign');
       const first = q.customer_name.split(' ')[0];
-      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale até ${new Date(data_exp(q)).toLocaleDateString('pt-BR')}: ${link}`;
+      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale até ${new Date(lastExp).toLocaleDateString('pt-BR')}: ${link}`;
       const url = whatsappUrl(phoneOf(q), msg);
       if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
       toast({ title: 'Link de assinatura criado', description: 'Para de funcionar depois de assinado.' });
