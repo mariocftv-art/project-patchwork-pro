@@ -49,14 +49,15 @@ Deno.serve(async (req) => {
       }
       const kind = body.kind === 'download' ? 'download' : 'sign';
       const quoteId = String(body.quote_id || '');
-      const { data: q } = await admin.from('quotes').select('id, doc_type').eq('id', quoteId).maybeSingle();
+      const { data: q } = await admin.from('quotes').select('id, doc_type, validity_days').eq('id', quoteId).maybeSingle();
       if (!q || q.doc_type !== 'contrato') return json({ error: 'Contrato não encontrado' }, 404);
       // Um link de assinatura ativo por contrato: cancela os anteriores
       if (kind === 'sign') {
         await admin.from('contract_links').update({ revoked_at: new Date().toISOString() }).eq('quote_id', quoteId).eq('kind', 'sign').is('revoked_at', null).is('signed_at', null);
       }
       const t = token();
-      const expires = new Date(Date.now() + DAYS7).toISOString();
+      const days = Number(q.validity_days) > 0 ? Math.min(Number(q.validity_days), 90) : 7;
+      const expires = new Date(Date.now() + (kind === 'sign' ? days * 86400000 : DAYS7)).toISOString();
       const { data: link, error } = await admin.from('contract_links').insert({
         token: t, quote_id: quoteId, kind, expires_at: expires, created_by: u.user.id, created_by_email: u.user.email,
       }).select('id, expires_at').single();
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
       .order('version', { ascending: false }).limit(1).maybeSingle();
     const version = ver?.version ?? 1;
     const snapshot = ver?.snapshot ?? q;
-    const { data: sigs } = await admin.from('contract_signatures').select('party, signer_name, signature_image, signed_at, signed_pdf_path, version')
+    const { data: sigs } = await admin.from('contract_signatures').select('party, signer_name, signer_document, signer_ip, doc_hash, signature_image, signed_at, signed_pdf_path, version')
       .eq('quote_id', q.id).eq('version', version);
     const signedByClient = (sigs || []).some((s) => s.party === 'contratante');
     const latestPdf = (sigs || []).filter((s) => s.signed_pdf_path).sort((a, b) => b.signed_at.localeCompare(a.signed_at))[0]?.signed_pdf_path;
@@ -93,7 +94,9 @@ Deno.serve(async (req) => {
         expires_at: link.expires_at,
         quote_number: q.quote_number,
         record: { ...q, ...(snapshot as Record<string, unknown>), id: q.id },
-        signatures: (sigs || []).map((s) => ({ party: s.party, signer_name: s.signer_name, signature_image: s.signature_image, signed_at: s.signed_at })),
+        signatures: (sigs || []).map((s) => ({ party: s.party, signer_name: s.signer_name, signer_document: s.signer_document, signer_ip: s.signer_ip, doc_hash: s.doc_hash, signature_image: s.signature_image, signed_at: s.signed_at })),
+        client_ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || null,
+        doc_code: await sha256(JSON.stringify(snapshot)),
         has_pdf: !!latestPdf,
       });
     }

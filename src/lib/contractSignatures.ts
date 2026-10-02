@@ -17,6 +17,7 @@ export interface SignatureRow {
   signed_at: string;
   created_by_email: string | null;
   signed_pdf_path: string | null;
+  signer_ip?: string | null;
 }
 
 export const CONSENT_TEXT =
@@ -62,7 +63,7 @@ export async function listSignatures(): Promise<SignatureRow[]> {
 export function toDocSignatures(rows: SignatureRow[]) {
   const pick = (p: Party): DocSignature | undefined => {
     const r = rows.find((s) => s.party === p);
-    return r ? { image: r.signature_image, name: r.signer_name, signedAt: r.signed_at, ratio: imgRatio(r.signature_image) } : undefined;
+    return r ? { image: r.signature_image, name: r.signer_name, signedAt: r.signed_at, ratio: imgRatio(r.signature_image), document: r.signer_document, ip: r.signer_ip ?? null, code: r.doc_hash || null } : undefined;
   };
   return { contratante: pick('contratante'), contratada: pick('contratada') };
 }
@@ -126,4 +127,35 @@ export async function signedPdfBlob(path: string): Promise<Blob> {
   const { data, error } = await supabase.storage.from('signed-contracts').download(path);
   if (error || !data) throw error || new Error('PDF não encontrado');
   return data;
+}
+
+/* ---------- Assinatura salva da empresa (área privada) ---------- */
+const SIG_BUCKET = 'company-signature';
+const SIG_PATH = 'assinatura.png';
+
+export async function uploadCompanySignature(file: File) {
+  if (file.type !== 'image/png') throw new Error('Envie um arquivo PNG');
+  const { error } = await supabase.storage.from(SIG_BUCKET).upload(SIG_PATH, file, { upsert: true, contentType: 'image/png', cacheControl: '0' });
+  if (error) throw error;
+}
+
+export async function getCompanySignature(): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(SIG_BUCKET).download(SIG_PATH);
+  if (error || !data) return null;
+  return await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).replace(/^data:[^;]*;/, 'data:image/png;'));
+    r.onerror = rej;
+    r.readAsDataURL(data);
+  });
+}
+
+/** Aplica a assinatura salva da empresa no campo CONTRATADA. */
+export async function applyCompanySignature(q: QuoteRecord, existing: SignatureRow[]) {
+  const img = await getCompanySignature();
+  if (!img) throw new Error('no-signature');
+  const profile = await getCompanyProfile(true);
+  const name = (profile.responsible_name || '').trim();
+  if (!name) throw new Error('no-name');
+  return signContract(q, 'contratada', { name, document: profile.cnpj || undefined }, img, existing);
 }

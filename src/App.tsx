@@ -39,6 +39,7 @@ const App = () => (
             <Route path="/servicos" element={<Services />} />
             <Route path="/servicos/:id" element={<ServiceDetail />} />
             <Route path="/contrato/:token" element={<ContractLink />} />
+            <Route path="/assinar/:token" element={<ContractLink />} />
             <Route path="/rastrear-pedido" element={<TrackOrder />} />
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/termos" element={<Terms />} />

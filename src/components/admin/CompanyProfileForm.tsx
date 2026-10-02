@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Palette, FileText, MessageCircle, Loader2, Upload, CreditCard } from 'lucide-react';
 import MercadoPagoForm from './MercadoPagoForm';
+import CompanySignatureUpload from './CompanySignatureUpload';
 
 export default function CompanyProfileForm() {
   const { toast } = useToast();
@@ -120,9 +121,10 @@ export default function CompanyProfileForm() {
             <Input value={profile.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5511999999999" />
           </div>
           <div>
-            <Label>Responsável / técnico</Label>
+            <Label>Nome do responsável (assina como CONTRATADA)</Label>
             <Input value={profile.responsible_name} onChange={(e) => set('responsible_name', e.target.value)} />
           </div>
+          <CompanySignatureUpload />
           <div>
             <Label>E-mail</Label>
             <Input value={profile.email} onChange={(e) => set('email', e.target.value)} />

@@ -13,7 +13,7 @@ import { buildPremiumPDF, docFileName } from '@/lib/premiumPDF';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from './SignaturePad';
-import { listSignatures, signContract, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
+import { listSignatures, signContract, applyCompanySignature, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
 import QuoteEditor, { QuoteRecord, CONTRACT_STATUSES, QUOTE_STATUSES, recordToDoc } from './QuoteEditor';
 
 const selectCls = 'h-9 rounded-md border border-input bg-background px-2 text-sm max-w-full';
@@ -163,11 +163,13 @@ export default function ContractsManagement() {
     else if (!l.signed_at && new Date(l.expires_at) < new Date()) st = 'expirado';
     return `${what} enviado em ${d(l.created_at)}${l.created_by_email ? ` por ${l.created_by_email}` : ''} · válido até ${d(l.expires_at)} · ${st}`;
   };
+  let lastExp = '';
   const makeLink = async (q: QuoteRecord, kind: 'sign' | 'download') => {
     const { data, error } = await supabase.functions.invoke('contract-link', { body: { action: 'create', kind, quote_id: q.id } });
     if (error || !data?.token) throw error || new Error('falhou');
+    lastExp = data.expires_at;
     qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
-    return `${window.location.origin}/contrato/${data.token}`;
+    return `${window.location.origin}/assinar/${data.token}`;
   };
   const phoneOf = (q: QuoteRecord) => (q.customer?.whatsapp || q.customer_phone || '') as string;
   const sendSignLink = async (q: QuoteRecord) => {
@@ -176,10 +178,10 @@ export default function ContractsManagement() {
     try {
       const link = await makeLink(q, 'sign');
       const first = q.customer_name.split(' ')[0];
-      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale por 7 dias: ${link}`;
+      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale até ${new Date(lastExp).toLocaleDateString('pt-BR')}: ${link}`;
       const url = whatsappUrl(phoneOf(q), msg);
       if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
-      toast({ title: 'Link de assinatura criado', description: 'Válido por 7 dias.' });
+      toast({ title: 'Link de assinatura criado', description: 'Para de funcionar depois de assinado.' });
     } catch {
       win?.close();
       toast({ title: 'Não foi possível criar o link', variant: 'destructive' });
@@ -205,6 +207,20 @@ export default function ContractsManagement() {
     if (error) return toast({ title: 'Não foi possível cancelar', variant: 'destructive' });
     toast({ title: 'Link cancelado' });
     qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
+  };
+
+  const applyMine = async (q: QuoteRecord) => {
+    setBusyId(q.id);
+    try {
+      const r = await applyCompanySignature(q, signatures);
+      toast({ title: 'Assinatura da empresa aplicada', description: r.both ? 'Contrato assinado pelas duas partes.' : 'Falta a assinatura do cliente.' });
+      await Promise.all(['admin-contract-signatures', 'admin-contract-versions', 'admin-contracts'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+    } catch (e) {
+      const m = (e as Error).message;
+      toast({ title: 'Não foi possível aplicar', description: m === 'no-signature' ? 'Envie a imagem da assinatura em Personalização.' : m === 'no-name' ? 'Preencha o nome do responsável em Personalização.' : 'Tente de novo.', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const versionsOf = (id: string) => versions.filter((v) => v.quote_id === id);
@@ -309,11 +325,19 @@ export default function ContractsManagement() {
     window.open(whatsappUrl((q.customer?.whatsapp || q.customer_phone || '') as string, msg), '_blank', 'noopener,noreferrer');
   };
 
+  const stateOf = (q: QuoteRecord) => {
+    const s = sigsOf(q.id);
+    if (s.some((x) => x.party === 'contratante') && s.some((x) => x.party === 'contratada')) return 'assinado';
+    const pending = linksOf(q.id).some((l) => !l.revoked_at && !l.signed_at && new Date(l.expires_at) > new Date());
+    if (s.length || pending || q.status === 'aguardando_assinatura') return 'aguardando';
+    return 'rascunho';
+  };
+  const STATE_LABEL: Record<string, string> = { rascunho: 'Rascunho', aguardando: 'Aguardando assinatura', assinado: 'Assinado' };
   const cards = [
     { label: 'Total de contratos', value: contracts.length },
-    { label: 'Aguardando assinatura', value: count(['aguardando_assinatura']) },
-    { label: 'Em execução', value: count(['em_execucao']) },
-    { label: 'Concluídos', value: count(['concluido']) },
+    { label: 'Rascunho', value: contracts.filter((q) => stateOf(q) === 'rascunho').length },
+    { label: 'Aguardando assinatura', value: contracts.filter((q) => stateOf(q) === 'aguardando').length },
+    { label: 'Assinados', value: contracts.filter((q) => stateOf(q) === 'assinado').length },
   ];
 
   return (
@@ -370,6 +394,7 @@ export default function ContractsManagement() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{q.quote_number}</span>
                       <span className="text-xs rounded bg-secondary px-2 py-0.5">Versão {vs[0]?.version || 1}</span>
+                      <span className={`text-xs rounded px-2 py-0.5 font-semibold ${stateOf(q) === 'assinado' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{STATE_LABEL[stateOf(q)]}</span>
                     </div>
                     <p className="text-sm break-words">{clientName(q)}</p>
                     <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground mt-1">
@@ -399,8 +424,11 @@ export default function ContractsManagement() {
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'preview' })}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'edit' })}><Pencil className="h-4 w-4 mr-1" />Editar / nova versão</Button>
                   <Button size="sm" onClick={() => setSigning(q)}><PenLine className="h-4 w-4 mr-1" />Assinar</Button>
+                  {!sigsOf(q.id).some((x) => x.party === 'contratada') && (
+                    <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => applyMine(q)}><PenLine className="h-4 w-4 mr-1" />Aplicar minha assinatura</Button>
+                  )}
                   {!sigsOf(q.id).some((x) => x.party === 'contratante') && (
-                    <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => sendSignLink(q)}><Link2 className="h-4 w-4 mr-1" />🔗 Enviar para o cliente assinar</Button>
+                    <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => sendSignLink(q)}><Link2 className="h-4 w-4 mr-1" />{linksOf(q.id).some((l) => l.kind === 'sign') ? 'Reenviar link pelo WhatsApp' : 'Enviar para assinatura (WhatsApp)'}</Button>
                   )}
                   {sigsOf(q.id).length === 2 && (
                     <Button size="sm" variant="outline" onClick={() => setSendSigned(q)}><FileCheck className="h-4 w-4 mr-1" />📄 Enviar contrato assinado</Button>

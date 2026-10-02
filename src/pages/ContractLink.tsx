@@ -12,14 +12,17 @@ import SignaturePad from '@/components/admin/SignaturePad';
 import { recordToDoc, QuoteRecord } from '@/components/admin/QuoteEditor';
 import { toDocSignatures, preloadRatios, SignatureRow } from '@/lib/contractSignatures';
 import { getBrand } from '@/lib/brand';
+import { maskCPF, maskCNPJ, isValidCPF } from '@/lib/masks';
 
 type View = {
   state: 'ok' | 'signed' | 'expired' | 'revoked' | 'invalid';
   kind?: 'sign' | 'download';
   quote_number?: string;
   record?: QuoteRecord;
-  signatures?: Pick<SignatureRow, 'party' | 'signer_name' | 'signature_image' | 'signed_at'>[];
+  signatures?: (Pick<SignatureRow, 'party' | 'signer_name' | 'signature_image' | 'signed_at' | 'signer_document' | 'doc_hash'> & { signer_ip?: string | null })[];
   has_pdf?: boolean;
+  client_ip?: string | null;
+  doc_code?: string;
 };
 
 const call = async (body: Record<string, unknown>) => {
@@ -33,7 +36,7 @@ const call = async (body: Record<string, unknown>) => {
   return data;
 };
 
-const asSigRows = (v: View) => (v.signatures || []).map((s) => ({ ...s, id: s.party, quote_id: '', version: 0, signer_document: null, doc_hash: '', created_by_email: null, signed_pdf_path: null })) as SignatureRow[];
+const asSigRows = (v: View) => (v.signatures || []).map((s) => ({ ...s, id: s.party, quote_id: '', version: 0, signer_document: s.signer_document ?? null, doc_hash: s.doc_hash || '', created_by_email: null, signed_pdf_path: null })) as SignatureRow[];
 
 async function buildPdf(v: View, extra?: SignatureRow) {
   const rows = [...asSigRows(v), ...(extra ? [extra] : [])];
@@ -90,13 +93,14 @@ export default function ContractLink() {
     const c = view?.record?.customer as unknown as Record<string, unknown> | undefined;
     const r = view?.record as unknown as Record<string, unknown> | undefined;
     const expected = [c?.cpf, c?.cnpj, r?.customer_cpf, r?.customer_cnpj].map((x) => String(x ?? '').replace(/\D/g, '')).filter(Boolean);
+    if (d.length === 11 && !isValidCPF(d)) return setErr('CPF inválido. Confira os números.');
     if (!d || !expected.includes(d)) return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     setPad(true);
   };
 
   const confirm = async (png: string) => {
     if (!view) return;
-    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signature_image: png, doc_hash: '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null } as SignatureRow;
+    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null } as SignatureRow;
     const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
     const r = await call({ action: 'sign', token, name: name.trim(), document: doc, accepted: ok, image: png, pdf_base64: b64 });
@@ -148,11 +152,11 @@ export default function ContractLink() {
           </div>
           <div>
             <Label htmlFor="sg-doc">CPF ou CNPJ</Label>
-            <Input id="sg-doc" className="mt-1 min-h-11" inputMode="numeric" value={doc} onChange={(e) => setDoc(e.target.value)} />
+            <Input id="sg-doc" className="mt-1 min-h-11" inputMode="numeric" value={doc} placeholder="000.000.000-00" onChange={(e) => { const x = e.target.value.replace(/\D/g, ''); setDoc(x.length > 11 ? maskCNPJ(x) : maskCPF(x)); }} />
           </div>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1 h-5 w-5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-            <span>Li integralmente o contrato e concordo com todas as suas cláusulas</span>
+            <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
           <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>

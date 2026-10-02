@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { getCompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
+import { maskCPF, maskCNPJ, maskPhone, maskCEP } from '@/lib/masks';
 import PdfPagesPreview, { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import {
   buildPremiumPDF,
@@ -492,14 +493,14 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
               <div className="grid gap-3 sm:grid-cols-6">
                 <Field className="sm:col-span-4" label="Nome completo / Razão social *" v={data.customer.name} on={(v) => setC('name', v)} />
                 <Field className="sm:col-span-2" label="Nome fantasia" v={data.customer.fantasy} on={(v) => setC('fantasy', v)} />
-                <Field className="sm:col-span-3" label="CPF" v={data.customer.cpf} on={(v) => setC('cpf', v)} ph="000.000.000-00" />
-                <Field className="sm:col-span-3" label="CNPJ" v={data.customer.cnpj} on={(v) => setC('cnpj', v)} ph="00.000.000/0000-00" />
-                <Field className="sm:col-span-2" label="Telefone *" v={data.customer.phone} on={(v) => setC('phone', v)} />
-                <Field className="sm:col-span-2" label="WhatsApp" v={data.customer.whatsapp} on={(v) => setC('whatsapp', v)} />
+                <Field className="sm:col-span-3" label="CPF" v={data.customer.cpf} on={(v) => setC('cpf', maskCPF(v))} ph="000.000.000-00" num />
+                <Field className="sm:col-span-3" label="CNPJ" v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
+                <Field className="sm:col-span-2" label="Telefone *" v={data.customer.phone} on={(v) => setC('phone', maskPhone(v))} ph="(00) 00000-0000" num />
+                <Field className="sm:col-span-2" label="WhatsApp" v={data.customer.whatsapp} on={(v) => setC('whatsapp', maskPhone(v))} ph="(00) 00000-0000" num />
                 <Field className="sm:col-span-2" label="E-mail" v={data.customer.email} on={(v) => setC('email', v)} />
                 <Field className="sm:col-span-4" label="Endereço" v={data.customer.street} on={(v) => setC('street', v)} />
                 <Field className="sm:col-span-1" label="Número" v={data.customer.number} on={(v) => setC('number', v)} />
-                <Field className="sm:col-span-1" label="CEP" v={data.customer.cep} on={(v) => setC('cep', v)} />
+                <Field className="sm:col-span-1" label="CEP" v={data.customer.cep} on={(v) => setC('cep', maskCEP(v))} ph="00000-000" num />
                 <Field className="sm:col-span-2" label="Complemento" v={data.customer.complement} on={(v) => setC('complement', v)} />
                 <Field className="sm:col-span-2" label="Bairro" v={data.customer.district} on={(v) => setC('district', v)} />
                 <Field className="sm:col-span-1" label="Cidade" v={data.customer.city} on={(v) => setC('city', v)} />
@@ -701,11 +702,11 @@ export const CONTRACT_STATUSES = QUOTE_STATUSES.filter((s) =>
 
 export const SIGNED_STATUSES = ['assinado', 'em_execucao', 'concluido'];
 
-function Field({ label, v, on, className, ph }: { label: string; v?: string; on: (v: string) => void; className?: string; ph?: string }) {
+function Field({ label, v, on, className, ph, num }: { label: string; v?: string; on: (v: string) => void; className?: string; ph?: string; num?: boolean }) {
   return (
     <div className={className}>
       <Label className="text-xs">{label}</Label>
-      <Input value={v || ''} placeholder={ph} onChange={(e) => on(e.target.value)} />
+      <Input value={v || ''} placeholder={ph} inputMode={num ? 'numeric' : undefined} onChange={(e) => on(e.target.value)} />
     </div>
   );
 }
