@@ -116,3 +116,10 @@ export function serviceAsCartProduct(s: ServiceItem): Product & { is_service: tr
     unit_label: unitInfo(s.unit).perUnit,
   } as unknown as Product & { is_service: true; unit_label: string };
 }
+
+/** Produtos + serviços contratáveis: usado só pelo carrinho e pelo checkout. */
+export async function catalogForCart(): Promise<Product[]> {
+  const { productsApi } = await import('@/lib/supabaseApi');
+  const [prods, svcs] = await Promise.all([productsApi.list(), servicesApi.listActive().catch(() => [])]);
+  return [...prods, ...svcs.filter((s) => serviceCharge(s) != null).map(serviceAsCartProduct)];
+}
