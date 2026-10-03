@@ -47,6 +47,63 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          address: string | null
+          cancel_reason: string | null
+          created_at: string
+          customer_doc: Json
+          customer_name: string
+          customer_phone: string | null
+          duration_minutes: number
+          expected_value: number | null
+          id: string
+          kind: string
+          notes: string | null
+          reference_point: string | null
+          starts_at: string
+          status: string
+          technician: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cancel_reason?: string | null
+          created_at?: string
+          customer_doc?: Json
+          customer_name: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          expected_value?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          reference_point?: string | null
+          starts_at: string
+          status?: string
+          technician?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cancel_reason?: string | null
+          created_at?: string
+          customer_doc?: Json
+          customer_name?: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          expected_value?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          reference_point?: string | null
+          starts_at?: string
+          status?: string
+          technician?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
