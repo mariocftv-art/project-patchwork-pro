@@ -14,6 +14,7 @@ import AboutForm from '@/components/admin/AboutForm';
 import ServicePhotosForm from '@/components/admin/ServicePhotosForm';
 import CategoriesForm from '@/components/admin/CategoriesForm';
 import InstallationServicesForm from '@/components/admin/InstallationServicesForm';
+import ServiceDefaultsForm from '@/components/admin/ServiceDefaultsForm';
 import OrdersManagement from '@/components/admin/OrdersManagement';
 import QuotesManagement from '@/components/admin/QuotesManagement';
 import ContractsManagement from '@/components/admin/ContractsManagement';
@@ -363,6 +364,10 @@ export default function Admin() {
               Gerenciar Serviços de Instalação
             </h2>
             <InstallationServicesForm />
+            <h2 className="text-xl font-semibold text-foreground mt-10 mb-4">
+              Foto e valor padrão dos serviços (orçamentos e contratos)
+            </h2>
+            <ServiceDefaultsForm />
           </div>
         </TabsContent>
 

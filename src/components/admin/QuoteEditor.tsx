@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle } from 'lucide-react';
+import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2 } from 'lucide-react';
+import ImageUploadField from '@/components/admin/ImageUploadField';
+import { TECH_SERVICES, listServiceDefaults } from '@/lib/serviceDefaults';
+import { applyCompanySignature, listSignatures } from '@/lib/contractSignatures';
+import { sendContractSignLink } from '@/lib/contractActions';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,16 +118,6 @@ const LABOR_SUGGESTIONS = [
 
 const selectCls = 'w-full h-10 rounded-md border border-input bg-background px-3 text-sm';
 
-// Serviços Técnicos Especializados, separados dos produtos físicos
-const TECH_SERVICES: Record<string, string[]> = {
-  'CFTV': ['Instalação técnica de câmera', 'Substituição de câmera', 'Remanejamento de câmera', 'Configuração de DVR', 'Configuração de NVR', 'Configuração de acesso remoto', 'Configuração do aplicativo no celular', 'Organização técnica do rack', 'Organização de cabeamento', 'Manutenção de sistema de CFTV', 'Diagnóstico técnico', 'Testes e configuração final'],
-  'Alarmes': ['Instalação de central de alarme', 'Instalação de sensores', 'Configuração de central de alarme', 'Configuração de zonas', 'Manutenção técnica de alarme', 'Diagnóstico e testes de alarme'],
-  'Cerca elétrica': ['Instalação técnica de cerca elétrica', 'Manutenção de cerca elétrica', 'Substituição de componentes da cerca', 'Revisão de central de cerca', 'Testes de funcionamento da cerca'],
-  'Controle de acesso': ['Instalação de controlador de acesso', 'Instalação de leitor de tags', 'Instalação de fechadura eletromagnética', 'Configuração de controle de acesso', 'Cadastro de usuários e tags', 'Testes de abertura e fechamento'],
-  'Interfones e porteiros': ['Instalação de interfone', 'Instalação de porteiro eletrônico', 'Instalação de monofone', 'Configuração de central de portaria', 'Manutenção técnica de interfone', 'Diagnóstico e testes de interfone'],
-  'Automação': ['Instalação de módulo de automação', 'Configuração de equipamentos de automação', 'Integração de dispositivos compatíveis', 'Manutenção e diagnóstico de automação'],
-  'Complementares': ['Passagem de cabos', 'Substituição de cabeamento', 'Instalação de infraestrutura', 'Retirada de equipamento', 'Reinstalação de equipamento', 'Visita técnica', 'Manutenção preventiva', 'Manutenção corretiva', 'Configuração e entrega técnica'],
-};
 
 interface Props {
   open: boolean;
@@ -156,6 +150,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     },
     enabled: open,
   });
+  const { data: svcDefaults = [] } = useQuery({ queryKey: ['service-defaults'], queryFn: listServiceDefaults, enabled: open });
   const { data: cats = [] } = useQuery({
     queryKey: ['quote-editor-categories'],
     queryFn: async () => {
@@ -428,6 +423,38 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     window.open(whatsappUrl(data.customer.whatsapp || data.customer.phone || '', msg), '_blank', 'noopener,noreferrer');
   };
 
+  const savedRecord = async () => {
+    const { data: q, error } = await supabase.from('quotes').select('*').eq('id', recordId!).single();
+    if (error) throw error;
+    return q as unknown as QuoteRecord;
+  };
+  const handleSignMine = async () => {
+    setBusy(true);
+    try {
+      const r = await applyCompanySignature(await savedRecord(), await listSignatures());
+      toast({ title: 'Assinatura da empresa aplicada', description: r.both ? 'Contrato assinado pelas duas partes.' : 'Falta a assinatura do cliente.' });
+      onSaved();
+    } catch (e) {
+      const m = (e as Error).message;
+      toast({ title: 'Não foi possível aplicar', description: m === 'no-signature' ? 'Envie a imagem da assinatura em Personalização.' : m === 'no-name' ? 'Preencha o nome do responsável em Personalização.' : 'Tente de novo.', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const handleSendSign = async () => {
+    const win = window.open('', '_blank');
+    setBusy(true);
+    try {
+      await sendContractSignLink(await savedRecord(), win);
+      toast({ title: 'Link de assinatura criado', description: 'Para de funcionar depois de assinado.' });
+    } catch {
+      win?.close();
+      toast({ title: 'Não foi possível criar o link', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
@@ -443,6 +470,15 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             <PdfPagesPreview blob={previewBlob} onPages={setPreviewPages} />
             {!data.number && (
               <p className="text-xs text-muted-foreground">Prévia — o número definitivo é criado ao clicar em "Gerar PDF".</p>
+            )}
+            {data.docType === 'contrato' && pdfUrl && recordId && (
+              <div className="rounded-md border border-primary/40 bg-primary/10 p-3 space-y-2">
+                <p className="text-sm font-medium">✅ Contrato salvo em "Contratos Feitos".</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" disabled={busy} onClick={handleSignMine}><PenLine className="h-4 w-4 mr-1" />Assinar</Button>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={handleSendSign}><Link2 className="h-4 w-4 mr-1" />Enviar para o cliente assinar</Button>
+                </div>
+              </div>
             )}
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setStep('edit')}><Pencil className="h-4 w-4 mr-1" />Editar orçamento</Button>
@@ -533,7 +569,8 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
                     className={`${selectCls} w-full sm:w-60`}
                     value=""
                     onChange={(e) => {
-                      if (e.target.value) set('items', [...data.items.filter((i) => i.description.trim()), { description: e.target.value, quantity: 1, unitPrice: 0, kind: 'service' }]);
+                      const sd = svcDefaults.find((d) => d.name === e.target.value);
+                      if (e.target.value) set('items', [...data.items.filter((i) => i.description.trim()), { description: e.target.value, quantity: 1, unitPrice: sd?.price || 0, kind: 'service', imageUrl: sd?.image_url || undefined }]);
                     }}
                   >
                     <option value="">+ Serviço Técnico Especializado</option>
@@ -574,7 +611,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
                       <Button size="icon" variant="ghost" onClick={() => set('items', data.items.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                     <div className="col-span-12">
-                      <Input className="h-8 text-xs" placeholder="Link da imagem (opcional)" value={it.imageUrl || ''} onChange={(e) => setItem(i, { imageUrl: e.target.value || undefined })} />
+                      <ImageUploadField value={it.imageUrl} onChange={(url) => setItem(i, { imageUrl: url })} />
                     </div>
                   </div>
                 ))}
