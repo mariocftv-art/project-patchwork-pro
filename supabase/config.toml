@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.contract-link]
 verify_jwt = false
+
+[functions.appointment-reminders]
+verify_jwt = false

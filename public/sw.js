@@ -44,12 +44,12 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     data: {
       orderNumber: data.orderNumber,
-      url: data.orderNumber ? `/rastrear-pedido?pedido=${data.orderNumber}` : '/rastrear-pedido',
+      url: data.url || (data.orderNumber ? `/rastrear-pedido?pedido=${data.orderNumber}` : '/rastrear-pedido'),
     },
     actions: [
       {
         action: 'view',
-        title: 'Ver Pedido',
+        title: data.url ? 'Abrir' : 'Ver Pedido',
       },
       {
         action: 'close',
