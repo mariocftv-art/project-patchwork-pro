@@ -117,3 +117,27 @@ export default function PdfPagesPreview({ blob, onPages }: Props) {
     </div>
   );
 }
+
+/** Extrai o texto do PDF em linhas (para leitura responsiva no celular). */
+export async function extractPdfLines(blob: Blob): Promise<string[][]> {
+  const data = new Uint8Array(await blob.arrayBuffer());
+  const pdf = await pdfjs.getDocument({ data, isEvalSupported: false }).promise;
+  const out: string[][] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    const rows = new Map<number, { x: number; s: string }[]>();
+    for (const it of tc.items as { str: string; transform: number[] }[]) {
+      if (!it.str) continue;
+      const y = Math.round(it.transform[5] / 2) * 2;
+      rows.set(y, [...(rows.get(y) || []), { x: it.transform[4], s: it.str }]);
+    }
+    const lines = [...rows.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([, parts]) => parts.sort((a, b) => a.x - b.x).map((p) => p.s).join(' ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    out.push(lines);
+  }
+  await pdf.destroy();
+  return out;
+}

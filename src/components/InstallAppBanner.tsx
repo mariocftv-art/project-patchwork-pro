@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Download, Share, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'react-router-dom';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -123,6 +124,8 @@ export function InstallAppButton({ className }: { className?: string }) {
 export default function InstallAppBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const { canInstall, isIOS, isInstalled, install } = useInstallPrompt();
+  const { pathname } = useLocation();
+  const blockedRoute = /^\/(assinar|contrato)\//.test(pathname);
 
   useEffect(() => {
     // Setup global listener for beforeinstallprompt
@@ -170,7 +173,7 @@ export default function InstallAppBanner() {
     setShowBanner(false);
   };
 
-  if (isInstalled || !showBanner || !canInstall) {
+  if (blockedRoute || isInstalled || !showBanner || !canInstall) {
     return null;
   }
 
