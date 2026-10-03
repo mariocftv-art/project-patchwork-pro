@@ -815,6 +815,27 @@ export type Database = {
         }
         Relationships: []
       }
+      service_defaults: {
+        Row: {
+          image_url: string | null
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          image_url?: string | null
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          image_url?: string | null
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_photos: {
         Row: {
           created_at: string
