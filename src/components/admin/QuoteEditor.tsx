@@ -276,6 +276,9 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     }
     setBusy(true);
     try {
+      // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
       const number = data.number || (await nextDocNumber());
       const final = { ...data, number };
       const profile = await getCompanyProfile(true);
@@ -343,14 +346,15 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         ? await q.update(payload).eq('id', targetId).select('id').maybeSingle()
         : await q.insert(payload).select('id').maybeSingle();
       if (res.error) throw res.error;
-      targetId = res.data?.id ?? targetId;
-      if (!targetId) throw new Error('Registro não salvo');
-      // Histórico de versões
+      if (!res.data?.id) throw new Error('O documento não foi gravado (login de admin não reconhecido). Saia e entre de novo.');
+      targetId = res.data.id;
+      // Histórico de versões (consultas separadas: reaproveitar a mesma consulta levava filtros da leitura para a gravação)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const qv = supabase.from('quote_versions' as any) as any;
-      const { data: last } = await qv.select('version').eq('quote_id', targetId).order('version', { ascending: false }).limit(1).maybeSingle();
+      const qv = () => supabase.from('quote_versions' as any) as any;
+      const { data: last, error: lastErr } = await qv().select('version').eq('quote_id', targetId).order('version', { ascending: false }).limit(1).maybeSingle();
+      if (lastErr) throw lastErr;
       const version = (last?.version || 0) + 1;
-      const vres = await qv.insert({
+      const vres = await qv().insert({
         quote_id: targetId,
         version,
         change_type: locked ? 'aditivo' : version === 1 ? (duplicate ? 'duplicado' : 'criacao') : 'edicao',
@@ -378,7 +382,13 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${number}` });
     } catch (e) {
       console.error(e);
-      toast({ title: 'Erro ao salvar', description: 'Verifique suas permissões de administrador.', variant: 'destructive' });
+      const msg = (e as { message?: string })?.message || '';
+      const expired = /jwt|token|expired|row-level|permission/i.test(msg);
+      toast({
+        title: 'Erro ao salvar',
+        description: expired ? 'Seu login expirou. Saia do painel e entre de novo, depois gere o PDF outra vez.' : msg || 'Tente novamente.',
+        variant: 'destructive',
+      });
     } finally {
       setBusy(false);
     }
