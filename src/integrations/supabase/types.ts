@@ -47,6 +47,60 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      appointment_settings: {
+        Row: {
+          id: number
+          last_sent_date: string | null
+          on_the_way_template: string
+          reminder_enabled: boolean
+          reminder_hour: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          last_sent_date?: string | null
+          on_the_way_template?: string
+          reminder_enabled?: boolean
+          reminder_hour?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          last_sent_date?: string | null
+          on_the_way_template?: string
+          reminder_enabled?: boolean
+          reminder_hour?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           address: string | null
