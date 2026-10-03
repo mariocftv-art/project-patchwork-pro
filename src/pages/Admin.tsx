@@ -38,6 +38,8 @@ export default function Admin() {
   const [onlyInstall, setOnlyInstall] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const { data: apts = [] } = useAppointments();
+  const aptAlerts = countAlerts(apts);
 
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ['admin-products'],

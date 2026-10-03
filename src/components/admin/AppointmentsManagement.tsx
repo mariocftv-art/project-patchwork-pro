@@ -42,7 +42,7 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 const STATUS_CLS: Record<string, string> = {
   agendado: 'bg-muted text-foreground', confirmado: 'bg-primary text-primary-foreground', andamento: 'bg-secondary text-secondary-foreground',
-  concluido: 'bg-promo text-promo-foreground', cancelado: 'bg-destructive/15 text-destructive', faltou: 'bg-destructive text-destructive-foreground',
+  concluido: 'bg-promo text-primary-foreground', cancelado: 'bg-destructive/15 text-destructive', faltou: 'bg-destructive text-destructive-foreground',
 };
 const ACTIVE = ['agendado', 'confirmado', 'andamento'];
 
