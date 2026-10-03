@@ -12,6 +12,8 @@ import { getBrand } from '@/lib/brand';
 import { maskPhone } from '@/lib/masks';
 import QuoteEditor from '@/components/admin/QuoteEditor';
 import type { DocCustomer } from '@/lib/premiumPDF';
+import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, type AppointmentSettings } from '@/lib/appointmentExtras';
+import { Truck, CalendarPlus, Settings2 } from 'lucide-react';
 import { Plus, MessageCircle, MapPin, CalendarClock, XCircle, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle, Pencil } from 'lucide-react';
 
 export type Appointment = {
@@ -103,6 +105,22 @@ export default function AppointmentsManagement() {
   const [done, setDone] = useState<Appointment | null>(null);
   const [editor, setEditor] = useState<{ type: 'orcamento' | 'contrato'; customer: Partial<DocCustomer> } | null>(null);
   const [now, setNow] = useState(Date.now());
+  const { data: settings, refetch: refetchSettings } = useQuery({ queryKey: ['appointment-settings'], queryFn: loadSettings });
+  const [cfg, setCfg] = useState<AppointmentSettings | null>(null);
+  const [onWay, setOnWay] = useState<{ a: Appointment; mins: number; msg: string } | null>(null);
+  const buildOnWay = (a: Appointment, mins: number) => fillOnTheWay(settings?.on_the_way_template || DEFAULT_ON_THE_WAY, {
+    cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
+    chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
+  });
+  const saveCfg = async (enableNow: boolean) => {
+    if (!cfg) return;
+    if (enableNow && cfg.reminder_enabled) {
+      const err = await enableAdminPush();
+      if (err) return toast({ title: 'Aviso não ativado', description: err, variant: 'destructive' });
+    }
+    try { await saveSettings(cfg); toast({ title: 'Configurações salvas' }); setCfg(null); refetchSettings(); }
+    catch (e) { toast({ title: 'Erro ao salvar', description: (e as Error).message, variant: 'destructive' }); }
+  };
 
   const { data: clients = [] } = useQuery({
     queryKey: ['appointment-clients'],
@@ -231,6 +249,8 @@ export default function AppointmentsManagement() {
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => whats(a)}><MessageCircle className="h-4 w-4 mr-1" />Confirmar</Button>
+          <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => setOnWay({ a, mins: 30, msg: buildOnWay(a, 30) })}><Truck className="h-4 w-4 mr-1" />Estou a caminho</Button>
+          <Button variant="outline" className="h-11" onClick={() => downloadIcs({ id: a.id, title: `${KIND_LABELS[a.kind]} — ${a.customer_name}`, address: [a.address, a.reference_point].filter(Boolean).join(' — '), description: [a.customer_phone, a.technician && `Técnico: ${a.technician}`, a.notes].filter(Boolean).join('\n'), start: new Date(a.starts_at), minutes: a.duration_minutes })}><CalendarPlus className="h-4 w-4 mr-1" />Adicionar à agenda do celular</Button>
           <Button variant="outline" className="h-11" disabled={!a.address} onClick={() => window.open(mapsUrl(a), '_blank', 'noopener,noreferrer')}><MapPin className="h-4 w-4 mr-1" />Mapa</Button>
           {a.status === 'agendado' && <Button variant="outline" className="h-11" onClick={() => setStatus(a, 'confirmado')}><CheckCircle2 className="h-4 w-4 mr-1" />Cliente confirmou</Button>}
           <Button variant="outline" className="h-11" onClick={() => edit(a)}><CalendarClock className="h-4 w-4 mr-1" />Remarcar</Button>
@@ -252,24 +272,43 @@ export default function AppointmentsManagement() {
         {days.map((d) => {
           const items = notCancelled.filter((a) => sameDay(new Date(a.starts_at), d));
           const late = items.some((a) => alertOf(a, now) === 'atrasado');
+          const red = items.some((a) => a.status === 'agendado');
+          const green = items.some((a) => a.status !== 'agendado' && a.status !== 'faltou');
           const out = d.getMonth() !== range.s.getMonth();
           return (
             <button key={d.toISOString()} onClick={() => { setRef(d); setView('dia'); }}
-              className={`min-h-14 rounded-md border p-1 text-sm flex flex-col items-center ${out ? 'opacity-40' : ''} ${sameDay(d, today) ? 'border-primary border-2' : 'border-border'} ${late ? 'bg-destructive/10' : 'bg-card'}`}>
-              <span>{d.getDate()}</span>
-              {items.length > 0 && <span className={`mt-1 text-xs font-bold rounded-full px-2 ${late ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>{items.length}</span>}
+              className={`min-h-14 rounded-md border p-1 text-sm flex flex-col items-center ${out ? 'opacity-40' : ''} ${sameDay(d, today) ? 'border-primary border-2' : 'border-border'} bg-card relative overflow-hidden`}
+              aria-label={`${d.getDate()}: ${items.length} agendamento(s)${green ? ', confirmado' : ''}${red ? ', não confirmado' : ''}`}>
+              {(green || red) && <span className="absolute inset-0 flex" aria-hidden>
+                {green && <span className="flex-1 bg-promo/25" />}{red && <span className="flex-1 bg-destructive/20" />}
+              </span>}
+              <span className="relative font-semibold">{d.getDate()}</span>
+              {items.length > 0 && <span className="relative mt-1 flex gap-1">
+                {green && <span className="h-2.5 w-2.5 rounded-full bg-promo" />}{red && <span className="h-2.5 w-2.5 rounded-full bg-destructive" />}
+                <span className={`text-xs font-bold ${late ? 'text-destructive' : ''}`}>{items.length}</span>
+              </span>}
             </button>
           );
         })}
       </div>
     );
   };
+  const legend = (
+    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full border border-border bg-card" />Sem agendamento</span>
+      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-promo" />Confirmado</span>
+      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-destructive" />Não confirmado pelo cliente</span>
+    </div>
+  );
 
   return (
     <div className="space-y-4 min-w-0">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Agendamentos</h2>
-        <Button className="h-11" onClick={() => setForm(emptyForm())}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="h-11" onClick={() => settings && setCfg({ ...settings })}><Settings2 className="h-4 w-4 mr-1" />Configurações</Button>
+          <Button className="h-11" onClick={() => setForm(emptyForm())}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -296,7 +335,7 @@ export default function AppointmentsManagement() {
         <Button variant="ghost" className="h-11" onClick={() => setRef(new Date())}>Hoje</Button>
       </div>
 
-      {view === 'mes' ? monthGrid() : inRange.length === 0 ? (
+      {view === 'mes' ? <div className="space-y-2">{monthGrid()}{legend}</div> : inRange.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">Nenhum agendamento neste período.</p>
       ) : (
         <div className="space-y-3">{inRange.map((a) => <Item key={a.id} a={a} />)}</div>
@@ -351,6 +390,59 @@ export default function AppointmentsManagement() {
               <div><Label>Observações</Label><Textarea className="mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               {(() => { const c = form.starts_at ? overlaps({ id: form.id || '', starts_at: new Date(form.starts_at).toISOString(), duration_minutes: form.duration_minutes, technician: form.technician }, list) : []; return c.length ? <p className="text-sm font-semibold text-destructive">⚠️ {form.technician} já tem agendamento nesse horário: {c.map((x) => `${x.customer_name} às ${fmtTime(new Date(x.starts_at))}`).join(', ')}</p> : null; })()}
               <Button className="w-full h-12 font-bold" onClick={save}>Salvar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Estou a caminho */}
+      <Dialog open={!!onWay} onOpenChange={(v) => !v && setOnWay(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Estou a caminho</DialogTitle></DialogHeader>
+          {onWay && (
+            <div className="space-y-3">
+              <Label>Chego em quantos minutos?</Label>
+              <select className={selectCls} value={onWay.mins} onChange={(e) => { const m = Number(e.target.value); setOnWay({ ...onWay, mins: m, msg: buildOnWay(onWay.a, m) }); }}>
+                {[10, 15, 20, 30, 45, 60, 90, 120].map((m) => <option key={m} value={m}>{m} min (chegada ~{fmtTime(new Date(Date.now() + m * 60_000))})</option>)}
+              </select>
+              <Label>Mensagem (pode editar)</Label>
+              <Textarea rows={6} value={onWay.msg} onChange={(e) => setOnWay({ ...onWay, msg: e.target.value })} />
+              <Button className="w-full h-12" onClick={() => { window.open(whatsappUrl(onWay.a.customer_phone || '', onWay.msg), '_blank', 'noopener,noreferrer'); setOnWay(null); }}><MessageCircle className="h-4 w-4 mr-1" />Abrir WhatsApp</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Configurações */}
+      <Dialog open={!!cfg} onOpenChange={(v) => !v && setCfg(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Configurações dos agendamentos</DialogTitle></DialogHeader>
+          {cfg && (
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_enabled: e.target.checked })} />
+                  Aviso de manhã com os agendamentos do dia
+                </label>
+                <Label>Horário do aviso</Label>
+                <select className={selectCls} value={cfg.reminder_hour} disabled={!cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_hour: Number(e.target.value) })}>
+                  {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground">Ao salvar ligado, este aparelho pede permissão para notificações. Ative em cada celular/computador onde quer receber. Para ter alarme com som, use também "Adicionar à agenda do celular" em cada agendamento.</p>
+                <Button variant="outline" className="h-11 w-full" onClick={async () => {
+                  const err = await enableAdminPush();
+                  if (err) return toast({ title: 'Aviso não ativado', description: err, variant: 'destructive' });
+                  try { const r = await sendTestReminder(); toast({ title: r.sent ? 'Aviso de teste enviado' : 'Nenhum aparelho recebeu', description: `${r.sent} de ${r.total} aparelho(s)` }); }
+                  catch { toast({ title: 'Falha ao enviar teste', variant: 'destructive' }); }
+                }}>Enviar aviso de teste agora</Button>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between"><Label>Mensagem "Estou a caminho"</Label>
+                  <Button variant="ghost" size="sm" onClick={() => setCfg({ ...cfg, on_the_way_template: DEFAULT_ON_THE_WAY })}>Restaurar padrão</Button></div>
+                <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
+                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} e {'{CHEGADA}'} (horário previsto).</p>
+              </div>
+              <Button className="w-full h-12 font-bold" onClick={() => saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled)}>Salvar</Button>
             </div>
           )}
         </DialogContent>
