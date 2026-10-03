@@ -456,7 +456,7 @@ export default function AppointmentsManagement() {
                 <div className="flex items-center justify-between"><Label>Mensagem "Estou a caminho"</Label>
                   <Button variant="ghost" size="sm" onClick={() => setCfg({ ...cfg, on_the_way_template: DEFAULT_ON_THE_WAY })}>Restaurar padrão</Button></div>
                 <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
-                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} e {'{CHEGADA}'} (horário previsto).</p>
+                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} , {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
               </div>
               <Button className="w-full h-12 font-bold" onClick={() => saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled)}>Salvar</Button>
             </div>
