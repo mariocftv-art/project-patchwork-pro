@@ -76,27 +76,36 @@ export type Database = {
       }
       appointment_settings: {
         Row: {
+          auto_confirm: boolean
           id: number
           last_sent_date: string | null
           on_the_way_template: string
           reminder_enabled: boolean
           reminder_hour: number
+          send_window_end: number
+          send_window_start: number
           updated_at: string
         }
         Insert: {
+          auto_confirm?: boolean
           id?: number
           last_sent_date?: string | null
           on_the_way_template?: string
           reminder_enabled?: boolean
           reminder_hour?: number
+          send_window_end?: number
+          send_window_start?: number
           updated_at?: string
         }
         Update: {
+          auto_confirm?: boolean
           id?: number
           last_sent_date?: string | null
           on_the_way_template?: string
           reminder_enabled?: boolean
           reminder_hour?: number
+          send_window_end?: number
+          send_window_start?: number
           updated_at?: string
         }
         Relationships: []
@@ -105,6 +114,7 @@ export type Database = {
         Row: {
           address: string | null
           cancel_reason: string | null
+          confirm_pending_at: string | null
           created_at: string
           customer_doc: Json
           customer_name: string
@@ -123,6 +133,7 @@ export type Database = {
         Insert: {
           address?: string | null
           cancel_reason?: string | null
+          confirm_pending_at?: string | null
           created_at?: string
           customer_doc?: Json
           customer_name: string
@@ -141,6 +152,7 @@ export type Database = {
         Update: {
           address?: string | null
           cancel_reason?: string | null
+          confirm_pending_at?: string | null
           created_at?: string
           customer_doc?: Json
           customer_name?: string
