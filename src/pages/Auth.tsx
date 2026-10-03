@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,30 +65,6 @@ const Auth = () => {
     setIsSubmitting(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    const { error } = await signUp(email, password);
-    
-    if (error) {
-      if (error.message.includes('User already registered')) {
-        setError('Este email já está cadastrado. Faça login.');
-      } else {
-        setError(error.message);
-      }
-    } else {
-      setSuccess('Conta criada com sucesso! Você já pode fazer login.');
-      setEmail('');
-      setPassword('');
-    }
-    setIsSubmitting(false);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -115,10 +91,6 @@ const Auth = () => {
         
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="register">Cadastrar</TabsTrigger>
-            </TabsList>
             
             {error && (
               <Alert variant="destructive" className="mb-4">
@@ -178,50 +150,6 @@ const Auth = () => {
               </form>
             </TabsContent>
             
-            <TabsContent value="register">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-register">Email</Label>
-                  <Input
-                    id="email-register"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="ml-input"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password-register">Senha</Label>
-                  <Input
-                    id="password-register"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="ml-input"
-                    required
-                  />
-                </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full ml-btn-primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    'Criar conta'
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
