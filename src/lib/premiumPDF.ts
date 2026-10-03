@@ -279,6 +279,10 @@ export function validateDoc(data: PremiumDocData): string[] {
   if (cpf && cpf.length !== 11) errors.push('CPF deve ter 11 números.');
   const cnpj = (c.cnpj || '').replace(/\D/g, '');
   if (cnpj && cnpj.length !== 14) errors.push('CNPJ deve ter 14 números.');
+  if (data.docType === 'contrato') {
+    if (!cpf && !cnpj) errors.push('Contrato: informe o CPF ou o CNPJ do cliente.');
+    else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
+  }
   if (c.cep && c.cep.replace(/\D/g, '').length !== 8) errors.push('CEP deve ter 8 números.');
   if (!data.items.length) errors.push('Adicione pelo menos um item.');
   data.items.forEach((it, i) => {
