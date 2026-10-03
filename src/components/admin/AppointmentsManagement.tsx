@@ -12,7 +12,7 @@ import { getBrand } from '@/lib/brand';
 import { maskPhone } from '@/lib/masks';
 import QuoteEditor from '@/components/admin/QuoteEditor';
 import type { DocCustomer } from '@/lib/premiumPDF';
-import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, type AppointmentSettings } from '@/lib/appointmentExtras';
+import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, inSendWindow, nextWindowOpen, type AppointmentSettings } from '@/lib/appointmentExtras';
 import { Truck, CalendarPlus, Settings2 } from 'lucide-react';
 import { Plus, MessageCircle, MapPin, CalendarClock, XCircle, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle, Pencil } from 'lucide-react';
 
@@ -31,6 +31,7 @@ export type Appointment = {
   notes: string | null;
   status: string;
   cancel_reason: string | null;
+  confirm_pending_at?: string | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,9 +190,19 @@ export default function AppointmentsManagement() {
     };
     const clash = overlaps({ id: form.id || '', ...row }, list);
     if (clash.length && !window.confirm(`Atenção: já existe ${clash.length} agendamento(s) nesse horário (${clash.map((c) => `${fmtRange(c)} — ${c.customer_name}`).join(', ')}). Salvar mesmo assim?`)) return;
-    const { error } = form.id ? await db().update(row).eq('id', form.id) : await db().insert(row);
-    if (error) return toast({ title: 'Não foi possível salvar', description: error.message, variant: 'destructive' });
+    const isNew = !form.id;
+    const res = form.id ? await db().update(row).eq('id', form.id) : await db().insert(row).select('id').single();
+    if (res.error) return toast({ title: 'Não foi possível salvar', description: res.error.message, variant: 'destructive' });
     toast({ title: form.id ? 'Agendamento atualizado' : 'Agendamento criado' });
+    if (isNew && settings?.auto_confirm && row.customer_phone && row.status === 'agendado' && res.data?.id) {
+      const created = { ...row, id: res.data.id, cancel_reason: null } as Appointment;
+      if (inSendWindow(settings)) whats(created);
+      else {
+        const at = nextWindowOpen(settings);
+        await db().update({ confirm_pending_at: at.toISOString() }).eq('id', created.id);
+        toast({ title: `Fora do horário permitido — será enviado às ${fmtTime(at)}`, description: 'A confirmação fica guardada e aparece aqui para enviar quando abrir o horário.' });
+      }
+    }
     setForm(null);
     qc.invalidateQueries({ queryKey: ['appointments'] });
   };
@@ -206,7 +217,10 @@ export default function AppointmentsManagement() {
     const d = new Date(a.starts_at);
     const msg = `${greeting()}, ${a.customer_name.split(' ')[0]}! Aqui é da 🛡️ ${getBrand().name}. Confirmando sua ${KIND_LABELS[a.kind].toLowerCase()}:\n📅 ${d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}\n${clockLine(a)}\n📍 ${a.address || '-'}${a.reference_point ? ` (${a.reference_point})` : ''}\nPode confirmar, por favor?`;
     window.open(whatsappUrl(a.customer_phone || '', msg), '_blank', 'noopener,noreferrer');
+    if (a.confirm_pending_at) db().update({ confirm_pending_at: null }).eq('id', a.id).then(() => qc.invalidateQueries({ queryKey: ['appointments'] }));
   };
+  const dueConfirms = settings && inSendWindow(settings, new Date(now))
+    ? list.filter((a) => a.confirm_pending_at && new Date(a.confirm_pending_at).getTime() <= now && ACTIVE.includes(a.status)) : [];
 
   const edit = (a: Appointment) => setForm({
     id: a.id, customer_name: a.customer_name, customer_phone: a.customer_phone || '', address: a.address || '', reference_point: a.reference_point || '',
@@ -243,6 +257,7 @@ export default function AppointmentsManagement() {
           <span className="text-sm">· {a.duration_minutes} min</span>
           <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded ${STATUS_CLS[a.status]}`}>{STATUS_LABELS[a.status]}</span>
         </div>
+        {a.confirm_pending_at && <p className="text-sm font-semibold">🕗 Confirmação guardada — {new Date(a.confirm_pending_at).getTime() > now ? `será enviada às ${fmtTime(new Date(a.confirm_pending_at))}` : 'liberada para enviar'}</p>}
         {lvl === 'atrasado' && <p className="text-sm font-bold text-destructive flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Passou da hora e continua como agendado</p>}
         {lvl === '1h' && <p className="text-sm font-semibold text-destructive">⏰ Falta menos de 1 hora</p>}
         {lvl === '1d' && <p className="text-sm font-semibold">📅 Falta menos de 1 dia</p>}
@@ -458,7 +473,24 @@ export default function AppointmentsManagement() {
                 <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
                 <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} , {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
               </div>
-              <Button className="w-full h-12 font-bold" onClick={() => saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled)}>Salvar</Button>
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <Label>Horário permitido para mensagens automáticas</Label>
+                <div className="flex items-center gap-2">
+                  <select className={selectCls} value={cfg.send_window_start} onChange={(e) => setCfg({ ...cfg, send_window_start: Number(e.target.value) })}>
+                    {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                  </select>
+                  <span>às</span>
+                  <select className={selectCls} value={cfg.send_window_end} onChange={(e) => setCfg({ ...cfg, send_window_end: Number(e.target.value) })}>
+                    {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.auto_confirm} onChange={(e) => setCfg({ ...cfg, auto_confirm: e.target.checked })} />
+                  Abrir a confirmação pelo WhatsApp sozinha ao criar um agendamento
+                </label>
+                <p className="text-xs text-muted-foreground">Fora desse horário a confirmação fica guardada até o horário de início. Os botões que você toca continuam enviando na hora.</p>
+              </div>
+              <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled); }}>Salvar</Button>
             </div>
           )}
         </DialogContent>

@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { registerServiceWorker, subscribeToPush, isPushSupported } from '@/utils/serviceWorkerPush';
 
-export type AppointmentSettings = { reminder_enabled: boolean; reminder_hour: number; on_the_way_template: string };
+export type AppointmentSettings = { reminder_enabled: boolean; reminder_hour: number; on_the_way_template: string; send_window_start: number; send_window_end: number; auto_confirm: boolean };
 export const DEFAULT_ON_THE_WAY =
   'Olá, {CLIENTE}! Aqui é da 🛡️ {EMPRESA}. O técnico está saindo agora para o seu endereço ({ENDERECO}). Previsão de chegada: {CHEGADA}. Até já!';
 
@@ -9,8 +9,8 @@ export const DEFAULT_ON_THE_WAY =
 const tbl = (n: string) => (supabase as any).from(n);
 
 export async function loadSettings(): Promise<AppointmentSettings> {
-  const { data } = await tbl('appointment_settings').select('reminder_enabled,reminder_hour,on_the_way_template').eq('id', 1).maybeSingle();
-  return data || { reminder_enabled: false, reminder_hour: 7, on_the_way_template: DEFAULT_ON_THE_WAY };
+  const { data } = await tbl('appointment_settings').select('reminder_enabled,reminder_hour,on_the_way_template,send_window_start,send_window_end,auto_confirm').eq('id', 1).maybeSingle();
+  return data || { reminder_enabled: false, reminder_hour: 7, on_the_way_template: DEFAULT_ON_THE_WAY, send_window_start: 8, send_window_end: 20, auto_confirm: false };
 }
 export async function saveSettings(s: AppointmentSettings) {
   const { error } = await tbl('appointment_settings').upsert({ id: 1, ...s, updated_at: new Date().toISOString() });
@@ -63,4 +63,14 @@ export function downloadIcs(a: { id: string; title: string; address?: string | n
   link.href = url; link.download = `agendamento-${a.start.toISOString().slice(0, 10)}.ics`;
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Dentro da janela permitida [início, fim) para mensagens automáticas? */
+export const inSendWindow = (s: Pick<AppointmentSettings, 'send_window_start' | 'send_window_end'>, d = new Date()) =>
+  d.getHours() >= s.send_window_start && d.getHours() < s.send_window_end;
+/** Próximo horário de abertura da janela. */
+export function nextWindowOpen(s: Pick<AppointmentSettings, 'send_window_start'>, d = new Date()) {
+  const n = new Date(d); n.setHours(s.send_window_start, 0, 0, 0);
+  if (n <= d) n.setDate(n.getDate() + 1);
+  return n;
 }
