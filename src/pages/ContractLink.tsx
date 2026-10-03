@@ -1,18 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, Download, CheckCircle2 } from 'lucide-react';
+import { Loader2, Download, CheckCircle2, Plus, Minus, Maximize2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getCompanyProfile } from '@/lib/companyProfile';
 import { buildPremiumPDF } from '@/lib/premiumPDF';
-import { renderPdfPages } from '@/components/admin/PdfPagesPreview';
+import { renderPdfPages, extractPdfLines } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from '@/components/admin/SignaturePad';
 import { recordToDoc, QuoteRecord } from '@/components/admin/QuoteEditor';
 import { toDocSignatures, preloadRatios, SignatureRow } from '@/lib/contractSignatures';
 import { getBrand } from '@/lib/brand';
 import { maskCPF, maskCNPJ, isValidCPF } from '@/lib/masks';
+
+/** Junta linhas quebradas do PDF em parágrafos que se ajustam à tela. */
+function toParagraphs(lines: string[]): { text: string; head: boolean }[] {
+  const out: { text: string; head: boolean }[] = [];
+  const isHead = (l: string) => /^(CL[ÁA]USULA|CONTRATO|ADITIVO|CONTRATANTE|CONTRATADA|PAR[ÁA]GRAFO)/i.test(l) || (l.length < 70 && l === l.toUpperCase() && /[A-ZÀ-Ú]/.test(l));
+  for (const l of lines) {
+    const prev = out[out.length - 1];
+    const head = isHead(l);
+    if (prev && !prev.head && !head && !/[.:;!?]$/.test(prev.text) && /^[a-zà-ú0-9(,]/.test(l)) prev.text += ' ' + l;
+    else out.push({ text: l, head });
+  }
+  return out;
+}
 
 type View = {
   state: 'ok' | 'signed' | 'expired' | 'revoked' | 'invalid';
@@ -49,6 +62,9 @@ export default function ContractLink() {
   const { token = '' } = useParams();
   const [view, setView] = useState<View | null>(null);
   const [pages, setPages] = useState<string[]>([]);
+  const [textPages, setTextPages] = useState<string[][]>([]);
+  const [font, setFont] = useState(17);
+  const [full, setFull] = useState(false);
   const [readToEnd, setReadToEnd] = useState(false);
   const [name, setName] = useState('');
   const [doc, setDoc] = useState('');
@@ -65,7 +81,9 @@ export default function ContractLink() {
     if (v.record) {
       setName((n) => n || v.record!.customer_name || '');
       const pdf = await buildPdf(v);
-      setPages(await renderPdfPages(pdf.output('blob'), 1.5));
+      const blob = pdf.output('blob');
+      setTextPages(await extractPdfLines(blob).catch(() => []));
+      setPages(await renderPdfPages(blob, 1.5));
     }
   };
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -135,9 +153,21 @@ export default function ContractLink() {
       )}
       {canSign && <p className="text-sm text-muted-foreground">Leia o contrato inteiro até o fim. O botão de assinar libera depois disso.</p>}
 
-      <div className="rounded-lg border border-border bg-card p-2 space-y-2">
-        {pages.length === 0 ? (
+      <div className="sticky top-0 z-10 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
+        <span className="text-sm text-muted-foreground mr-auto">Tamanho da letra</span>
+        <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Diminuir letra" onClick={() => setFont((f) => Math.max(13, f - 2))}><Minus className="h-5 w-5" /></Button>
+        <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Aumentar letra" onClick={() => setFont((f) => Math.min(28, f + 2))}><Plus className="h-5 w-5" /></Button>
+        <Button variant="outline" className="h-11" disabled={pages.length === 0} onClick={() => setFull(true)}><Maximize2 className="h-4 w-4 mr-1" />PDF</Button>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-4 md:p-6">
+        {textPages.length === 0 && pages.length === 0 ? (
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : textPages.some((p) => p.length) ? (
+          <article className="space-y-3 break-words text-foreground" style={{ fontSize: font, lineHeight: 1.6 }}>
+            {textPages.map((lines, i) => toParagraphs(lines).map((p, j) => (
+              p.head ? <h2 key={`${i}-${j}`} className="font-bold pt-2">{p.text}</h2> : <p key={`${i}-${j}`}>{p.text}</p>
+            )))}
+          </article>
         ) : (
           pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full h-auto border border-border" />)
         )}
@@ -165,6 +195,18 @@ export default function ContractLink() {
           <p className="text-xs text-muted-foreground">
             Assinatura eletrônica simples (desenho na tela), registrada com data, hora, IP, aparelho e código de integridade do documento. Não equivale a certificado digital ICP-Brasil.
           </p>
+        </div>
+      )}
+
+      {full && (
+        <div className="fixed inset-0 z-50 bg-background overflow-auto">
+          <div className="sticky top-0 flex justify-between items-center p-2 bg-card border-b border-border">
+            <span className="font-semibold">Contrato {view.quote_number}</span>
+            <Button variant="outline" className="h-11" onClick={() => setFull(false)}><X className="h-4 w-4 mr-1" />Fechar</Button>
+          </div>
+          <div className="p-2 space-y-2">
+            {pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full max-w-4xl mx-auto h-auto border border-border" />)}
+          </div>
         </div>
       )}
 
