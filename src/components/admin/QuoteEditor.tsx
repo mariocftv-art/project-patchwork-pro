@@ -127,10 +127,12 @@ interface Props {
   mode?: 'edit' | 'preview';
   duplicate?: boolean;
   defaultDocType?: DocType;
+  /** Dados do cliente para preencher um documento novo (ex.: vindo de um agendamento) */
+  prefillCustomer?: Partial<DocCustomer>;
   onSaved: () => void;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved, defaultDocType }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer }: Props) {
   const [data, setData] = useState<PremiumDocData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [status, setStatus] = useState('rascunho');
@@ -189,7 +191,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
           date: new Date(),
           validityDays: profile.quote_validity_days || 15,
           serviceTitle: '',
-          customer: { name: '' },
+          customer: { name: '', ...(prefillCustomer || {}) },
           items: [{ description: '', quantity: 1, unitPrice: 0, kind: 'product' }],
           discount: 0,
           shipping: 0,
@@ -529,8 +531,8 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
               <div className="grid gap-3 sm:grid-cols-6">
                 <Field className="sm:col-span-4" label="Nome completo / Razão social *" v={data.customer.name} on={(v) => setC('name', v)} />
                 <Field className="sm:col-span-2" label="Nome fantasia" v={data.customer.fantasy} on={(v) => setC('fantasy', v)} />
-                <Field className="sm:col-span-3" label="CPF" v={data.customer.cpf} on={(v) => setC('cpf', maskCPF(v))} ph="000.000.000-00" num />
-                <Field className="sm:col-span-3" label="CNPJ" v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
+                <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CPF * (ou CNPJ)' : 'CPF'} v={data.customer.cpf} on={(v) => setC('cpf', maskCPF(v))} ph="000.000.000-00" num />
+                <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CNPJ * (ou CPF)' : 'CNPJ'} v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
                 <Field className="sm:col-span-2" label="Telefone *" v={data.customer.phone} on={(v) => setC('phone', maskPhone(v))} ph="(00) 00000-0000" num />
                 <Field className="sm:col-span-2" label="WhatsApp" v={data.customer.whatsapp} on={(v) => setC('whatsapp', maskPhone(v))} ph="(00) 00000-0000" num />
                 <Field className="sm:col-span-2" label="E-mail" v={data.customer.email} on={(v) => setC('email', v)} />
