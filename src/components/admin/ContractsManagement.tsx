@@ -14,6 +14,7 @@ import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from './SignaturePad';
 import { listSignatures, signContract, applyCompanySignature, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
+import { createContractLink, contractPhone, sendContractSignLink } from '@/lib/contractActions';
 import QuoteEditor, { QuoteRecord, CONTRACT_STATUSES, QUOTE_STATUSES, recordToDoc } from './QuoteEditor';
 
 const selectCls = 'h-9 rounded-md border border-input bg-background px-2 text-sm max-w-full';
@@ -163,27 +164,20 @@ export default function ContractsManagement() {
     else if (!l.signed_at && new Date(l.expires_at) < new Date()) st = 'expirado';
     return `${what} enviado em ${d(l.created_at)}${l.created_by_email ? ` por ${l.created_by_email}` : ''} · válido até ${d(l.expires_at)} · ${st}`;
   };
-  let lastExp = '';
   const makeLink = async (q: QuoteRecord, kind: 'sign' | 'download') => {
-    const { data, error } = await supabase.functions.invoke('contract-link', { body: { action: 'create', kind, quote_id: q.id } });
-    if (error || !data?.token) throw error || new Error('falhou');
-    lastExp = data.expires_at;
+    const { link } = await createContractLink(q, kind);
     qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
-    return `${window.location.origin}/assinar/${data.token}`;
+    return link;
   };
-  const phoneOf = (q: QuoteRecord) => (q.customer?.whatsapp || q.customer_phone || '') as string;
+  const phoneOf = contractPhone;
   const sendSignLink = async (q: QuoteRecord) => {
     const win = window.open('', '_blank');
     setBusyId(q.id);
     try {
-      const link = await makeLink(q, 'sign');
-      const first = q.customer_name.split(' ')[0];
-      const msg = `Olá, ${first}! Segue seu contrato ${q.quote_number} da ${getBrand().name} para leitura e assinatura.\nO link é pessoal e vale até ${new Date(lastExp).toLocaleDateString('pt-BR')}: ${link}`;
-      const url = whatsappUrl(phoneOf(q), msg);
-      if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
+      await sendContractSignLink(q, win);
+      qc.invalidateQueries({ queryKey: ['admin-contract-links'] });
       toast({ title: 'Link de assinatura criado', description: 'Para de funcionar depois de assinado.' });
     } catch {
-      win?.close();
       toast({ title: 'Não foi possível criar o link', variant: 'destructive' });
     } finally {
       setBusyId(null);
