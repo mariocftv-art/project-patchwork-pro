@@ -335,6 +335,18 @@ export default function AppointmentsManagement() {
           <Button className="h-11" onClick={() => setForm(emptyForm())}><Plus className="h-4 w-4 mr-1" />Novo</Button>
         </div>
       </div>
+      {dueConfirms.length > 0 && (
+        <div className="rounded-lg border-2 border-primary p-3 space-y-2 bg-card">
+          <p className="font-semibold">🕗 Confirmações guardadas prontas para enviar ({dueConfirms.length})</p>
+          {dueConfirms.map((a) => (
+            <Button key={a.id} variant="outline" className="h-11 w-full justify-start" onClick={() => whats(a)}>
+              <MessageCircle className="h-4 w-4 mr-1" />Enviar para {a.customer_name} ({fmtRange(a)})
+            </Button>
+          ))}
+        </div>
+      )}
+      <div className="hidden">
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         {cards.map((c) => (
