@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,7 +31,27 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
+/** Sobe ao topo de verdade, inclusive depois que o conteúdo carrega (celular restaura a rolagem antiga). */
+function scrollAdminTop() {
+  const go = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+  go();
+  requestAnimationFrame(go);
+  [80, 250, 600].forEach((ms) => setTimeout(go, ms));
+}
+
 export default function Admin() {
+  const [tab, setTab] = useState('sales');
+  useEffect(() => {
+    const prev = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    scrollAdminTop();
+    return () => { window.history.scrollRestoration = prev; };
+  }, []);
+  const changeTab = (v: string) => { setTab(v); scrollAdminTop(); };
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [onlyPromo, setOnlyPromo] = useState(false);
@@ -91,7 +111,7 @@ export default function Admin() {
       </div>
 
 
-      <Tabs defaultValue="sales" className="space-y-6">
+      <Tabs value={tab} onValueChange={changeTab} className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
           <TabsTrigger value="sales" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
