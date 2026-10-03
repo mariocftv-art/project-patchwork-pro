@@ -34,14 +34,15 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link to={`/produto/${product.id}`} className="block h-full">
-      <div className={`ml-card p-2 sm:p-4 h-full flex flex-col ${product.stock === 0 ? "opacity-60" : ""}`}>
+      <div className={`ml-card p-2 sm:p-4 h-full flex flex-col overflow-hidden min-w-0 ${product.stock === 0 ? "opacity-60" : ""}`}>
         {/* Image Container */}
-        <div className="relative mb-2 sm:mb-3">
-          <div className="aspect-square overflow-hidden rounded">
+        <div className="relative -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 mb-2 sm:mb-3">
+          <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
             <img 
               src={product.image_url || '/placeholder.svg'} 
               alt={product.title} 
-              className="w-full h-full object-contain bg-white"
+              loading="lazy"
+              className="block w-full h-full object-cover object-center"
             />
           </div>
           

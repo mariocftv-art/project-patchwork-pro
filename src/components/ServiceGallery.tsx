@@ -54,11 +54,11 @@ export default function ServiceGallery() {
               onClick={() => setSelectedPhoto(photo)}
             >
               {/* Image Container */}
-              <div className="aspect-square overflow-hidden bg-muted">
+              <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                 <img
                   src={photo.image_url}
                   alt={photo.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="block w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               
