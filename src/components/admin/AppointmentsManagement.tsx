@@ -73,10 +73,9 @@ export function alertOf(a: Appointment, now = Date.now()): AlertLevel {
 export const countAlerts = (list: Appointment[]) => list.filter((a) => alertOf(a)).length;
 
 function overlaps(a: Pick<Appointment, 'id' | 'starts_at' | 'duration_minutes' | 'technician'>, list: Appointment[]) {
-  if (!a.technician?.trim()) return [];
   const s = new Date(a.starts_at).getTime();
   const e = s + a.duration_minutes * 60_000;
-  return list.filter((b) => b.id !== a.id && ACTIVE.includes(b.status) && (b.technician || '').trim().toLowerCase() === a.technician!.trim().toLowerCase()
+  return list.filter((b) => b.id !== a.id && ACTIVE.includes(b.status)
     && new Date(b.starts_at).getTime() < e && end(b) > s);
 }
 
@@ -84,6 +83,9 @@ const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 const sameDay = (a: Date, b: Date) => dayKey(a) === dayKey(b);
 const fmtDate = (d: Date) => d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
 const fmtTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const fmtRange = (a: Pick<Appointment, 'starts_at' | 'duration_minutes'>) => `${fmtTime(new Date(a.starts_at))} às ${fmtTime(new Date(end(a as Appointment)))}`;
+const greeting = (h = new Date().getHours()) => (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite');
+const clockLine = (a: Appointment) => `⏰ ${fmtTime(new Date(a.starts_at))} (chegada prevista até ${fmtTime(new Date(end(a)))})`;
 const toLocalInput = (iso: string) => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 const mapsUrl = (a: Appointment) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address || '')}`;
 
@@ -108,10 +110,17 @@ export default function AppointmentsManagement() {
   const { data: settings, refetch: refetchSettings } = useQuery({ queryKey: ['appointment-settings'], queryFn: loadSettings });
   const [cfg, setCfg] = useState<AppointmentSettings | null>(null);
   const [onWay, setOnWay] = useState<{ a: Appointment; mins: number; msg: string } | null>(null);
-  const buildOnWay = (a: Appointment, mins: number) => fillOnTheWay(settings?.on_the_way_template || DEFAULT_ON_THE_WAY, {
-    cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
-    chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
-  });
+  const buildOnWay = (a: Appointment, mins: number) => {
+    const tpl = settings?.on_the_way_template || DEFAULT_ON_THE_WAY;
+    let msg = fillOnTheWay(tpl, {
+      cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
+      chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
+    }).split('{HORARIO}').join(clockLine(a));
+    msg = msg.replace(/^\s*(olá|ola|oi|bom dia|boa tarde|boa noite)\b/i, greeting());
+    if (!/^(Bom dia|Boa tarde|Boa noite)/.test(msg)) msg = `${greeting()}! ${msg}`;
+    if (!tpl.includes('{HORARIO}')) msg += `\n${clockLine(a)}`;
+    return msg;
+  };
   const saveCfg = async (enableNow: boolean) => {
     if (!cfg) return;
     if (enableNow && cfg.reminder_enabled) {
@@ -179,7 +188,7 @@ export default function AppointmentsManagement() {
       updated_at: new Date().toISOString(),
     };
     const clash = overlaps({ id: form.id || '', ...row }, list);
-    if (clash.length && !window.confirm(`Atenção: ${row.technician} já tem ${clash.length} agendamento(s) nesse horário (${clash.map((c) => `${c.customer_name} às ${fmtTime(new Date(c.starts_at))}`).join(', ')}). Salvar mesmo assim?`)) return;
+    if (clash.length && !window.confirm(`Atenção: já existe ${clash.length} agendamento(s) nesse horário (${clash.map((c) => `${fmtRange(c)} — ${c.customer_name}`).join(', ')}). Salvar mesmo assim?`)) return;
     const { error } = form.id ? await db().update(row).eq('id', form.id) : await db().insert(row);
     if (error) return toast({ title: 'Não foi possível salvar', description: error.message, variant: 'destructive' });
     toast({ title: form.id ? 'Agendamento atualizado' : 'Agendamento criado' });
@@ -195,7 +204,7 @@ export default function AppointmentsManagement() {
 
   const whats = (a: Appointment) => {
     const d = new Date(a.starts_at);
-    const msg = `Olá, ${a.customer_name.split(' ')[0]}! Aqui é da ${getBrand().name}. Confirmando sua ${KIND_LABELS[a.kind].toLowerCase()}:\n📅 ${d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}\n⏰ ${fmtTime(d)}\n📍 ${a.address || '-'}${a.reference_point ? ` (${a.reference_point})` : ''}\nPode confirmar, por favor?`;
+    const msg = `${greeting()}, ${a.customer_name.split(' ')[0]}! Aqui é da 🛡️ ${getBrand().name}. Confirmando sua ${KIND_LABELS[a.kind].toLowerCase()}:\n📅 ${d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}\n${clockLine(a)}\n📍 ${a.address || '-'}${a.reference_point ? ` (${a.reference_point})` : ''}\nPode confirmar, por favor?`;
     window.open(whatsappUrl(a.customer_phone || '', msg), '_blank', 'noopener,noreferrer');
   };
 
@@ -229,7 +238,7 @@ export default function AppointmentsManagement() {
     return (
       <div className={`rounded-lg border p-3 space-y-2 bg-card ${lvl === 'atrasado' ? 'border-destructive border-2 bg-destructive/5' : 'border-border'}`}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-lg">{fmtTime(d)}</span>
+          <span className="font-bold text-lg">{fmtRange(a)} — {a.customer_name}</span>
           {view !== 'dia' && <span className="text-sm text-muted-foreground">{fmtDate(d)}</span>}
           <span className="text-sm">· {a.duration_minutes} min</span>
           <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded ${STATUS_CLS[a.status]}`}>{STATUS_LABELS[a.status]}</span>
@@ -237,7 +246,7 @@ export default function AppointmentsManagement() {
         {lvl === 'atrasado' && <p className="text-sm font-bold text-destructive flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Passou da hora e continua como agendado</p>}
         {lvl === '1h' && <p className="text-sm font-semibold text-destructive">⏰ Falta menos de 1 hora</p>}
         {lvl === '1d' && <p className="text-sm font-semibold">📅 Falta menos de 1 dia</p>}
-        {clash.length > 0 && <p className="text-sm font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Horário sobreposto com {clash.map((c) => c.customer_name).join(', ')} (mesmo técnico)</p>}
+        {clash.length > 0 && <p className="text-sm font-semibold text-destructive flex items-center gap-1"><AlertTriangle className="h-4 w-4" />Horário sobreposto com {clash.map((c) => `${c.customer_name} (${fmtRange(c)})`).join(', ')} </p>}
         <div>
           <p className="font-semibold">{KIND_LABELS[a.kind]} — {a.customer_name}</p>
           {a.customer_phone && <p className="text-sm">{a.customer_phone}</p>}
@@ -287,6 +296,7 @@ export default function AppointmentsManagement() {
                 {green && <span className="h-2.5 w-2.5 rounded-full bg-promo" />}{red && <span className="h-2.5 w-2.5 rounded-full bg-destructive" />}
                 <span className={`text-xs font-bold ${late ? 'text-destructive' : ''}`}>{items.length}</span>
               </span>}
+              {items.slice(0, 2).map((a) => <span key={a.id} className="relative hidden sm:block w-full truncate text-[10px] leading-tight text-left">{fmtRange(a)} — {a.customer_name.split(' ')[0]}</span>)}
             </button>
           );
         })}
@@ -365,8 +375,14 @@ export default function AppointmentsManagement() {
                 <div className="col-span-2 sm:col-span-1"><Label>Data e hora de início *</Label><Input type="datetime-local" className="h-11 mt-1" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div>
                 <div className="col-span-2 sm:col-span-1"><Label>Duração prevista</Label>
                   <select className={`${selectCls} mt-1`} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })}>
+                    {![30, 60, 90, 120, 180, 240, 360, 480].includes(form.duration_minutes) && <option value={form.duration_minutes}>{form.duration_minutes} min</option>}
                     {[30, 60, 90, 120, 180, 240, 360, 480].map((m) => <option key={m} value={m}>{m < 60 ? `${m} min` : `${m / 60} h`.replace('.5', ',5')}</option>)}
                   </select>
+                </div>
+                <div className="col-span-2"><Label>Hora prevista de saída (fim)</Label>
+                  <Input type="time" className="h-11 mt-1" value={form.starts_at ? (() => { const e = new Date(new Date(form.starts_at).getTime() + form.duration_minutes * 60_000); return `${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`; })() : ''}
+                    onChange={(e) => { if (!form.starts_at || !e.target.value) return; const s = new Date(form.starts_at); const [h, m] = e.target.value.split(':').map(Number); const f = new Date(s); f.setHours(h, m, 0, 0); if (f <= s) f.setDate(f.getDate() + 1); setForm({ ...form, duration_minutes: Math.max(15, Math.round((f.getTime() - s.getTime()) / 60_000)) }); }} />
+                  <p className="text-xs text-muted-foreground mt-1">Calculada pela duração; pode digitar à mão.</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -388,7 +404,7 @@ export default function AppointmentsManagement() {
                 <div><Label>Valor previsto (R$)</Label><Input className="h-11 mt-1" inputMode="decimal" value={form.expected_value} onChange={(e) => setForm({ ...form, expected_value: e.target.value.replace(/[^\d,.]/g, '') })} /></div>
               </div>
               <div><Label>Observações</Label><Textarea className="mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              {(() => { const c = form.starts_at ? overlaps({ id: form.id || '', starts_at: new Date(form.starts_at).toISOString(), duration_minutes: form.duration_minutes, technician: form.technician }, list) : []; return c.length ? <p className="text-sm font-semibold text-destructive">⚠️ {form.technician} já tem agendamento nesse horário: {c.map((x) => `${x.customer_name} às ${fmtTime(new Date(x.starts_at))}`).join(', ')}</p> : null; })()}
+              {(() => { const c = form.starts_at ? overlaps({ id: form.id || '', starts_at: new Date(form.starts_at).toISOString(), duration_minutes: form.duration_minutes, technician: form.technician }, list) : []; return c.length ? <p className="text-sm font-semibold text-destructive">⚠️ Já existe agendamento nesse horário: {c.map((x) => `${fmtRange(x)} — ${x.customer_name}`).join(', ')}</p> : null; })()}
               <Button className="w-full h-12 font-bold" onClick={save}>Salvar</Button>
             </div>
           )}
@@ -440,7 +456,7 @@ export default function AppointmentsManagement() {
                 <div className="flex items-center justify-between"><Label>Mensagem "Estou a caminho"</Label>
                   <Button variant="ghost" size="sm" onClick={() => setCfg({ ...cfg, on_the_way_template: DEFAULT_ON_THE_WAY })}>Restaurar padrão</Button></div>
                 <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
-                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} e {'{CHEGADA}'} (horário previsto).</p>
+                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} , {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
               </div>
               <Button className="w-full h-12 font-bold" onClick={() => saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled)}>Salvar</Button>
             </div>

@@ -3,7 +3,7 @@ import { registerServiceWorker, subscribeToPush, isPushSupported } from '@/utils
 
 export type AppointmentSettings = { reminder_enabled: boolean; reminder_hour: number; on_the_way_template: string };
 export const DEFAULT_ON_THE_WAY =
-  'Olá, {CLIENTE}! Aqui é da {EMPRESA}. O técnico está saindo agora para o seu endereço ({ENDERECO}). Previsão de chegada: {CHEGADA}. Até já!';
+  'Olá, {CLIENTE}! Aqui é da 🛡️ {EMPRESA}. O técnico está saindo agora para o seu endereço ({ENDERECO}). Previsão de chegada: {CHEGADA}. Até já!';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const tbl = (n: string) => (supabase as any).from(n);
