@@ -276,6 +276,9 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     }
     setBusy(true);
     try {
+      // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
       const number = data.number || (await nextDocNumber());
       const final = { ...data, number };
       const profile = await getCompanyProfile(true);
