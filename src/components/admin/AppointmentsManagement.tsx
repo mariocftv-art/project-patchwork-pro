@@ -297,7 +297,7 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
           {a.notes && <p className="text-sm text-muted-foreground break-words">{a.notes}</p>}
           {a.cancel_reason && <p className="text-sm text-destructive">Motivo: {a.cancel_reason}</p>}
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap gap-2 [&>*]:whitespace-normal [&>*]:h-auto [&>*]:min-h-11">
           <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => whats(a)}><MessageCircle className="h-4 w-4 mr-1" />Confirmar agendamento</Button>
           <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => setOnWay({ a, mins: 30, msg: buildOnWay(a, 30) })}><Truck className="h-4 w-4 mr-1" />Enviar "Estou a caminho"</Button>
           <Button variant="outline" className="h-11" disabled={!a.customer_phone} asChild={!!a.customer_phone}>{a.customer_phone ? <a href={`tel:${a.customer_phone.replace(/\D/g, '')}`}><Phone className="h-4 w-4 mr-1" />Ligar</a> : <span><Phone className="h-4 w-4 mr-1" />Ligar</span>}</Button>
@@ -357,7 +357,7 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
 
   return (
     <div className="space-y-4 min-w-0">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">{tech ? 'Meus agendamentos' : 'Agendamentos'}</h2>
         <div className="flex gap-2">
           {!tech && <Button variant="outline" className="h-11" onClick={() => { setNotif(notifState()); settings && setCfg({ ...settings }); }}><Settings2 className="h-4 w-4 mr-1" />Configurações</Button>}
