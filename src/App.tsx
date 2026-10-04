@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Product from "./pages/Product";
@@ -21,6 +21,20 @@ import AdminGuard from "./components/AdminGuard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Endereços antigos de categoria levam para a categoria nova
+const LEGACY_CATS: Record<string, string> = {
+  cameras: "câmeras", "cameras-de-seguranca": "câmeras", "dvr-nvr": "dvr", "cercas-eletricas": "cercas",
+  automacao: "automação", "interfones-e-porteiros": "interfones", "cabos-e-acessorios": "cabos",
+  conectores: "cabos", fontes: "cabos", "protecao": "cabos",
+};
+function LegacyCategory() {
+  const { slug = "" } = useParams();
+  const s = decodeURIComponent(slug).toLowerCase();
+  const target = LEGACY_CATS[s] ?? s;
+  if (target === "instalacoes" || target === "instalações") return <Navigate to="/servicos" replace />;
+  return <Navigate to={`/?categoria=${encodeURIComponent(target)}`} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -43,6 +57,8 @@ const App = () => (
             <Route path="/rastrear-pedido" element={<TrackOrder />} />
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/termos" element={<Terms />} />
+            <Route path="/categoria/:slug" element={<LegacyCategory />} />
+            <Route path="/categorias/:slug" element={<LegacyCategory />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
