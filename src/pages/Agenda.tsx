@@ -22,6 +22,7 @@ export default function Agenda() {
   return (
     <div className="container mx-auto max-w-4xl px-3 py-6 space-y-3">
       <div className="flex justify-end gap-2">
+        <Button variant="outline" asChild><Link to="/perfil">Meu perfil</Link></Button>
         {staff.role === 'admin' && <Button variant="outline" asChild><Link to="/admin">Painel completo</Link></Button>}
         <Button variant="ghost" onClick={() => signOut()}>Sair</Button>
       </div>
