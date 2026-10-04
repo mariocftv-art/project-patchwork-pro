@@ -133,9 +133,11 @@ interface Props {
   onSaved: () => void;
   /** Rascunho a continuar (volta exatamente como estava) */
   draft?: QuoteDraft | null;
+  /** Abre uma cópia do orçamento já como contrato, ligada ao original */
+  convertToContract?: boolean;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, draft }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, draft, convertToContract }: Props) {
   const record = recordProp ?? (draft?.record as QuoteRecord | null) ?? null;
   const draftIdRef = useRef<string>(newDraftId());
   const draftCreatedRef = useRef<string>(new Date().toISOString());
@@ -209,6 +211,11 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
           d.number = '';
           d.date = new Date();
         }
+        if (duplicate && convertToContract) {
+          const origin = record.quote_number;
+          Object.assign(d, { docType: 'contrato', showSignatures: true, notes: [`Contrato originado do orçamento ${origin}.`, d.notes].filter(Boolean).join('\n') });
+          d.contractText = buildDefaultContractText(d);
+        }
         setData(d);
         setRecordId(duplicate ? null : record.id);
         setStatus(duplicate ? 'rascunho' : record.status || 'rascunho');
@@ -251,7 +258,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, record, duplicate, mode, draft]);
+  }, [open, record, duplicate, mode, draft, convertToContract]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -332,7 +339,18 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     renderPreview(data);
   };
 
-  const handleGenerate = async () => {
+  const convertTo = (d: PremiumDocData, t: DocType): PremiumDocData =>
+    t === 'contrato'
+      ? { ...d, docType: t, showSignatures: true, contractText: d.contractText?.trim() ? d.contractText : buildDefaultContractText(d) }
+      : { ...d, docType: t, showSignatures: false };
+  /** Rascunho → orçamento ou contrato: nada se perde; número só nasce aqui. */
+  const handleGenerate = (asType?: DocType | unknown) => {
+    const t = asType === 'orcamento' || asType === 'contrato' ? asType : null;
+    const d = t ? convertTo(data, t) : data;
+    if (t) setData(d);
+    return generate(d);
+  };
+  const generate = async (data: PremiumDocData) => {
     const errs = validateDoc(data);
     if (errs.length) {
       setErrors(errs);
@@ -486,6 +504,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     }
   };
 
+  const isNewDraft = !recordId && !data.number;
   const fileName = docFileName(data.docType, data.number || 'previa');
 
   const handleDownload = () => {
@@ -589,9 +608,21 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
             )}
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setStep('edit')}><Pencil className="h-4 w-4 mr-1" />Editar orçamento</Button>
+              {isNewDraft ? (
+                <>
+                  <Button onClick={() => handleGenerate('orcamento')} disabled={busy} className="flex-col h-auto py-2 items-start text-left">
+                    <span className="font-bold">{busy ? 'Salvando…' : '📄 Transformar em ORÇAMENTO'}</span>
+                    <span className="text-xs font-normal opacity-80">Para o cliente levar e pensar. Gera o PDF e o número.</span>
+                  </Button>
+                  <Button onClick={() => handleGenerate('contrato')} disabled={busy} className="flex-col h-auto py-2 items-start text-left">
+                    <span className="font-bold">{busy ? 'Salvando…' : '📝 Transformar em CONTRATO'}</span>
+                    <span className="text-xs font-normal opacity-80">O cliente fechou. Cláusulas e campos de assinatura.</span>
+                  </Button>
+                </>
+              ) : (
               <Button onClick={handleGenerate} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}
-              </Button>
+              </Button>)}
               <Button variant="outline" onClick={handleDownload} disabled={!previewUrl}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
               <Button variant="outline" onClick={handlePrint} disabled={!previewBlob}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
               <Button variant="outline" onClick={handleShare}><Share2 className="h-4 w-4 mr-1" />Compartilhar</Button>
@@ -819,7 +850,18 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
               <Button variant="outline" onClick={handlePreview} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Eye className="h-4 w-4 mr-1" />}Pré-visualizar
               </Button>
-              <Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}</Button>
+              {isNewDraft ? (
+                <>
+                  <Button onClick={() => handleGenerate('orcamento')} disabled={busy} className="flex-col h-auto py-2 items-start text-left">
+                    <span className="font-bold">{busy ? 'Salvando…' : '📄 Transformar em ORÇAMENTO'}</span>
+                    <span className="text-xs font-normal opacity-80">Para o cliente levar e pensar. Gera o PDF e o número.</span>
+                  </Button>
+                  <Button onClick={() => handleGenerate('contrato')} disabled={busy} className="flex-col h-auto py-2 items-start text-left">
+                    <span className="font-bold">{busy ? 'Salvando…' : '📝 Transformar em CONTRATO'}</span>
+                    <span className="text-xs font-normal opacity-80">O cliente fechou. Cláusulas e campos de assinatura.</span>
+                  </Button>
+                </>
+              ) : (<Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}</Button>)}
             </div>
           </div>
         )}
