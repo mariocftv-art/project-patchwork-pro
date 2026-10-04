@@ -7,6 +7,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
 import ThemeToggle from './ThemeToggle';
+import StaffAgendaShortcut from './StaffAgendaShortcut';
 import { applyMode } from '@/lib/theme';
 import { useQuery } from '@tanstack/react-query';
 import { categoriesApi, productsApi } from '@/lib/supabaseApi';
@@ -154,6 +155,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center gap-3">
               <NotificationsPopover />
               <ThemeToggle />
+              <StaffAgendaShortcut />
 
               <Link
                 to="/wishlist"
@@ -264,6 +266,7 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center">
                 <NotificationsPopover />
                 <ThemeToggle />
+              <StaffAgendaShortcut />
 
                 <Link
                   to="/wishlist"
