@@ -825,6 +825,39 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_drafts: {
+        Row: {
+          created_at: string
+          customer_name: string | null
+          doc_type: string
+          id: string
+          payload: Json
+          record_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string | null
+          doc_type?: string
+          id: string
+          payload: Json
+          record_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string | null
+          doc_type?: string
+          id?: string
+          payload?: Json
+          record_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quote_versions: {
         Row: {
           change_note: string | null
