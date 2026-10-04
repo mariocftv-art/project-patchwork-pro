@@ -328,3 +328,26 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 .dark .ml-btn-primary:hover { background-color: hsl(46 100% 58%); }
 .dark img.product-photo { background-color: hsl(0 0% 97%); border-radius: .75rem; box-shadow: 0 0 0 1px hsl(var(--gold) / .35); }
 .dark .ml-card .aspect-\[4\/3\] { box-shadow: inset 0 0 0 1px hsl(var(--gold) / .25); }
+
+/* ===== Painel admin no modo escuro ===== */
+.dark .admin-mobile table { border-color: hsl(var(--border)); }
+.dark .admin-mobile thead, .dark .admin-mobile thead tr { background-color: hsl(220 5% 17%); }
+.dark .admin-mobile tbody tr:nth-child(even) { background-color: hsl(220 5% 15%); }
+.dark .admin-mobile tbody tr:nth-child(odd) { background-color: hsl(var(--card)); }
+.dark .admin-mobile tbody tr:hover { background-color: hsl(220 5% 19%); }
+.dark .admin-mobile th { color: hsl(40 8% 80%); }
+/* Fundo atrás das janelas mais escuro */
+.dark [data-state="open"].fixed.inset-0.bg-black\/80 { background-color: hsl(0 0% 0% / .85); }
+/* Avisos: versões claras e legíveis no escuro */
+.dark .text-green-600, .dark .text-green-700, .dark .text-emerald-600, .dark .text-emerald-700 { color: hsl(142 60% 60%) !important; }
+.dark .text-red-600, .dark .text-red-700 { color: hsl(0 85% 70%) !important; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-yellow-600, .dark .text-yellow-700, .dark .text-amber-800, .dark .text-yellow-800 { color: hsl(45 95% 65%) !important; }
+.dark .bg-green-50, .dark .bg-emerald-50 { background-color: hsl(142 40% 14%) !important; }
+.dark .bg-red-50 { background-color: hsl(0 40% 16%) !important; }
+.dark .bg-amber-50, .dark .bg-yellow-50 { background-color: hsl(45 45% 15%) !important; }
+.dark .bg-blue-50 { background-color: hsl(214 40% 16%) !important; }
+.dark .border-green-200, .dark .border-emerald-200 { border-color: hsl(142 40% 30%) !important; }
+.dark .border-red-200 { border-color: hsl(0 40% 35%) !important; }
+.dark .border-amber-200, .dark .border-yellow-200, .dark .border-amber-300 { border-color: hsl(45 50% 35%) !important; }
+/* Documentos sempre brancos */
+.dark img.doc-page { background-color: hsl(0 0% 100%) !important; }
