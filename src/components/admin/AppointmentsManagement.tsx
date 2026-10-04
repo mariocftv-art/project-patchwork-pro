@@ -124,7 +124,7 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
       cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
       chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
     }).split('{HORARIO}').join(clockLine(a));
-    msg = msg.replace(/^\s*(olá|ola|oi|bom dia|boa tarde|boa noite)\b/i, greeting());
+    msg = msg.replace(/^\s*(olá|ola|oi|bom dia|boa tarde|boa noite)(?=[\s,!.])/i, greeting());
     if (!/^(Bom dia|Boa tarde|Boa noite)/.test(msg)) msg = `${greeting()}! ${msg}`;
     if (!tpl.includes('{HORARIO}')) msg += `\n${clockLine(a)}`;
     return msg;
