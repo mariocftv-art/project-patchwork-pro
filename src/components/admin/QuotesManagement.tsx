@@ -32,7 +32,7 @@ export default function QuotesManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview'; duplicate: boolean; draft?: QuoteDraft | null }>({
+  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview'; duplicate: boolean; draft?: QuoteDraft | null; toContract?: boolean }>({
     open: false,
     record: null,
     mode: 'edit',
@@ -97,7 +97,7 @@ export default function QuotesManagement() {
   }, [quotes, search, statusFilter, from, to]);
 
   const open = (record: QuoteRecord | null, mode: 'edit' | 'preview' = 'edit', duplicate = false) =>
-    setEditor({ open: true, record, mode, duplicate, draft: null });
+    setEditor({ open: true, record, mode, duplicate, draft: null, toContract: false });
   const continueDraft = useCallback((d: QuoteDraft) => setEditor({ open: true, record: null, mode: 'edit', duplicate: false, draft: d }), []);
 
   return (
@@ -159,6 +159,7 @@ export default function QuotesManagement() {
                 <Button size="sm" variant="outline" onClick={() => open(q, 'preview')}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
                 <Button size="sm" variant="outline" onClick={() => open(q, 'edit')}><Pencil className="h-4 w-4 mr-1" />Editar</Button>
                 <Button size="sm" variant="outline" onClick={() => open(q, 'edit', true)}><Copy className="h-4 w-4 mr-1" />Duplicar</Button>
+                {q.doc_type !== 'contrato' && <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'edit', duplicate: true, draft: null, toContract: true })}><FileText className="h-4 w-4 mr-1" />Transformar em contrato</Button>}
                 <Button size="sm" variant="outline" onClick={() => download(q)}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
                 <Button size="sm" variant="outline" onClick={() => send(q)}><Send className="h-4 w-4 mr-1" />Enviar</Button>
                 <AlertDialog>
@@ -189,6 +190,7 @@ export default function QuotesManagement() {
         mode={editor.mode}
         duplicate={editor.duplicate}
         draft={editor.draft}
+        convertToContract={editor.toContract}
         onSaved={refresh}
       />
     </div>
