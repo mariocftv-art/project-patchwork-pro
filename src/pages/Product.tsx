@@ -118,7 +118,7 @@ export default function Product() {
                               i === activeImg ? 'border-primary' : 'border-border hover:border-muted-foreground'
                             }`}
                           >
-                            <img src={u} alt="" className="w-full h-full object-contain p-1" loading="lazy" />
+                            <img src={u} alt="" className="w-full h-full object-contain p-1 product-photo" loading="lazy" />
                           </button>
                         ))}
                       </div>
@@ -127,7 +127,7 @@ export default function Product() {
                       {onPromo && (
                         <span className="absolute top-2 left-2 z-10 rounded bg-destructive text-destructive-foreground text-sm font-bold px-2 py-1">{discount}% OFF</span>
                       )}
-                      <img src={main} alt={product.title} className="w-full h-full object-contain p-4" />
+                      <img src={main} alt={product.title} className="w-full h-full object-contain p-4 product-photo" />
                     </div>
                   </div>
                 );
