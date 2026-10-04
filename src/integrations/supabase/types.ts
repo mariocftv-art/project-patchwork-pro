@@ -1019,6 +1019,48 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_profiles: {
+        Row: {
+          full_name: string | null
+          on_the_way_template: string | null
+          phone: string | null
+          photo_url: string | null
+          reminder_enabled: boolean
+          reminder_hour: number
+          reminder_last_sent: string | null
+          show_header_shortcut: boolean
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          full_name?: string | null
+          on_the_way_template?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          reminder_enabled?: boolean
+          reminder_hour?: number
+          reminder_last_sent?: string | null
+          show_header_shortcut?: boolean
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          full_name?: string | null
+          on_the_way_template?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          reminder_enabled?: boolean
+          reminder_hour?: number
+          reminder_last_sent?: string | null
+          show_header_shortcut?: boolean
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       store_settings: {
         Row: {
           boleto_enabled: boolean | null
@@ -1051,18 +1093,21 @@ export type Database = {
       }
       technicians: {
         Row: {
+          active: boolean
           created_at: string
           email: string
           name: string | null
           user_id: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           email: string
           name?: string | null
           user_id: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           email?: string
           name?: string | null
