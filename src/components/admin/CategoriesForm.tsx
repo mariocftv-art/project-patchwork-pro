@@ -4,22 +4,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, GripVertical, Save, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { CATEGORY_ICONS, CategoryIcon } from '@/lib/categoryIcons';
 
 interface Category {
   id: string;
   name: string;
   slug: string;
   display_order: number;
-  created_at: string;
+  parent_slug: string | null;
+  is_active: boolean;
+  show_in_menu: boolean;
+  icon: string | null;
 }
+
+const slugify = (name: string) =>
+  name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
 
 export default function CategoriesForm() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
+  const [newParent, setNewParent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editSlug, setEditSlug] = useState('');
@@ -27,236 +37,155 @@ export default function CategoriesForm() {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('display_order', { ascending: true });
-      
+      const { data, error } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
       if (error) throw error;
-      return data as Category[];
+      return data as unknown as Category[];
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async ({ name, slug }: { name: string; slug: string }) => {
-      const maxOrder = categories.length > 0 
-        ? Math.max(...categories.map(c => c.display_order || 0)) 
-        : 0;
-      
-      const { error } = await supabase
-        .from('categories')
-        .insert({ name, slug, display_order: maxOrder + 1 });
-      
+  const refresh = () => qc.invalidateQueries({ queryKey: ['categories'] });
+  const fail = (title: string) => () => toast({ title, variant: 'destructive' });
+
+  const update = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Category> }) => {
+      const { error } = await supabase.from('categories').update(patch as never).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      setNewName('');
-      setNewSlug('');
-      toast({ title: 'Categoria criada com sucesso!' });
-    },
-    onError: () => {
-      toast({ 
-        title: 'Erro ao criar categoria', 
-        description: 'Verifique se o nome/slug já existe.',
-        variant: 'destructive' 
-      });
-    },
+    onSuccess: refresh,
+    onError: fail('Erro ao salvar categoria'),
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, name, slug }: { id: string; name: string; slug: string }) => {
-      const { error } = await supabase
-        .from('categories')
-        .update({ name, slug })
-        .eq('id', id);
-      
+  const create = useMutation({
+    mutationFn: async () => {
+      const siblings = categories.filter((c) => (c.parent_slug || '') === newParent);
+      const order = siblings.length ? Math.max(...siblings.map((c) => c.display_order || 0)) + 1 : 1;
+      const { error } = await supabase.from('categories').insert({
+        name: newName.trim(), slug: newSlug.trim(), display_order: order, parent_slug: newParent || null,
+      } as never);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      setEditingId(null);
-      toast({ title: 'Categoria atualizada!' });
-    },
-    onError: () => {
-      toast({ 
-        title: 'Erro ao atualizar categoria', 
-        variant: 'destructive' 
-      });
-    },
+    onSuccess: () => { refresh(); setNewName(''); setNewSlug(''); toast({ title: 'Categoria criada!' }); },
+    onError: fail('Erro ao criar — o nome ou identificador já existe'),
   });
 
-  const deleteMutation = useMutation({
+  const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id);
-      
+      const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast({ title: 'Categoria excluída!' });
-    },
-    onError: () => {
-      toast({ 
-        title: 'Erro ao excluir categoria', 
-        description: 'Pode haver produtos usando esta categoria.',
-        variant: 'destructive' 
-      });
-    },
+    onSuccess: () => { refresh(); toast({ title: 'Categoria excluída' }); },
+    onError: fail('Erro ao excluir categoria'),
   });
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || !newSlug.trim()) return;
-    createMutation.mutate({ name: newName.trim(), slug: newSlug.trim().toLowerCase() });
+  const move = async (list: Category[], idx: number, dir: -1 | 1) => {
+    const other = list[idx + dir];
+    if (!other) return;
+    const a = list[idx];
+    // Reordena a lista inteira para evitar números repetidos
+    const reordered = [...list];
+    reordered[idx] = other; reordered[idx + dir] = a;
+    await Promise.all(reordered.map((c, i) => supabase.from('categories').update({ display_order: i + 1 } as never).eq('id', c.id)));
+    refresh();
   };
 
-  const handleEdit = (category: Category) => {
-    setEditingId(category.id);
-    setEditName(category.name);
-    setEditSlug(category.slug);
-  };
+  if (isLoading) return <div className="text-muted-foreground">Carregando categorias...</div>;
 
-  const handleSaveEdit = () => {
-    if (!editingId || !editName.trim() || !editSlug.trim()) return;
-    updateMutation.mutate({ id: editingId, name: editName.trim(), slug: editSlug.trim().toLowerCase() });
-  };
+  const roots = categories.filter((c) => !c.parent_slug);
+  const childrenOf = (slug: string) => categories.filter((c) => c.parent_slug === slug);
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta categoria?')) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
-
-  if (isLoading) {
-    return <div className="text-muted-foreground">Carregando categorias...</div>;
-  }
+  const Row = ({ c, list, idx, isChild }: { c: Category; list: Category[]; idx: number; isChild?: boolean }) => (
+    <div className={`admin-card !p-3 flex flex-wrap items-center gap-3 ${isChild ? 'ml-4 sm:ml-8' : ''} ${c.is_active ? '' : 'opacity-60'}`}>
+      <div className="flex flex-col">
+        <button type="button" aria-label="Subir" onClick={() => move(list, idx, -1)} disabled={idx === 0} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
+        <button type="button" aria-label="Descer" onClick={() => move(list, idx, 1)} disabled={idx === list.length - 1} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
+      </div>
+      {!isChild && <CategoryIcon name={c.icon} className="w-5 h-5 text-muted-foreground" />}
+      {editingId === c.id ? (
+        <div className="flex-1 min-w-[200px] grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Input value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Nome" />
+          <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value.toLowerCase())} aria-label="Identificador" />
+        </div>
+      ) : (
+        <div className="flex-1 min-w-[160px]">
+          <p className="font-medium text-foreground">{c.name}</p>
+          <p className="text-xs text-muted-foreground">identificador: {c.slug}</p>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        {!isChild && (
+          <select
+            value={c.icon || ''}
+            onChange={(e) => update.mutate({ id: c.id, patch: { icon: e.target.value || null } })}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            aria-label="Ícone"
+          >
+            <option value="">Ícone…</option>
+            {Object.entries(CATEGORY_ICONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        )}
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={c.is_active} onCheckedChange={(v) => update.mutate({ id: c.id, patch: { is_active: v } })} />
+          Ativa
+        </label>
+        {!isChild && (
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={c.show_in_menu} onCheckedChange={(v) => update.mutate({ id: c.id, patch: { show_in_menu: v } })} />
+            Na barra preta
+          </label>
+        )}
+        {editingId === c.id ? (
+          <>
+            <Button size="sm" aria-label="Salvar" onClick={() => { update.mutate({ id: c.id, patch: { name: editName.trim(), slug: editSlug.trim() } }); setEditingId(null); }}><Save className="w-4 h-4" /></Button>
+            <Button size="sm" variant="ghost" aria-label="Cancelar" onClick={() => setEditingId(null)}><X className="w-4 h-4" /></Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" variant="outline" aria-label="Renomear" onClick={() => { setEditingId(c.id); setEditName(c.name); setEditSlug(c.slug); }}><Pencil className="w-4 h-4" /></Button>
+            <Button size="sm" variant="destructive" aria-label="Excluir" onClick={() => {
+              if (confirm('Excluir esta categoria? Os produtos dela NÃO são apagados, mas ficam sem categoria visível. Prefira desativar.')) remove.mutate(c.id);
+            }}><Trash2 className="w-4 h-4" /></Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Add New Category Form */}
-      <form onSubmit={handleCreate} className="admin-card space-y-4">
-        <h3 className="font-semibold text-foreground">Adicionar Nova Categoria</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (newName.trim() && newSlug.trim()) create.mutate(); }}
+        className="admin-card space-y-4"
+      >
+        <h3 className="font-semibold text-foreground">Adicionar categoria ou subcategoria</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="newName">Nome da Categoria</Label>
-            <Input
-              id="newName"
-              value={newName}
-              onChange={(e) => {
-                setNewName(e.target.value);
-                setNewSlug(generateSlug(e.target.value));
-              }}
-              placeholder="Ex: Câmeras de Segurança"
-              className="form-input mt-1"
-            />
+            <Label htmlFor="newName">Nome</Label>
+            <Input id="newName" value={newName} onChange={(e) => { setNewName(e.target.value); setNewSlug(slugify(e.target.value)); }} placeholder="Ex: Fechaduras" className="mt-1" />
           </div>
           <div>
-            <Label htmlFor="newSlug">Slug (identificador)</Label>
-            <Input
-              id="newSlug"
-              value={newSlug}
-              onChange={(e) => setNewSlug(e.target.value.toLowerCase())}
-              placeholder="Ex: cameras"
-              className="form-input mt-1"
-            />
+            <Label htmlFor="newSlug">Identificador (vai no link)</Label>
+            <Input id="newSlug" value={newSlug} onChange={(e) => setNewSlug(e.target.value.toLowerCase())} className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="newParent">Fica dentro de</Label>
+            <select id="newParent" value={newParent} onChange={(e) => setNewParent(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">— Categoria principal —</option>
+              {roots.map((r) => <option key={r.id} value={r.slug}>Subcategoria de {r.name}</option>)}
+            </select>
           </div>
         </div>
-        <Button type="submit" className="btn-security" disabled={createMutation.isPending}>
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Categoria
-        </Button>
+        <Button type="submit" disabled={create.isPending}><Plus className="w-4 h-4 mr-2" />Adicionar</Button>
       </form>
 
-      {/* Categories List */}
       <div className="space-y-2">
-        <h3 className="font-semibold text-foreground">Categorias Existentes ({categories.length})</h3>
-        
-        {categories.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Nenhuma categoria cadastrada.</p>
-        ) : (
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="admin-card flex items-center gap-4"
-              >
-                <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                
-                {editingId === category.id ? (
-                  <>
-                    <div className="flex-1 grid grid-cols-2 gap-2">
-                      <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="form-input"
-                      />
-                      <Input
-                        value={editSlug}
-                        onChange={(e) => setEditSlug(e.target.value.toLowerCase())}
-                        className="form-input"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleSaveEdit}
-                        disabled={updateMutation.isPending}
-                      >
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{category.name}</p>
-                      <p className="text-sm text-muted-foreground">slug: {category.slug}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(category)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(category.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+        <h3 className="font-semibold text-foreground">Categorias ({roots.length})</h3>
+        <p className="text-sm text-muted-foreground">Use as setas para mudar a ordem. "Na barra preta" mostra a categoria no topo da loja; as outras aparecem só no botão "Categorias".</p>
+        {roots.map((c, i) => (
+          <div key={c.id} className="space-y-2">
+            <Row c={c} list={roots} idx={i} />
+            {childrenOf(c.slug).map((s, j, arr) => <Row key={s.id} c={s} list={arr} idx={j} isChild />)}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
