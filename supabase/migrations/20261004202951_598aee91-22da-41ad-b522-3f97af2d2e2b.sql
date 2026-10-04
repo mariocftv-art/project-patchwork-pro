@@ -1,0 +1,1 @@
+DELETE FROM public.appointments WHERE customer_name = 'TESTE Agenda' AND id = '8e23b8de-af28-40bc-bfdd-7ad2f854b7ba';

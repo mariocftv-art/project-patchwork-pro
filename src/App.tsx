@@ -19,6 +19,7 @@ import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import AdminGuard from "./components/AdminGuard";
 import NotFound from "./pages/NotFound";
+import Agenda from "./pages/Agenda";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/categoria/:slug" element={<LegacyCategory />} />
             <Route path="/categorias/:slug" element={<LegacyCategory />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/agenda" element={<Agenda />} />
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

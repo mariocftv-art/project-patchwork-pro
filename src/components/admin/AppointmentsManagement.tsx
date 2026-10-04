@@ -12,8 +12,9 @@ import { getBrand } from '@/lib/brand';
 import { maskPhone } from '@/lib/masks';
 import QuoteEditor from '@/components/admin/QuoteEditor';
 import type { DocCustomer } from '@/lib/premiumPDF';
-import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, inSendWindow, nextWindowOpen, type AppointmentSettings } from '@/lib/appointmentExtras';
-import { Truck, CalendarPlus, Settings2 } from 'lucide-react';
+import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, inSendWindow, nextWindowOpen, notifState, deviceKind, NOTIF_HELP, isLovablePreview, lookupCep, type AppointmentSettings } from '@/lib/appointmentExtras';
+import { Truck, CalendarPlus, Settings2, Phone, Trash2 } from 'lucide-react';
+import { maskCEP } from '@/lib/masks';
 import { Plus, MessageCircle, MapPin, CalendarClock, XCircle, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle, Pencil } from 'lucide-react';
 
 export type Appointment = {
@@ -32,22 +33,27 @@ export type Appointment = {
   status: string;
   cancel_reason: string | null;
   confirm_pending_at?: string | null;
+  technician_id?: string | null;
+  confirm_sent_at?: string | null;
+  on_way_sent_at?: string | null;
 };
+type Tech = { user_id: string; email: string; name: string | null };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = () => (supabase as any).from('appointments');
 
 export const KIND_LABELS: Record<string, string> = {
-  visita: 'Visita técnica', instalacao: 'Instalação', manutencao: 'Manutenção', garantia: 'Revisão de garantia', retirada: 'Retirada',
+  visita: 'Visita técnica', instalacao: 'Instalação', manutencao: 'Manutenção', garantia: 'Revisão de garantia', retirada: 'Retirada', orcamento: 'Orçamento',
 };
 export const STATUS_LABELS: Record<string, string> = {
-  agendado: 'Agendado', confirmado: 'Confirmado', andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Faltou',
+  agendado: 'Agendado', confirmado: 'Confirmado', acaminho: 'A caminho', andamento: 'Em execução', concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Faltou',
 };
 const STATUS_CLS: Record<string, string> = {
-  agendado: 'bg-muted text-foreground', confirmado: 'bg-primary text-primary-foreground', andamento: 'bg-secondary text-secondary-foreground',
+  agendado: 'bg-muted text-foreground', confirmado: 'bg-primary text-primary-foreground', acaminho: 'bg-secondary text-secondary-foreground', andamento: 'bg-secondary text-secondary-foreground',
   concluido: 'bg-promo text-primary-foreground', cancelado: 'bg-destructive/15 text-destructive', faltou: 'bg-destructive text-destructive-foreground',
 };
-const ACTIVE = ['agendado', 'confirmado', 'andamento'];
+const ACTIVE = ['agendado', 'confirmado', 'acaminho', 'andamento'];
+const fmtStamp = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 export function useAppointments() {
   return useQuery({
@@ -90,14 +96,15 @@ const clockLine = (a: Appointment) => `⏰ ${fmtTime(new Date(a.starts_at))} (ch
 const toLocalInput = (iso: string) => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 const mapsUrl = (a: Appointment) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address || '')}`;
 
-type Form = { id?: string; customer_name: string; customer_phone: string; address: string; reference_point: string; starts_at: string; duration_minutes: number; kind: string; technician: string; expected_value: string; notes: string; status: string; customer_doc: Partial<DocCustomer> };
+type Form = { id?: string; customer_name: string; customer_phone: string; address: string; reference_point: string; starts_at: string; duration_minutes: number; kind: string; technician: string; technician_id: string; cep: string; expected_value: string; notes: string; status: string; customer_doc: Partial<DocCustomer> };
 const emptyForm = (): Form => {
   const d = new Date(); d.setHours(d.getHours() + 1, 0, 0, 0);
-  return { customer_name: '', customer_phone: '', address: '', reference_point: '', starts_at: toLocalInput(d.toISOString()), duration_minutes: 60, kind: 'visita', technician: '', expected_value: '', notes: '', status: 'agendado', customer_doc: {} };
+  return { customer_name: '', customer_phone: '', address: '', reference_point: '', starts_at: toLocalInput(d.toISOString()), duration_minutes: 60, kind: 'visita', technician: '', technician_id: '', cep: '', expected_value: '', notes: '', status: 'agendado', customer_doc: {} };
 };
 const selectCls = 'flex h-11 w-full rounded-md border border-input bg-background px-3 text-base';
 
-export default function AppointmentsManagement() {
+export default function AppointmentsManagement({ staffRole = 'admin' }: { staffRole?: 'admin' | 'tecnico' }) {
+  const tech = staffRole === 'tecnico';
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: list = [] } = useAppointments();
@@ -117,7 +124,7 @@ export default function AppointmentsManagement() {
       cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
       chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
     }).split('{HORARIO}').join(clockLine(a));
-    msg = msg.replace(/^\s*(olá|ola|oi|bom dia|boa tarde|boa noite)\b/i, greeting());
+    msg = msg.replace(/^\s*(olá|ola|oi|bom dia|boa tarde|boa noite)(?=[\s,!.])/i, greeting());
     if (!/^(Bom dia|Boa tarde|Boa noite)/.test(msg)) msg = `${greeting()}! ${msg}`;
     if (!tpl.includes('{HORARIO}')) msg += `\n${clockLine(a)}`;
     return msg;
@@ -132,8 +139,19 @@ export default function AppointmentsManagement() {
     catch (e) { toast({ title: 'Erro ao salvar', description: (e as Error).message, variant: 'destructive' }); }
   };
 
+  const { data: techs = [], refetch: refetchTechs } = useQuery({
+    queryKey: ['technicians'], enabled: !tech,
+    queryFn: async () => { const { data } = await (supabase as any).from('technicians').select('user_id,email,name').order('created_at'); return (data || []) as Tech[]; },
+  });
+  const [invite, setInvite] = useState({ email: '', name: '' });
+  const [notif, setNotif] = useState(notifState());
+  const okWindow = () => !settings || inSendWindow(settings) || window.confirm(`Fora do horário de mensagens automáticas (${String(settings.send_window_start).padStart(2, '0')}:00 às ${String(settings.send_window_end).padStart(2, '0')}:00). Enviar mesmo assim?`);
+  const mark = async (a: Appointment, status: string | null, m: 'confirm' | 'onway' | null) => {
+    await (supabase as any).rpc('tech_update_appointment', { _id: a.id, _status: status, _mark: m });
+    qc.invalidateQueries({ queryKey: ['appointments'] });
+  };
   const { data: clients = [] } = useQuery({
-    queryKey: ['appointment-clients'],
+    queryKey: ['appointment-clients'], enabled: !tech,
     queryFn: async () => {
       const { data } = await supabase.from('quotes').select('customer_name,customer_phone,customer').order('created_at', { ascending: false }).limit(500);
       const map = new Map<string, { name: string; phone: string; doc: Partial<DocCustomer> }>();
@@ -179,11 +197,14 @@ export default function AppointmentsManagement() {
   const save = async () => {
     if (!form) return;
     if (!form.customer_name.trim()) return toast({ title: 'Informe o cliente', variant: 'destructive' });
+    if (form.customer_phone.replace(/\D/g, '').length < 10) return toast({ title: 'Informe o telefone / WhatsApp do cliente', variant: 'destructive' });
+    if (!form.address.trim()) return toast({ title: 'Informe o endereço completo', variant: 'destructive' });
     if (!form.starts_at) return toast({ title: 'Informe data e hora', variant: 'destructive' });
+    const tObj = techs.find((t) => t.user_id === form.technician_id);
     const row = {
       customer_name: form.customer_name.trim(), customer_phone: form.customer_phone || null, address: form.address || null,
       reference_point: form.reference_point || null, starts_at: new Date(form.starts_at).toISOString(),
-      duration_minutes: Math.max(15, Number(form.duration_minutes) || 60), kind: form.kind, technician: form.technician.trim() || null,
+      duration_minutes: Math.max(15, Number(form.duration_minutes) || 60), kind: form.kind, technician: tObj ? (tObj.name || tObj.email) : (form.technician.trim() || null), technician_id: form.technician_id || null,
       expected_value: form.expected_value ? Number(form.expected_value.replace(',', '.')) : null, notes: form.notes || null,
       status: form.status, customer_doc: { ...form.customer_doc, name: form.customer_name.trim(), whatsapp: form.customer_phone || form.customer_doc.whatsapp },
       updated_at: new Date().toISOString(),
@@ -196,7 +217,7 @@ export default function AppointmentsManagement() {
     toast({ title: form.id ? 'Agendamento atualizado' : 'Agendamento criado' });
     if (isNew && settings?.auto_confirm && row.customer_phone && row.status === 'agendado' && res.data?.id) {
       const created = { ...row, id: res.data.id, cancel_reason: null } as Appointment;
-      if (inSendWindow(settings)) whats(created);
+      if (inSendWindow(settings)) whats(created, false);
       else {
         const at = nextWindowOpen(settings);
         await db().update({ confirm_pending_at: at.toISOString() }).eq('id', created.id);
@@ -208,23 +229,25 @@ export default function AppointmentsManagement() {
   };
 
   const setStatus = async (a: Appointment, status: string, extra: Record<string, unknown> = {}) => {
+    if (tech) return mark(a, status, null);
     const { error } = await db().update({ status, updated_at: new Date().toISOString(), ...extra }).eq('id', a.id);
     if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     qc.invalidateQueries({ queryKey: ['appointments'] });
   };
 
-  const whats = (a: Appointment) => {
+  const whats = (a: Appointment, ask = true) => {
+    if (ask && !okWindow()) return;
     const d = new Date(a.starts_at);
     const msg = `${greeting()}, ${a.customer_name.split(' ')[0]}! Aqui é da 🛡️ ${getBrand().name}. Confirmando sua ${KIND_LABELS[a.kind].toLowerCase()}:\n📅 ${d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}\n${clockLine(a)}\n📍 ${a.address || '-'}${a.reference_point ? ` (${a.reference_point})` : ''}\nPode confirmar, por favor?`;
     window.open(whatsappUrl(a.customer_phone || '', msg), '_blank', 'noopener,noreferrer');
-    if (a.confirm_pending_at) db().update({ confirm_pending_at: null }).eq('id', a.id).then(() => qc.invalidateQueries({ queryKey: ['appointments'] }));
+    mark(a, null, 'confirm');
   };
   const dueConfirms = settings && inSendWindow(settings, new Date(now))
     ? list.filter((a) => a.confirm_pending_at && new Date(a.confirm_pending_at).getTime() <= now && ACTIVE.includes(a.status)) : [];
 
   const edit = (a: Appointment) => setForm({
     id: a.id, customer_name: a.customer_name, customer_phone: a.customer_phone || '', address: a.address || '', reference_point: a.reference_point || '',
-    starts_at: toLocalInput(a.starts_at), duration_minutes: a.duration_minutes, kind: a.kind, technician: a.technician || '',
+    starts_at: toLocalInput(a.starts_at), duration_minutes: a.duration_minutes, kind: a.kind, technician: a.technician || '', technician_id: a.technician_id || '', cep: '',
     expected_value: a.expected_value != null ? String(a.expected_value) : '', notes: a.notes || '', status: a.status, customer_doc: a.customer_doc || {},
   });
 
@@ -267,21 +290,27 @@ export default function AppointmentsManagement() {
           {a.customer_phone && <p className="text-sm">{a.customer_phone}</p>}
           {a.address && <p className="text-sm break-words">📍 {a.address}{a.reference_point ? ` — ${a.reference_point}` : ''}</p>}
           {a.technician && <p className="text-sm">👷 {a.technician}</p>}
-          {a.expected_value != null && <p className="text-sm text-price font-semibold">{Number(a.expected_value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>}
+          {a.confirm_sent_at && <p className="text-xs text-muted-foreground">✅ Confirmação enviada em {fmtStamp(a.confirm_sent_at)}</p>}
+          {a.on_way_sent_at && <p className="text-xs text-muted-foreground">🚚 "Estou a caminho" enviado em {fmtStamp(a.on_way_sent_at)}</p>}
+          {!a.customer_phone && <p className="text-sm font-semibold text-destructive">Falta o telefone do cliente</p>}
+          {!tech && a.expected_value != null && <p className="text-sm text-price font-semibold">{Number(a.expected_value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>}
           {a.notes && <p className="text-sm text-muted-foreground break-words">{a.notes}</p>}
           {a.cancel_reason && <p className="text-sm text-destructive">Motivo: {a.cancel_reason}</p>}
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => whats(a)}><MessageCircle className="h-4 w-4 mr-1" />Confirmar</Button>
-          <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => setOnWay({ a, mins: 30, msg: buildOnWay(a, 30) })}><Truck className="h-4 w-4 mr-1" />Estou a caminho</Button>
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap gap-2 [&>*]:whitespace-normal [&>*]:h-auto [&>*]:min-h-11">
+          <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => whats(a)}><MessageCircle className="h-4 w-4 mr-1" />Confirmar agendamento</Button>
+          <Button variant="outline" className="h-11" disabled={!a.customer_phone} onClick={() => setOnWay({ a, mins: 30, msg: buildOnWay(a, 30) })}><Truck className="h-4 w-4 mr-1" />Enviar "Estou a caminho"</Button>
+          <Button variant="outline" className="h-11" disabled={!a.customer_phone} asChild={!!a.customer_phone}>{a.customer_phone ? <a href={`tel:${a.customer_phone.replace(/\D/g, '')}`}><Phone className="h-4 w-4 mr-1" />Ligar</a> : <span><Phone className="h-4 w-4 mr-1" />Ligar</span>}</Button>
           <Button variant="outline" className="h-11" onClick={() => downloadIcs({ id: a.id, title: `${KIND_LABELS[a.kind]} — ${a.customer_name}`, address: [a.address, a.reference_point].filter(Boolean).join(' — '), description: [a.customer_phone, a.technician && `Técnico: ${a.technician}`, a.notes].filter(Boolean).join('\n'), start: new Date(a.starts_at), minutes: a.duration_minutes })}><CalendarPlus className="h-4 w-4 mr-1" />Adicionar à agenda do celular</Button>
-          <Button variant="outline" className="h-11" disabled={!a.address} onClick={() => window.open(mapsUrl(a), '_blank', 'noopener,noreferrer')}><MapPin className="h-4 w-4 mr-1" />Mapa</Button>
+          <Button variant="outline" className="h-11" disabled={!a.address} onClick={() => window.open(mapsUrl(a), '_blank', 'noopener,noreferrer')}><MapPin className="h-4 w-4 mr-1" />Google Maps</Button>
+          <Button variant="outline" className="h-11" disabled={!a.address} onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(a.address || '')}&navigate=yes`, '_blank', 'noopener,noreferrer')}><MapPin className="h-4 w-4 mr-1" />Waze</Button>
+          {tech && a.status !== 'andamento' && ACTIVE.includes(a.status) && <Button variant="outline" className="h-11" onClick={() => setStatus(a, 'andamento')}>Em execução</Button>}
           {a.status === 'agendado' && <Button variant="outline" className="h-11" onClick={() => setStatus(a, 'confirmado')}><CheckCircle2 className="h-4 w-4 mr-1" />Cliente confirmou</Button>}
-          <Button variant="outline" className="h-11" onClick={() => edit(a)}><CalendarClock className="h-4 w-4 mr-1" />Remarcar</Button>
+          {!tech && <Button variant="outline" className="h-11" onClick={() => edit(a)}><CalendarClock className="h-4 w-4 mr-1" />Editar / remarcar</Button>}
           {ACTIVE.includes(a.status) && <Button variant="outline" className="h-11" onClick={() => setStatus(a, 'faltou')}>Faltou</Button>}
-          {ACTIVE.includes(a.status) && <Button variant="outline" className="h-11 text-destructive" onClick={() => setCancel({ a, reason: '' })}><XCircle className="h-4 w-4 mr-1" />Cancelar</Button>}
-          {ACTIVE.includes(a.status) && <Button className="h-11" onClick={async () => { await setStatus(a, 'concluido'); setDone(a); }}><CheckCircle2 className="h-4 w-4 mr-1" />Concluir</Button>}
-          {!ACTIVE.includes(a.status) && <Button variant="ghost" className="h-11" onClick={() => edit(a)}><Pencil className="h-4 w-4 mr-1" />Editar</Button>}
+          {!tech && ACTIVE.includes(a.status) && <Button variant="outline" className="h-11 text-destructive" onClick={() => setCancel({ a, reason: '' })}><XCircle className="h-4 w-4 mr-1" />Cancelar</Button>}
+          {ACTIVE.includes(a.status) && <Button className="h-11" onClick={async () => { await setStatus(a, 'concluido'); if (!tech) setDone(a); }}><CheckCircle2 className="h-4 w-4 mr-1" />Concluir</Button>}
+          {!tech && !ACTIVE.includes(a.status) && <Button variant="ghost" className="h-11" onClick={() => edit(a)}><Pencil className="h-4 w-4 mr-1" />Editar</Button>}
         </div>
       </div>
     );
@@ -328,11 +357,11 @@ export default function AppointmentsManagement() {
 
   return (
     <div className="space-y-4 min-w-0">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">Agendamentos</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">{tech ? 'Meus agendamentos' : 'Agendamentos'}</h2>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-11" onClick={() => settings && setCfg({ ...settings })}><Settings2 className="h-4 w-4 mr-1" />Configurações</Button>
-          <Button className="h-11" onClick={() => setForm(emptyForm())}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          {!tech && <Button variant="outline" className="h-11" onClick={() => { setNotif(notifState()); settings && setCfg({ ...settings }); }}><Settings2 className="h-4 w-4 mr-1" />Configurações</Button>}
+          {!tech && <Button className="h-11" onClick={() => setForm(emptyForm())}><Plus className="h-4 w-4 mr-1" />Novo</Button>}
         </div>
       </div>
       {dueConfirms.length > 0 && (
@@ -395,8 +424,18 @@ export default function AppointmentsManagement() {
                   }} />
                 <datalist id="apt-clients">{clients.map((c) => <option key={c.name} value={c.name} />)}</datalist>
               </div>
-              <div><Label>Telefone / WhatsApp</Label><Input className="h-11 mt-1" inputMode="numeric" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: maskPhone(e.target.value) })} placeholder="(00) 00000-0000" /></div>
-              <div><Label>Endereço</Label><Input className="h-11 mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              <div><Label>Telefone / WhatsApp *</Label><Input className="h-11 mt-1" inputMode="numeric" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: maskPhone(e.target.value) })} placeholder="(00) 00000-0000" /></div>
+              <div><Label>CEP</Label><Input className="h-11 mt-1" inputMode="numeric" placeholder="00000-000" value={form.cep}
+                onChange={async (e) => {
+                  const cep = maskCEP(e.target.value); setForm((f) => f && { ...f, cep });
+                  if (cep.replace(/\D/g, '').length === 8) {
+                    const r = await lookupCep(cep);
+                    if (r) setForm((f) => f && { ...f, address: `${r.logradouro}, nº , ${r.bairro}, ${r.localidade} - ${r.uf}, ${cep}` });
+                    else toast({ title: 'CEP não encontrado', variant: 'destructive' });
+                  }
+                }} /></div>
+              <div><Label>Endereço completo *</Label><Input className="h-11 mt-1" value={form.address} placeholder="Rua, número, bairro, cidade - UF" onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                <p className="text-xs text-muted-foreground mt-1">Digite o CEP para preencher rua, bairro, cidade e UF; complete o número.</p></div>
               <div><Label>Ponto de referência</Label><Input className="h-11 mt-1" value={form.reference_point} onChange={(e) => setForm({ ...form, reference_point: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="col-span-2 sm:col-span-1"><Label>Data e hora de início *</Label><Input type="datetime-local" className="h-11 mt-1" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div>
@@ -425,8 +464,12 @@ export default function AppointmentsManagement() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Técnico responsável</Label><Input className="h-11 mt-1" list="apt-techs" value={form.technician} onChange={(e) => setForm({ ...form, technician: e.target.value })} />
-                  <datalist id="apt-techs">{[...new Set(list.map((a) => a.technician).filter(Boolean))].map((t) => <option key={t!} value={t!} />)}</datalist>
+                <div><Label>Técnico responsável</Label>
+                  <select className={`${selectCls} mt-1`} value={form.technician_id || (form.technician ? '__txt' : '')} onChange={(e) => setForm({ ...form, technician_id: e.target.value === '__txt' ? '' : e.target.value })}>
+                    <option value="">Eu mesmo / sem técnico</option>
+                    {form.technician && !form.technician_id && <option value="__txt">{form.technician}</option>}
+                    {techs.map((t) => <option key={t.user_id} value={t.user_id}>{t.name || t.email}</option>)}
+                  </select>
                 </div>
                 <div><Label>Valor previsto (R$)</Label><Input className="h-11 mt-1" inputMode="decimal" value={form.expected_value} onChange={(e) => setForm({ ...form, expected_value: e.target.value.replace(/[^\d,.]/g, '') })} /></div>
               </div>
@@ -450,7 +493,7 @@ export default function AppointmentsManagement() {
               </select>
               <Label>Mensagem (pode editar)</Label>
               <Textarea rows={6} value={onWay.msg} onChange={(e) => setOnWay({ ...onWay, msg: e.target.value })} />
-              <Button className="w-full h-12" onClick={() => { window.open(whatsappUrl(onWay.a.customer_phone || '', onWay.msg), '_blank', 'noopener,noreferrer'); setOnWay(null); }}><MessageCircle className="h-4 w-4 mr-1" />Abrir WhatsApp</Button>
+              <Button className="w-full h-12" onClick={() => { if (!okWindow()) return; window.open(whatsappUrl(onWay.a.customer_phone || '', onWay.msg), '_blank', 'noopener,noreferrer'); mark(onWay.a, 'acaminho', 'onway'); setOnWay(null); }}><MessageCircle className="h-4 w-4 mr-1" />Abrir WhatsApp e marcar "A caminho"</Button>
             </div>
           )}
         </DialogContent>
@@ -461,32 +504,51 @@ export default function AppointmentsManagement() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Configurações dos agendamentos</DialogTitle></DialogHeader>
           {cfg && (
-            <div className="space-y-4">
-              <div className="space-y-2 rounded-lg border border-border p-3">
+            <div className="space-y-5">
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">🔔 Lembretes para mim</h3>
+                  <p className="text-sm text-muted-foreground italic">Avisos que chegam no SEU aparelho. O cliente não recebe nada disto.</p></div>
+                <p className="text-sm font-semibold rounded-md bg-muted px-3 py-2">
+                  {notif === 'granted' ? '🔔 Notificações: Ativadas' : notif === 'denied' ? '🔕 Notificações: Bloqueadas' : notif === 'unsupported' ? '⚠️ Este navegador não aceita notificações' : '⚪ Ainda não autorizadas'}
+                </p>
+                {notif === 'denied' && <p className="text-sm rounded-md border border-destructive/50 bg-destructive/10 p-2"><b>Como liberar:</b> {NOTIF_HELP[deviceKind()]}</p>}
+                {notif === 'unsupported' && <p className="text-sm rounded-md border border-border p-2">{NOTIF_HELP.iphone} Em computador, use Chrome, Edge ou Firefox atualizados.</p>}
+                {isLovablePreview() && <p className="text-xs rounded-md border border-border p-2">ℹ️ Dentro da prévia de edição a notificação não funciona. Use o site publicado, instalado no celular.</p>}
                 <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                  <input type="checkbox" className="h-5 w-5" checked={cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_enabled: e.target.checked })} />
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.reminder_enabled} onChange={async (e) => {
+                    const on = e.target.checked;
+                    setCfg({ ...cfg, reminder_enabled: on });
+                    if (on) {
+                      const err = await enableAdminPush();
+                      setNotif(notifState());
+                      if (err) toast({ title: 'Aviso não ativado neste aparelho', description: err, variant: 'destructive' });
+                      else toast({ title: 'Este aparelho vai receber o aviso de manhã' });
+                    }
+                  }} />
                   Aviso de manhã com os agendamentos do dia
                 </label>
                 <Label>Horário do aviso</Label>
                 <select className={selectCls} value={cfg.reminder_hour} disabled={!cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_hour: Number(e.target.value) })}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                 </select>
-                <p className="text-xs text-muted-foreground">Ao salvar ligado, este aparelho pede permissão para notificações. Ative em cada celular/computador onde quer receber. Para ter alarme com som, use também "Adicionar à agenda do celular" em cada agendamento.</p>
+                <p className="text-xs text-muted-foreground">A permissão é pedida só quando você liga a chavinha. Ligue em cada celular/computador onde quer receber.</p>
                 <Button variant="outline" className="h-11 w-full" onClick={async () => {
                   const err = await enableAdminPush();
+                  setNotif(notifState());
                   if (err) return toast({ title: 'Aviso não ativado', description: err, variant: 'destructive' });
-                  try { const r = await sendTestReminder(); toast({ title: r.sent ? 'Aviso de teste enviado' : 'Nenhum aparelho recebeu', description: `${r.sent} de ${r.total} aparelho(s)` }); }
+                  try { const r = await sendTestReminder(); toast({ title: r.sent ? 'Aviso de teste enviado para você' : 'Nenhum aparelho recebeu', description: `${r.sent} de ${r.total} aparelho(s). Nada foi enviado a clientes.` }); }
                   catch { toast({ title: 'Falha ao enviar teste', variant: 'destructive' }); }
-                }}>Enviar aviso de teste agora</Button>
-              </div>
-              <div className="space-y-2">
+                }}>Testar aviso no meu aparelho</Button>
+              </section>
+
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">💬 Mensagens para o cliente</h3>
+                  <p className="text-sm text-muted-foreground italic">Enviadas pelo WhatsApp, por você, a partir de cada agendamento.</p></div>
                 <div className="flex items-center justify-between"><Label>Mensagem "Estou a caminho"</Label>
                   <Button variant="ghost" size="sm" onClick={() => setCfg({ ...cfg, on_the_way_template: DEFAULT_ON_THE_WAY })}>Restaurar padrão</Button></div>
                 <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
-                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} , {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
-              </div>
-              <div className="space-y-2 rounded-md border border-border p-3">
-                <Label>Horário permitido para mensagens automáticas</Label>
+                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'}, {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
+                <Label>Horário permitido para mensagens</Label>
                 <div className="flex items-center gap-2">
                   <select className={selectCls} value={cfg.send_window_start} onChange={(e) => setCfg({ ...cfg, send_window_start: Number(e.target.value) })}>
                     {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
@@ -498,11 +560,40 @@ export default function AppointmentsManagement() {
                 </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" className="h-5 w-5" checked={cfg.auto_confirm} onChange={(e) => setCfg({ ...cfg, auto_confirm: e.target.checked })} />
-                  Abrir a confirmação pelo WhatsApp sozinha ao criar um agendamento
+                  Abrir o WhatsApp com a confirmação logo depois de criar um agendamento
                 </label>
-                <p className="text-xs text-muted-foreground">Fora desse horário a confirmação fica guardada até o horário de início. Os botões que você toca continuam enviando na hora.</p>
-              </div>
-              <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled); }}>Salvar</Button>
+                <p className="text-xs text-muted-foreground">Nenhuma mensagem sai sozinha: o WhatsApp abre com o texto pronto e você toca em enviar. Fora desse horário o site pergunta antes de abrir.</p>
+              </section>
+
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">👷 Equipe e atalho</h3>
+                  <p className="text-sm text-muted-foreground italic">Técnicos veem só os agendamentos deles. Nada de preços de custo, contratos, orçamentos ou configurações.</p></div>
+                <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.show_header_shortcut} onChange={(e) => setCfg({ ...cfg, show_header_shortcut: e.target.checked })} />
+                  Mostrar atalho de Agendamentos no cabeçalho
+                </label>
+                {techs.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum técnico convidado.</p> : techs.map((t) => (
+                  <div key={t.user_id} className="flex items-center gap-2 rounded-md border border-border p-2">
+                    <div className="flex-1 min-w-0"><p className="font-semibold truncate">{t.name || t.email}</p><p className="text-xs text-muted-foreground truncate">{t.email}</p></div>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive" aria-label={`Remover ${t.email}`} onClick={async () => {
+                      if (!window.confirm(`Remover o acesso de ${t.email}?`)) return;
+                      const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'remove', user_id: t.user_id } });
+                      if (error || data?.error) return toast({ title: 'Não foi possível remover', description: data?.error, variant: 'destructive' });
+                      toast({ title: 'Acesso removido' }); refetchTechs();
+                    }}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                <Input className="h-11" placeholder="Nome do técnico" value={invite.name} onChange={(e) => setInvite({ ...invite, name: e.target.value })} />
+                <Input className="h-11" type="email" placeholder="E-mail do técnico" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
+                <Button variant="outline" className="h-11 w-full" disabled={!invite.email.includes('@')} onClick={async () => {
+                  const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'invite', ...invite, redirect: `${window.location.origin}/agenda` } });
+                  if (error || data?.error) return toast({ title: 'Não foi possível convidar', description: data?.error || 'Tente de novo.', variant: 'destructive' });
+                  toast({ title: data.invited ? 'Convite enviado por e-mail' : 'Acesso de técnico liberado', description: 'Ele entra em /agenda com o e-mail convidado.' });
+                  setInvite({ email: '', name: '' }); refetchTechs();
+                }}>Convidar técnico</Button>
+              </section>
+
+              <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(false); }}>Salvar</Button>
             </div>
           )}
         </DialogContent>
