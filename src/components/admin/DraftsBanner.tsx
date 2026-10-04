@@ -14,7 +14,7 @@ const when = (iso: string) => {
 
 /** Faixa "Você tem N rascunhos em andamento" + reabre sozinho o rascunho que estava aberto. */
 export default function DraftsBanner({ docType, onContinue, editorOpen }: { docType: 'orcamento' | 'contrato'; onContinue: (d: QuoteDraft) => void; editorOpen: boolean }) {
-  const { data: drafts = [], refetch } = useQuery({ queryKey: ['quote-drafts', docType], queryFn: () => listDrafts(docType) });
+  const { data: drafts = [], refetch } = useQuery({ queryKey: ['quote-drafts', docType], queryFn: async () => (await listDrafts()).filter((d) => (docType === 'contrato') === (d.docType === 'contrato')) });
   useEffect(() => { if (!editorOpen) refetch(); }, [editorOpen, refetch]);
   const reopened = useRef(false);
   useEffect(() => {

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import DraftsBanner from './DraftsBanner';
+import type { QuoteDraft } from '@/lib/quoteDrafts';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Trash2, Phone, Mail, Calendar, Plus, Pencil, Copy, Eye, Download, Send, Search } from 'lucide-react';
@@ -30,7 +32,7 @@ export default function QuotesManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview'; duplicate: boolean }>({
+  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview'; duplicate: boolean; draft?: QuoteDraft | null }>({
     open: false,
     record: null,
     mode: 'edit',
@@ -95,10 +97,12 @@ export default function QuotesManagement() {
   }, [quotes, search, statusFilter, from, to]);
 
   const open = (record: QuoteRecord | null, mode: 'edit' | 'preview' = 'edit', duplicate = false) =>
-    setEditor({ open: true, record, mode, duplicate });
+    setEditor({ open: true, record, mode, duplicate, draft: null });
+  const continueDraft = useCallback((d: QuoteDraft) => setEditor({ open: true, record: null, mode: 'edit', duplicate: false, draft: d }), []);
 
   return (
     <div className="space-y-4">
+      <DraftsBanner docType="orcamento" editorOpen={editor.open} onContinue={continueDraft} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-primary" />
@@ -184,6 +188,7 @@ export default function QuotesManagement() {
         record={editor.record}
         mode={editor.mode}
         duplicate={editor.duplicate}
+        draft={editor.draft}
         onSaved={refresh}
       />
     </div>

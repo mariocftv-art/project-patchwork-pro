@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import DraftsBanner from './DraftsBanner';
+import type { QuoteDraft } from '@/lib/quoteDrafts';
 import { getBrand } from '@/lib/brand';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,7 +63,8 @@ export default function ContractsManagement() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [sort, setSort] = useState('date_desc');
-  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview' }>({ open: false, record: null, mode: 'edit' });
+  const [editor, setEditor] = useState<{ open: boolean; record: QuoteRecord | null; mode: 'edit' | 'preview'; draft?: QuoteDraft | null }>({ open: false, record: null, mode: 'edit' });
+  const continueDraft = useCallback((d: QuoteDraft) => setEditor({ open: true, record: null, mode: 'edit', draft: d }), []);
   const [history, setHistory] = useState<QuoteRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -336,6 +339,7 @@ export default function ContractsManagement() {
 
   return (
     <div className="space-y-4 min-w-0">
+      <DraftsBanner docType="contrato" editorOpen={editor.open} onContinue={continueDraft} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <FileSignature className="w-5 h-5 text-primary" />
@@ -537,6 +541,7 @@ export default function ContractsManagement() {
         onOpenChange={(v) => setEditor((e) => ({ ...e, open: v }))}
         record={editor.record}
         mode={editor.mode}
+        draft={editor.draft}
         onSaved={refresh}
         defaultDocType="contrato"
       />
