@@ -453,7 +453,7 @@ export default function Layout({ children }: LayoutProps) {
               <h4 className="font-semibold mb-3 text-sm text-primary">Contato</h4>
               <ul className="space-y-2 text-sm">
                 {(siteContent.contact.phone || brand.phone) && <li>📞 {siteContent.contact.phone || brand.phone}</li>}
-                {(siteContent.contact.email || brand.email) && <li>📧 {siteContent.contact.email || brand.email}</li>}
+                {(siteContent.contact.email || brand.email) && <li className="break-all">📧 {siteContent.contact.email || brand.email}</li>}
                 {siteContent.contact.address && (
                   <li>📍 {siteContent.contact.address}</li>
                 )}
