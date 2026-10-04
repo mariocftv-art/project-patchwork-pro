@@ -1039,7 +1039,8 @@ export async function nextDocNumber(): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.rpc as any)('next_quote_number');
   if (!error && typeof data === 'string') return data;
-  return `MR-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+  // Sem número inventado no navegador: o banco é o único que numera
+  throw error || new Error('Não foi possível gerar o número do orçamento.');
 }
 
 export async function uploadPDF(doc: jsPDF, number: string): Promise<string | null> {
