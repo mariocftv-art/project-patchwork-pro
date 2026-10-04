@@ -118,7 +118,7 @@ export default function ServicePhotosForm() {
               ref={fileInputRef}
               type="file"
               id="photo"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={handleFileChange}
               className="hidden"
             />

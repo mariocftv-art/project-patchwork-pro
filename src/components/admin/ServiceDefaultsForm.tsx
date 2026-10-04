@@ -55,7 +55,7 @@ export default function ServiceDefaultsForm() {
                     {saving === name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}Salvar
                   </Button>
                 </div>
-                <ImageUploadField value={r.image_url} onChange={(url) => upd(name, { image_url: url || null })} />
+                <ImageUploadField compact bucket="quotes" folder="item-images" value={r.image_url} onChange={(url) => upd(name, { image_url: url || null })} />
               </div>
             );
           })}

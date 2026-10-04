@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { productsApi, Product } from '@/lib/supabaseApi';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,16 +66,34 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ListEditor({ items, onChange, placeholder }: { items: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+export function move<T>(a: T[], from: number, to: number): T[] {
+  if (to < 0 || to >= a.length) return a;
+  const n = [...a];
+  const [x] = n.splice(from, 1);
+  n.splice(to, 0, x);
+  return n;
+}
+
+export function MoveBtns({ i, n, onMove }: { i: number; n: number; onMove: (from: number, to: number) => void }) {
+  return (
+    <div className="flex flex-col">
+      <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => onMove(i, i - 1)} className="h-5 px-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+      <button type="button" aria-label="Descer" disabled={i === n - 1} onClick={() => onMove(i, i + 1)} className="h-5 px-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+    </div>
+  );
+}
+
+function ListEditor({ items, onChange, placeholder, addLabel = 'Adicionar linha' }: { items: string[]; onChange: (v: string[]) => void; placeholder: string; addLabel?: string }) {
   return (
     <div className="space-y-2">
       {items.map((it, i) => (
         <div key={i} className="flex gap-2">
           <Input value={it} placeholder={placeholder} onChange={(e) => onChange(items.map((x, j) => (j === i ? e.target.value : x)))} />
+          <MoveBtns i={i} n={items.length} onMove={(a, b) => onChange(move(items, a, b))} />
           <Button type="button" variant="ghost" size="icon" aria-label="Remover linha" onClick={() => onChange(items.filter((_, j) => j !== i))}><X className="w-4 h-4" /></Button>
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, ''])}><Plus className="w-4 h-4 mr-1" /> Adicionar linha</Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, ''])}><Plus className="w-4 h-4 mr-1" /> {addLabel}</Button>
     </div>
   );
 }
@@ -110,7 +128,10 @@ function ProductPicker({ ids, onChange, max, all, selfId }: { ids: string[]; onC
   );
 }
 
-export default function ProductExtrasFields({ value: e, onChange, normalPrice, productId }: { value: ProductExtras; onChange: (v: ProductExtras) => void; normalPrice: number; productId?: string }) {
+export type ExtrasSection = 'install' | 'promo' | 'related' | 'description';
+
+export default function ProductExtrasFields({ value: e, onChange, normalPrice, productId, sections = ['install', 'promo', 'related', 'description'] }: { value: ProductExtras; onChange: (v: ProductExtras) => void; normalPrice: number; productId?: string; sections?: ExtrasSection[] }) {
+  const has = (s: ExtrasSection) => sections.includes(s);
   const set = <K extends keyof ProductExtras>(k: K, v: ProductExtras[K]) => onChange({ ...e, [k]: v });
   const { data: all = [] } = useQuery({ queryKey: ['products'], queryFn: () => productsApi.list() });
 
@@ -120,14 +141,14 @@ export default function ProductExtrasFields({ value: e, onChange, normalPrice, p
 
   return (
     <div className="space-y-4">
-      <Section title="🔧 INSTALAÇÃO">
+      {has('install') && <Section title="🔧 INSTALAÇÃO">
         <label className="flex items-center gap-3 cursor-pointer">
           <Switch checked={e.includes_installation} onCheckedChange={(v) => set('includes_installation', v)} />
           <span className="text-sm">{e.includes_installation ? '🟢 Inclui instalação' : '⚪ Não inclui'}</span>
         </label>
-      </Section>
+      </Section>}
 
-      <Section title="💰 PROMOÇÃO">
+      {has('promo') && <Section title="💰 PROMOÇÃO">
         <label className="flex items-center gap-3 cursor-pointer">
           <Switch checked={e.promo_enabled} onCheckedChange={(v) => set('promo_enabled', v)} />
           <span className="text-sm">{e.promo_enabled ? '🟢 Ligado' : '⚪ Desligado'}</span>
@@ -154,23 +175,23 @@ export default function ProductExtrasFields({ value: e, onChange, normalPrice, p
               <span className="rounded bg-destructive text-destructive-foreground px-1.5 py-0.5 text-xs font-bold">{pct}% OFF</span></p>
           </div>
         )}
-      </Section>
+      </Section>}
 
-      <Section title="🔗 COMPLETE SUA INSTALAÇÃO (até 6)">
+      {has('related') && <><Section title="🔗 COMPLETE SUA INSTALAÇÃO (até 6)">
         <ProductPicker ids={e.related_ids} onChange={(v) => set('related_ids', v)} max={6} all={all} selfId={productId} />
       </Section>
       <Section title="📦 COMPRE JUNTO (até 2)">
         <ProductPicker ids={e.bundle_ids} onChange={(v) => set('bundle_ids', v)} max={2} all={all} selfId={productId} />
-      </Section>
+      </Section></>}
 
-      <Section title="📝 DESCRIÇÃO">
+      {has('description') && <Section title="📝 DESCRIÇÃO">
         <div>
           <Label htmlFor="summary">Resumo</Label>
-          <Textarea id="summary" rows={2} value={e.summary} onChange={(ev) => set('summary', ev.target.value)} />
+          <Textarea id="summary" rows={3} placeholder="Texto curto que aparece no card da vitrine" value={e.summary} onChange={(ev) => set('summary', ev.target.value)} />
         </div>
         <div>
           <Label>Principais recursos</Label>
-          <ListEditor items={e.features} onChange={(v) => set('features', v)} placeholder="Ex.: Visão noturna de 30 m" />
+          <ListEditor items={e.features} onChange={(v) => set('features', v)} placeholder="Ex.: Visão noturna de 30 m" addLabel="Adicionar recurso" />
         </div>
         <div className="space-y-2">
           <Label>Ficha técnica</Label>
@@ -178,6 +199,7 @@ export default function ProductExtrasFields({ value: e, onChange, normalPrice, p
             <div key={i} className="flex gap-2">
               <Input placeholder="Característica" value={s.label} onChange={(ev) => set('specs', e.specs.map((x, j) => (j === i ? { ...x, label: ev.target.value } : x)))} />
               <Input placeholder="Valor" value={s.value} onChange={(ev) => set('specs', e.specs.map((x, j) => (j === i ? { ...x, value: ev.target.value } : x)))} />
+              <MoveBtns i={i} n={e.specs.length} onMove={(a, b) => set('specs', move(e.specs, a, b))} />
               <Button type="button" variant="ghost" size="icon" aria-label="Remover linha" onClick={() => set('specs', e.specs.filter((_, j) => j !== i))}><X className="w-4 h-4" /></Button>
             </div>
           ))}
@@ -185,13 +207,13 @@ export default function ProductExtrasFields({ value: e, onChange, normalPrice, p
         </div>
         <div>
           <Label>O que vem na caixa</Label>
-          <ListEditor items={e.box_items} onChange={(v) => set('box_items', v)} placeholder="Ex.: 1 câmera" />
+          <ListEditor items={e.box_items} onChange={(v) => set('box_items', v)} placeholder="Ex.: 1 câmera" addLabel="Adicionar item" />
         </div>
         <div>
           <Label htmlFor="ideal_for">Ideal para</Label>
           <Input id="ideal_for" value={e.ideal_for} onChange={(ev) => set('ideal_for', ev.target.value)} placeholder="Ex.: casas, comércios e condomínios" />
         </div>
-      </Section>
+      </Section>}
     </div>
   );
 }

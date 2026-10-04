@@ -1,3 +1,4 @@
+import { uploadImage } from '@/lib/imageUpload';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ServicePhoto {
@@ -39,21 +40,8 @@ export const servicePhotosApi = {
     if (error) throw error;
   },
 
-  async uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('service-photos')
-      .upload(fileName, file);
-    
-    if (uploadError) throw uploadError;
-    
-    const { data } = supabase.storage
-      .from('service-photos')
-      .getPublicUrl(fileName);
-    
-    return data.publicUrl;
+  async uploadImage(file: File, onProgress?: (pct: number) => void): Promise<string> {
+    return uploadImage(file, { bucket: 'service-photos', folder: 'gallery', onProgress });
   },
 
   async deleteImage(imageUrl: string): Promise<void> {

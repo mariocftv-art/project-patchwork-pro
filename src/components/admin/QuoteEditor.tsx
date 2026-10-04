@@ -646,7 +646,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
                       <Button size="icon" variant="ghost" onClick={() => set('items', data.items.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                     <div className="col-span-12">
-                      <ImageUploadField value={it.imageUrl} onChange={(url) => setItem(i, { imageUrl: url })} />
+                      <ImageUploadField compact bucket="quotes" folder="item-images" value={it.imageUrl} onChange={(url) => setItem(i, { imageUrl: url })} />
                     </div>
                   </div>
                 ))}

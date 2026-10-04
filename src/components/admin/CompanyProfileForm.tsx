@@ -1,3 +1,4 @@
+import ImageUploadField from './ImageUploadField';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -163,21 +164,7 @@ export default function CompanyProfileForm() {
             <div className="space-y-2">
               <Label>Logo da empresa (site, painel e PDFs)</Label>
               <p className="text-sm text-muted-foreground">PNG com fundo transparente funciona melhor.</p>
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="max-w-xs"
-                  onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
-                />
-                {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {!uploading && <Upload className="h-4 w-4 text-muted-foreground" />}
-              </div>
-              {profile.logo_url && (
-                <Button variant="ghost" size="sm" onClick={() => set('logo_url', null)}>
-                  Remover logo
-                </Button>
-              )}
+              <ImageUploadField value={profile.logo_url} onChange={(url) => set('logo_url', url || null)} bucket="service-photos" folder="logos" label="Logo" />
             </div>
           </div>
 

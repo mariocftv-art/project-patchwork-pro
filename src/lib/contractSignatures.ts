@@ -1,3 +1,4 @@
+import { compressImage } from '@/lib/imageUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyProfile } from '@/lib/companyProfile';
 import { buildPremiumPDF, DocSignature } from '@/lib/premiumPDF';
@@ -135,7 +136,9 @@ const SIG_PATH = 'assinatura.png';
 
 export async function uploadCompanySignature(file: File) {
   if (file.type !== 'image/png') throw new Error('Envie um arquivo PNG');
-  const { error } = await supabase.storage.from(SIG_BUCKET).upload(SIG_PATH, file, { upsert: true, contentType: 'image/png', cacheControl: '0' });
+  if (file.size > 10 * 1024 * 1024) throw new Error('A imagem passa de 10 MB.');
+  const blob = await compressImage(file, true);
+  const { error } = await supabase.storage.from(SIG_BUCKET).upload(SIG_PATH, blob, { upsert: true, contentType: 'image/png', cacheControl: '0' });
   if (error) throw error;
 }
 
