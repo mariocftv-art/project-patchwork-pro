@@ -321,3 +321,4 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 .dark .keep-light input { background-color: hsl(0 0% 100%); color: hsl(0 0% 13%); }
 .dark .bg-white:not(img):not(.keep-white) { background-color: hsl(var(--card)); }
 .dark img.bg-white { background-color: hsl(0 0% 96%); }
+.dark main .text-primary { color: hsl(var(--primary)); }
