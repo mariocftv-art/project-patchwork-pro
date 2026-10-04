@@ -127,7 +127,7 @@ export default function OrderConfirmation() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Cabeçalho de sucesso */}
-        <div className="bg-white rounded-xl border border-border p-6 sm:p-8 text-center shadow-sm">
+        <div className="bg-card rounded-xl border border-border p-6 sm:p-8 text-center shadow-sm">
           <CheckCircle className="h-16 w-16 text-ml-green mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-1">Pedido realizado com sucesso!</h1>
           <p className="text-foreground font-medium my-3 rounded-lg bg-muted p-3">
@@ -159,7 +159,7 @@ export default function OrderConfirmation() {
         </div>
 
         {/* Linha do tempo do pedido */}
-        <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
+        <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Andamento do pedido</h2>
             <span className={`text-xs px-2.5 py-1 rounded-full border ${statusInfo.badgeClass}`}>
@@ -175,7 +175,7 @@ export default function OrderConfirmation() {
 
         {/* Resumo dos itens */}
         {orderData && orderData.items.length > 0 && (
-          <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
+          <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
             <h2 className="font-semibold text-foreground mb-4">Resumo da compra</h2>
             <div className="space-y-3 text-sm">
               {orderData.items.map((item, index) => (
@@ -204,7 +204,7 @@ export default function OrderConfirmation() {
         )}
 
         {/* Próximo passo */}
-        <div className="bg-white rounded-xl border border-border p-6 shadow-sm space-y-3">
+        <div className="bg-card rounded-xl border border-border p-6 shadow-sm space-y-3">
           <h2 className="font-semibold text-foreground">Próximo passo</h2>
           <p className="text-sm text-muted-foreground">
             Envie a confirmação pelo WhatsApp para combinarmos a forma de pagamento e a entrega.

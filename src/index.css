@@ -55,6 +55,11 @@
     --price: 214 90% 42%;
     --price-old: 0 75% 45%;
     --promo: 142 72% 29%;
+    --ml-ink: 0 0% 10%;
+    --ml-ink-strong: 0 0% 0%;
+    --ml-ink-2: 0 0% 15%;
+    --ml-gray: 0 0% 35%;
+    --ml-light-gray: 0 0% 93%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 13%;
@@ -67,34 +72,65 @@
   }
 
   .dark {
-    --background: 0 0% 8%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 50 100% 50%;
-    --primary-foreground: 0 0% 13%;
-
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 60%;
-
-    --accent: 210 100% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 210 100% 45%;
+    --background: 220 6% 9% !important;
+    --foreground: 40 8% 88% !important;
+    --card: 220 5% 13% !important;
+    --card-foreground: 40 8% 88% !important;
+    --popover: 220 5% 14% !important;
+    --popover-foreground: 40 8% 88% !important;
+    --primary-foreground: 0 0% 10% !important;
+    --secondary: 220 5% 18% !important;
+    --secondary-foreground: 40 8% 88% !important;
+    --muted: 220 5% 18% !important;
+    --muted-foreground: 40 5% 66% !important;
+    --accent: 46 75% 55% !important;
+    --accent-foreground: 0 0% 10% !important;
+    --ml-blue: 46 75% 58% !important;
+    --ml-ink: 46 75% 58% !important;
+    --ml-ink-strong: 46 85% 65% !important;
+    --ml-ink-2: 40 8% 85% !important;
+    --ml-gray: 40 5% 68% !important;
+    --ml-light-gray: 220 5% 18% !important;
+    --success: 0 0% 85% !important;
+    --success-foreground: 0 0% 10% !important;
+    --destructive: 0 72% 58% !important;
+    --destructive-foreground: 0 0% 100% !important;
+    --border: 220 5% 22% !important;
+    --input: 220 5% 24% !important;
+    --ring: 46 85% 55% !important;
+    --ml-light-blue: 46 40% 18% !important;
+    --price: 210 100% 70% !important;
+    --price-old: 0 85% 68% !important;
+    --promo: 142 60% 55% !important;
+    --gold: 44 70% 55%;
   }
+
+  /* Faixa amarela, menu preto e rodapé: sempre como no modo claro */
+  .dark .keep-light {
+    --background: 0 0% 97% !important;
+    --foreground: 0 0% 13% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 0 0% 13% !important;
+    --popover: 0 0% 100% !important;
+    --popover-foreground: 0 0% 13% !important;
+    --secondary: 0 0% 95% !important;
+    --secondary-foreground: 0 0% 13% !important;
+    --muted: 0 0% 95% !important;
+    --muted-foreground: 0 0% 35% !important;
+    --accent: 0 0% 10% !important;
+    --accent-foreground: 0 0% 100% !important;
+    --ml-blue: 0 0% 10% !important;
+    --ml-ink: 0 0% 10% !important;
+    --ml-ink-strong: 0 0% 0% !important;
+    --ml-ink-2: 0 0% 15% !important;
+    --ml-gray: 0 0% 35% !important;
+    --border: 0 0% 88% !important;
+    --input: 0 0% 88% !important;
+    --ring: 0 0% 10% !important;
+    color-scheme: light;
+  }
+  /* Campo de busca e menus abertos no cabeçalho continuam claros */
+  .dark .keep-light .bg-card { background-color: hsl(0 0% 100%); }
 }
 
 @layer base {
@@ -124,7 +160,7 @@
 
   /* ML Search Bar */
   .ml-search {
-    @apply w-full bg-white rounded shadow-sm border-none;
+    @apply w-full bg-card rounded shadow-sm border-none;
   }
 
   .ml-search:focus-within {
@@ -210,7 +246,7 @@
 
   /* Form Input ML Style */
   .ml-input {
-    @apply w-full px-4 py-3 rounded border border-border bg-white text-foreground focus:border-[hsl(210,100%,45%)] focus:ring-1 focus:ring-[hsl(210,100%,45%)] transition-all outline-none;
+    @apply w-full px-4 py-3 rounded border border-border bg-card text-foreground focus:border-[hsl(210,100%,45%)] focus:ring-1 focus:ring-[hsl(210,100%,45%)] transition-all outline-none;
   }
 }
 
@@ -265,3 +301,23 @@ display: none !important;
   .admin-mobile button { min-height: 44px; }
   .admin-mobile img, .admin-mobile canvas { max-width: 100%; }
 }
+
+/* ===== Modo escuro premium ===== */
+html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after {
+  transition: background-color .35s ease, color .35s ease, border-color .35s ease !important;
+}
+.dark body { background-color: hsl(var(--background)); }
+.dark .ml-card {
+  border-color: hsl(var(--border));
+  box-shadow: 0 6px 18px -8px hsl(0 0% 0% / .6);
+}
+.dark .ml-card:hover { border-color: hsl(var(--gold) / .7); box-shadow: 0 10px 28px -10px hsl(var(--gold) / .35); }
+/* Foto de produto com fundo branco: moldura clara proposital */
+.dark .ml-card .aspect-\[4\/3\] { background: hsl(0 0% 96%); border-radius: .375rem; padding: 4px; }
+.dark main h1, .dark main h2 { color: hsl(40 10% 95%); }
+.dark main h2.section-title, .dark main section > h2 { color: hsl(var(--gold)); }
+.dark main hr { border-color: hsl(var(--gold) / .35); }
+.dark input, .dark textarea, .dark select { background-color: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--input)); }
+.dark .keep-light input { background-color: hsl(0 0% 100%); color: hsl(0 0% 13%); }
+.dark .bg-white:not(img):not(.keep-white) { background-color: hsl(var(--card)); }
+.dark img.bg-white { background-color: hsl(0 0% 96%); }

@@ -35,7 +35,7 @@ export default function Product() {
 
   if (!product) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg">
+      <div className="text-center py-12 bg-card rounded-lg">
         <h2 className="text-xl text-foreground mb-4">Produto não encontrado</h2>
         <Link to="/" className="ml-link">
           Voltar para a loja
@@ -81,7 +81,7 @@ export default function Product() {
   };
 
   return (
-    <div className="bg-white rounded-lg">
+    <div className="bg-card rounded-lg">
       {/* Breadcrumb */}
       <div className="px-4 py-3 border-b border-border">
         <Link

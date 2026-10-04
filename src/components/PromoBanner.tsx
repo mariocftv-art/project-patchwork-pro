@@ -1,174 +1,105 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-const artMaisSeguros = { url: 'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-16-cameras.jpg' };
-const artMaisSeguranca = { url: 'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-monitoramento-24h.jpg' };
+import { useBrand, brandLogo } from '@/lib/brand';
+import b1w from '@/assets/banners/b1-wide.jpg';
+import b1t from '@/assets/banners/b1-tall.jpg';
+import b2w from '@/assets/banners/b2-wide.jpg';
+import b2t from '@/assets/banners/b2-tall.jpg';
+import b3w from '@/assets/banners/b3-wide.jpg';
+import b3t from '@/assets/banners/b3-tall.jpg';
+import b4w from '@/assets/banners/b4-wide.jpg';
+import b4t from '@/assets/banners/b4-tall.jpg';
+import b5w from '@/assets/banners/b5-wide.jpg';
+import b5t from '@/assets/banners/b5-tall.jpg';
 
-type Banner = {
-  id: number;
-  title: string;
-  subtitle?: string;
-  description?: string;
-  bgColor: string;
-  link: string;
-  image?: string;
-  art?: string; // arte oficial ocupando o slide inteiro
-};
+/** Artes antigas do carrossel, guardadas (não apagar). */
+export const LEGACY_BANNER_ARTS = [
+  'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-16-cameras.jpg',
+  'https://jpcwzjqzfyzpcwcbekge.supabase.co/storage/v1/object/public/service-photos/realizado-monitoramento-24h.jpg',
+];
+
+type Banner = { title: string; sub: string; cta: string; link: string; wide: string; tall: string };
 
 const banners: Banner[] = [
-  {
-    id: 1,
-    title: 'Câmeras de Segurança',
-    subtitle: 'Até 40% OFF',
-    description: 'Monitoramento 24h para sua casa',
-    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
-    link: '/?categoria=câmeras',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'
-  },
-  {
-    id: 2,
-    title: 'Mais segurança para o que realmente importa',
-    bgColor: 'bg-foreground',
-    link: '/servicos',
-    art: artMaisSeguranca.url,
-  },
-  {
-    id: 3,
-    title: 'Cercas Elétricas',
-    subtitle: 'Instalação Inclusa',
-    description: 'Proteção total para seu perímetro',
-    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
-    link: '/?categoria=cercas',
-    image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=300&fit=crop'
-  },
-  {
-    id: 4,
-    title: 'Sua casa e seu patrimônio mais seguros',
-    bgColor: 'bg-foreground',
-    link: '/?categoria=câmeras',
-    art: artMaisSeguros.url,
-  },
-  {
-    id: 5,
-    title: 'DVR e NVR',
-    subtitle: 'Promoção Especial',
-    description: 'Grave e monitore de qualquer lugar',
-    bgColor: 'bg-gradient-to-r from-foreground to-ml-dark-gray',
-    link: '/?categoria=dvr',
-    image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=300&fit=crop'
-  }
+  { title: 'SUA CASA E SEU PATRIMÔNIO MAIS SEGUROS', sub: 'Câmeras, alarmes e monitoramento 24h', cta: 'VER SOLUÇÕES', link: '/?categoria=câmeras', wide: b1w, tall: b1t },
+  { title: 'KIT CFTV COMPLETO INSTALADO', sub: 'Equipamento, instalação e 1 ano de garantia', cta: 'VER KITS', link: '/?categoria=dvr', wide: b2w, tall: b2t },
+  { title: 'SUAS CÂMERAS NA PALMA DA MÃO', sub: 'Acompanhe tudo ao vivo, de onde estiver', cta: 'SAIBA MAIS', link: '/servicos', wide: b3w, tall: b3t },
+  { title: 'PROTEÇÃO QUE COMEÇA NO MURO', sub: 'Cerca elétrica e alarme monitorado', cta: 'VER OPÇÕES', link: '/?categoria=cercas', wide: b4w, tall: b4t },
+  { title: 'JÁ TEM O EQUIPAMENTO? A GENTE INSTALA', sub: 'Serviço Técnico Especializado com garantia', cta: 'VER SERVIÇOS', link: '/servicos', wide: b5w, tall: b5t },
 ];
 
 export default function PromoBanner() {
+  const brand = useBrand();
   const [current, setCurrent] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const touchX = useRef<number | null>(null);
+  const n = banners.length;
 
   useEffect(() => {
-    if (!isAutoPlaying) return;
-    
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % banners.length);
-    }, 5000);
+    if (paused) return;
+    const t = setInterval(() => setCurrent((p) => (p + 1) % n), 6000);
+    return () => clearInterval(t);
+  }, [paused, n]);
 
-    return () => clearInterval(timer);
-  }, [isAutoPlaying]);
-
-  const goTo = (index: number) => {
-    setCurrent(index);
-    setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
-  };
-
-  const prev = () => goTo((current - 1 + banners.length) % banners.length);
-  const next = () => goTo((current + 1) % banners.length);
+  const goTo = (i: number) => setCurrent((i + n) % n);
 
   return (
-    <div className="relative w-full mb-4 sm:mb-6 group">
-      {/* Main Banner */}
-      <div className="relative overflow-hidden rounded-lg">
-        <div 
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${current * 100}%)` }}
-        >
-          {banners.map((banner) => banner.art ? (
-            <Link
-              key={banner.id}
-              to={banner.link}
-              aria-label={banner.title}
-              className={`flex-shrink-0 w-full ${banner.bgColor} relative overflow-hidden flex items-center justify-center min-h-[140px] sm:min-h-[180px] md:min-h-[280px]`}
-            >
-              <img src={banner.art} alt={banner.title} className="w-full h-[140px] sm:h-[180px] md:h-[280px] object-contain" />
-            </Link>
-          ) : (
-            <Link
-              key={banner.id}
-              to={banner.link}
-              className={`flex-shrink-0 w-full ${banner.bgColor} relative overflow-hidden`}
-            >
-              <div className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-5 sm:py-8 md:py-12 min-h-[140px] sm:min-h-[180px] md:min-h-[280px]">
-                {/* Text Content */}
-                <div className="text-white z-10 max-w-md">
-                  <p className="text-xs sm:text-sm md:text-base font-medium opacity-90 mb-0.5 sm:mb-1">
-                    {banner.subtitle}
-                  </p>
-                  <h2 className="text-lg sm:text-2xl md:text-4xl font-bold mb-1 sm:mb-2">
-                    {banner.title}
-                  </h2>
-                  <p className="text-xs sm:text-sm md:text-lg opacity-90 hidden sm:block">
-                    {banner.description}
-                  </p>
-                  <span className="inline-block mt-2 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors">
-                    Ver ofertas →
-                  </span>
-                </div>
-
-                {/* Image */}
-                <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
-                  <img 
-                    src={banner.image} 
-                    alt={banner.title}
-                    className="w-48 h-48 lg:w-56 lg:h-56 object-cover rounded-lg shadow-2xl transform rotate-3 hover:rotate-0 transition-transform"
-                  />
-                </div>
-
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-1/2 w-16 sm:w-32 h-16 sm:h-32 bg-white/5 rounded-full translate-y-1/2" />
+    <div
+      className="keep-light relative w-full mb-4 sm:mb-6 group"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={(e) => { setPaused(true); touchX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        const s = touchX.current;
+        if (s !== null) {
+          const dx = e.changedTouches[0].clientX - s;
+          if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
+        }
+        touchX.current = null;
+        window.setTimeout(() => setPaused(false), 8000);
+      }}
+    >
+      <div className="relative overflow-hidden rounded-lg bg-foreground aspect-[4/5] sm:aspect-[3/1]">
+        <div className="flex h-full transition-transform duration-500 ease-out" style={{ transform: `translateX(-${current * 100}%)` }}>
+          {banners.map((b, i) => (
+            <Link key={b.title} to={b.link} aria-label={`${b.title} — ${b.cta}`} className="relative flex-shrink-0 w-full h-full block">
+              <picture>
+                <source media="(min-width: 640px)" srcSet={b.wide} />
+                <img src={b.tall} alt="" loading={i === 0 ? 'eager' : 'lazy'} className="absolute inset-0 w-full h-full object-cover" />
+              </picture>
+              <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/30 to-transparent sm:bg-gradient-to-r sm:from-black/80 sm:via-black/40 sm:to-transparent" aria-hidden />
+              <img src={brandLogo(brand)} alt={brand.name} className="absolute top-3 right-3 sm:top-4 sm:right-5 h-10 sm:h-14 w-auto object-contain drop-shadow" />
+              <div className="relative h-full flex flex-col justify-start sm:justify-center px-5 pt-10 sm:pt-0 sm:px-12 md:px-16 max-w-xl">
+                <span className="block h-0.5 w-12 bg-primary mb-3" aria-hidden />
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight text-primary" style={{ textShadow: '0 2px 12px rgba(0,0,0,.7)' }}>
+                  {b.title}
+                </h2>
+                <p className="mt-2 sm:mt-3 text-sm sm:text-base md:text-lg text-white/90" style={{ textShadow: '0 1px 8px rgba(0,0,0,.8)' }}>
+                  {b.sub}
+                </p>
+                <span className="mt-4 sm:mt-6 inline-flex w-fit items-center rounded-md bg-primary px-5 py-2.5 text-sm md:text-base font-bold text-primary-foreground shadow-lg">
+                  {b.cta} →
+                </span>
               </div>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Navigation Arrows - hidden on mobile */}
-      <button
-        onClick={prev}
-        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-        aria-label="Banner anterior"
-      >
-        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-ml-gray-dark" />
+      <button onClick={() => goTo(current - 1)} aria-label="Banner anterior"
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-primary/60 text-primary hidden sm:flex items-center justify-center hover:bg-black/70">
+        <ChevronLeft className="w-5 h-5" />
       </button>
-      <button
-        onClick={next}
-        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-        aria-label="Próximo banner"
-      >
-        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-ml-gray-dark" />
+      <button onClick={() => goTo(current + 1)} aria-label="Próximo banner"
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-primary/60 text-primary hidden sm:flex items-center justify-center hover:bg-black/70">
+        <ChevronRight className="w-5 h-5" />
       </button>
 
-      {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {banners.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goTo(index)}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${
-              index === current 
-                ? 'bg-white w-6' 
-                : 'bg-white/50 hover:bg-white/75'
-            }`}
-            aria-label={`Ir para banner ${index + 1}`}
-          />
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+        {banners.map((_, i) => (
+          <button key={i} onClick={() => goTo(i)} aria-label={`Ir para banner ${i + 1}`}
+            className={`h-2.5 rounded-full transition-all ${i === current ? 'w-7 bg-primary' : 'w-2.5 bg-white/60 hover:bg-white'}`} />
         ))}
       </div>
     </div>

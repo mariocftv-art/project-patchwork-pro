@@ -185,7 +185,7 @@ export default function Cart() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="bg-white rounded-lg p-8 text-center">
+      <div className="bg-card rounded-lg p-8 text-center">
         <ShoppingCart className="w-16 h-16 text-ml-light-gray mx-auto mb-4" />
         <h2 className="text-xl text-foreground mb-2">
           O carrinho está vazio
@@ -204,7 +204,7 @@ export default function Cart() {
     <div className="grid lg:grid-cols-3 gap-6">
       {/* Cart Items */}
       <div className="lg:col-span-2">
-        <div className="bg-white rounded-lg">
+        <div className="bg-card rounded-lg">
           <div className="p-4 border-b border-border">
             <h1 className="text-xl font-light text-foreground">
               {(() => { const n = cartWithProducts.length; const u = cartWithProducts.reduce((s, i) => s + i.quantity, 0); return `Carrinho — ${n} ${n === 1 ? 'item' : 'itens'} (${u} ${u === 1 ? 'unidade' : 'unidades'})`; })()}
@@ -298,7 +298,7 @@ export default function Cart() {
 
       {/* Order Summary */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-lg p-4 sticky top-24">
+        <div className="bg-card rounded-lg p-4 sticky top-24">
           <h2 className="text-lg font-medium text-foreground mb-4">
             Resumo da compra
           </h2>

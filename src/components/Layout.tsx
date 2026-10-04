@@ -6,6 +6,8 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
+import ThemeToggle from './ThemeToggle';
+import { applyMode } from '@/lib/theme';
 import InstallAppBanner, { InstallAppButton, useInstallPrompt } from './InstallAppBanner';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -54,6 +56,7 @@ const defaultContent: SiteContent = {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  useEffect(() => { applyMode(location.pathname); }, [location.pathname]);
   const { totalItems: cartCount } = useCart();
   const { data: paySettings } = usePaymentSettings();
   const { totalItems: wishlistCount } = useWishlist();
@@ -103,12 +106,12 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Faixa de frete */}
-      <div className="bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
+      <div className="keep-light bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
         🚚 <strong>Entrega e instalação combinadas com você</strong> — agendamos data e horário pelo WhatsApp
       </div>
 
       {/* Header */}
-      <header className="ml-header sticky top-0 z-50">
+      <header className="keep-light ml-header sticky top-0 z-50">
         {/* Top Header */}
         <div className="container mx-auto px-2 sm:px-4 py-2">
           {/* Desktop Layout */}
@@ -149,6 +152,7 @@ export default function Layout({ children }: LayoutProps) {
             {/* Right Actions */}
             <div className="flex items-center gap-3">
               <NotificationsPopover />
+              <ThemeToggle />
 
               <Link
                 to="/wishlist"
@@ -258,6 +262,7 @@ export default function Layout({ children }: LayoutProps) {
 
               <div className="flex items-center">
                 <NotificationsPopover />
+                <ThemeToggle />
 
                 <Link
                   to="/wishlist"
@@ -289,7 +294,7 @@ export default function Layout({ children }: LayoutProps) {
                       <Menu className="w-5 h-5" />
                     </button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-72 bg-white p-0">
+                  <SheetContent side="right" className="w-72 bg-card p-0">
                     <div className="p-4 border-b border-border">
                       <p className="font-semibold text-foreground">Menu</p>
                     </div>
@@ -345,7 +350,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Search bar - separate row on mobile */}
             <form onSubmit={handleSearch} className="pb-2">
-              <div className="relative flex items-center bg-white border border-border rounded-md overflow-hidden">
+              <div className="relative flex items-center bg-card border border-border rounded-md overflow-hidden">
                 <input
                   type="text"
                   value={searchQuery}
@@ -417,7 +422,7 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-foreground text-background mt-8 border-t-4 border-primary">
+      <footer className="keep-light bg-foreground text-background mt-8 border-t-4 border-primary">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
@@ -497,7 +502,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* iOS Instructions Modal */}
           {showIOSModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowIOSModal(false)}>
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

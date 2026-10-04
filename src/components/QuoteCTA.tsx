@@ -3,23 +3,29 @@ import bg from '@/assets/cta-fachada-noite.jpg';
 
 const MSG = 'Olá! Cheguei pelo site da MR Segurança Máxima e gostaria de solicitar um orçamento para um sistema de segurança. Podemos conversar?';
 
-/** Faixa compacta de chamada para orçamento (WhatsApp da empresa vem da Personalização). */
+/** Faixa de chamada para orçamento (WhatsApp da empresa vem da Personalização). */
 export default function QuoteCTA() {
   const brand = useBrand();
   const line = 'absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent';
+  const shadow = { textShadow: '0 2px 10px rgba(0,0,0,.75)' };
   return (
     <section
-      className="relative overflow-hidden rounded-lg bg-foreground bg-cover bg-center"
+      className="keep-light relative overflow-hidden rounded-lg bg-foreground bg-cover bg-center"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="absolute inset-0 bg-foreground/75" aria-hidden />
+      {/* Degradê: mais escuro atrás do texto (centro/esquerda), mais claro nas bordas para a casa aparecer */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(90deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.55) 45%, rgba(0,0,0,.25) 100%)' }}
+        aria-hidden
+      />
       <span className={`${line} top-0`} aria-hidden />
       <span className={`${line} bottom-0`} aria-hidden />
-      <div className="relative px-4 py-6 md:px-10 md:py-8 text-center">
-        <h2 className="font-serif text-xl md:text-3xl font-bold tracking-wide text-primary">
+      <div className="relative px-4 py-10 md:px-10 md:py-14 text-center">
+        <h2 style={shadow} className="font-serif text-xl md:text-3xl font-bold tracking-wide text-primary">
           Não sabe quantas câmeras precisa?
         </h2>
-        <p className="mt-2 md:mt-3 mx-auto max-w-2xl text-sm md:text-base text-background/85">
+        <p style={shadow} className="mt-2 md:mt-3 mx-auto max-w-2xl text-sm md:text-base text-background">
           Agende uma visita técnica: avaliamos seu imóvel e montamos o projeto ideal, sem compromisso.
         </p>
         <a

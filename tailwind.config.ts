@@ -62,14 +62,14 @@ export default {
         },
         // Paleta unificada: amarelo da marca + preto + cinzas (contraste AA)
         ml: {
-          turquoise: "#1A1A1A",
-          "turquoise-dark": "#000000",
-          blue: "#1A1A1A",
-          "blue-dark": "#000000",
-          green: "#262626",
-          gray: "#595959",
-          "light-gray": "#EEEEEE",
-          "dark-gray": "#262626",
+          turquoise: "hsl(var(--ml-ink))",
+          "turquoise-dark": "hsl(var(--ml-ink-strong))",
+          blue: "hsl(var(--ml-ink))",
+          "blue-dark": "hsl(var(--ml-ink-strong))",
+          green: "hsl(var(--ml-ink-2))",
+          gray: "hsl(var(--ml-gray))",
+          "light-gray": "hsl(var(--ml-light-gray))",
+          "dark-gray": "hsl(var(--ml-ink-2))",
           yellow: "#FFD700",
         },
         sidebar: {

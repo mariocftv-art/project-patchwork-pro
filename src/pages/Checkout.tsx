@@ -252,7 +252,7 @@ export default function Checkout() {
           {/* Formulário */}
           <div className="lg:col-span-2 space-y-6">
             {/* Dados pessoais */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card rounded-lg p-6 shadow-sm">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <span className="bg-ml-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
                 Dados Pessoais
@@ -302,7 +302,7 @@ export default function Checkout() {
             </div>
 
             {/* Endereço */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card rounded-lg p-6 shadow-sm">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <span className="bg-ml-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
                 <MapPin className="h-5 w-5" />
@@ -389,7 +389,7 @@ export default function Checkout() {
             </div>
 
             {/* Pagamento */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="bg-card rounded-lg p-6 shadow-sm">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <span className="bg-ml-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
                 Forma de Pagamento
@@ -439,7 +439,7 @@ export default function Checkout() {
 
           {/* Resumo */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg p-6 shadow-sm sticky top-4">
+            <div className="bg-card rounded-lg p-6 shadow-sm sticky top-4">
               <h2 className="text-lg font-semibold mb-4">Resumo do Pedido</h2>
               
               <div className="space-y-3 mb-4">

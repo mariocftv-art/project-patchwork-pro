@@ -328,7 +328,7 @@ export default function TrackOrder() {
           )}
 
           {/* Order Header */}
-          <div className={`bg-white rounded-lg shadow-sm p-6 transition-all duration-500 ${statusChanged ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}>
+          <div className={`bg-card rounded-lg shadow-sm p-6 transition-all duration-500 ${statusChanged ? 'ring-2 ring-primary ring-offset-2 animate-pulse' : ''}`}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-foreground">
@@ -349,14 +349,14 @@ export default function TrackOrder() {
           </div>
 
           {/* Progresso do pedido (linha do tempo compartilhada) */}
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="bg-card rounded-lg shadow-sm p-4 sm:p-6">
             <h3 className="font-semibold mb-4">Progresso do Pedido</h3>
             <OrderStatusTimeline status={order.status || 'pending'} />
           </div>
 
 
           {/* Order Items */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-card rounded-lg shadow-sm p-6">
             <h3 className="font-semibold mb-4">Itens do Pedido</h3>
             <div className="space-y-3">
               {(order.items as OrderItem[]).map((item, index) => (
@@ -399,7 +399,7 @@ export default function TrackOrder() {
 
           {/* Shipping Address */}
           {order.shipping_address && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-card rounded-lg shadow-sm p-6">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
                 Endereço de Entrega
