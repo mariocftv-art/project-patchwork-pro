@@ -1,0 +1,2 @@
+CREATE POLICY "Staff upload own avatar" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'service-photos' AND name LIKE ('avatars/' || auth.uid()::text || '/%') AND has_role(auth.uid(),'tecnico'));
