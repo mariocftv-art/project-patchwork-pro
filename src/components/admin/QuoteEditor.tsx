@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2 } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -141,6 +141,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const savingRef = useRef(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
@@ -274,16 +275,20 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       setStep('edit');
       return;
     }
+    // Trava: toque duplo ou clique repetido não dispara duas gravações
+    if (savingRef.current) return;
+    savingRef.current = true;
     setBusy(true);
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('offline');
       // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
-      const number = data.number || (await nextDocNumber());
+      let number = data.number || (await nextDocNumber());
       const final = { ...data, number };
       const profile = await getCompanyProfile(true);
-      const doc = await buildPremiumPDF(final, profile);
-      const url = await uploadPDF(doc, number);
+      let doc = await buildPremiumPDF(final, profile);
+      let url = await uploadPDF(doc, number);
       const t = computeTotals(final);
       const { data: auth } = await supabase.auth.getUser();
       const payload = {
@@ -342,9 +347,21 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
           notes: [`Aditivo contratual ao contrato ${number}, que permanece válido e inalterado.`, final.notes].filter(Boolean).join('\n'),
         });
       }
-      const res = targetId
+      let res = targetId
         ? await q.update(payload).eq('id', targetId).select('id').maybeSingle()
         : await q.insert(payload).select('id').maybeSingle();
+      // Rede de segurança: número já usado → pega o próximo livre e tenta de novo (até 3 vezes)
+      for (let attempt = 0; !targetId && res.error?.code === '23505' && attempt < 3; attempt++) {
+        const fresh = await nextDocNumber();
+        if (locked) finalNumber = fresh;
+        else { number = fresh; finalNumber = fresh; }
+        final.number = fresh;
+        doc = await buildPremiumPDF(final, profile);
+        url = await uploadPDF(doc, fresh);
+        if (!url) throw new Error('Falha ao salvar o PDF');
+        Object.assign(payload, { quote_number: fresh, pdf_url: url });
+        res = await q.insert(payload).select('id').maybeSingle();
+      }
       if (res.error) throw res.error;
       if (!res.data?.id) throw new Error('O documento não foi gravado (login de admin não reconhecido). Saia e entre de novo.');
       targetId = res.data.id;
@@ -379,17 +396,23 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       });
       setStep('preview');
       onSaved();
-      toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${number}` });
+      toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
     } catch (e) {
-      console.error(e);
-      const msg = (e as { message?: string })?.message || '';
-      const expired = /jwt|token|expired|row-level|permission/i.test(msg);
-      toast({
-        title: 'Erro ao salvar',
-        description: expired ? 'Seu login expirou. Saia do painel e entre de novo, depois gere o PDF outra vez.' : msg || 'Tente novamente.',
-        variant: 'destructive',
-      });
+      // Erro técnico só no log; na tela, mensagem simples. O formulário continua preenchido.
+      console.error('[QuoteEditor.save]', e);
+      const err = e as { message?: string; code?: string };
+      const msg = err?.message || '';
+      const offline = msg === 'offline' || /failed to fetch|network|load failed/i.test(msg) || navigator.onLine === false;
+      const description = err?.code === '23505' || /duplicate key/i.test(msg)
+        ? 'Não foi possível gerar o número do orçamento. Tente novamente.'
+        : offline
+          ? 'Sem conexão. Verifique sua internet e tente de novo.'
+          : /jwt|token|expired|row-level|permission|login/i.test(msg)
+            ? 'Seu login expirou. Saia e entre de novo.'
+            : 'Não foi possível salvar. Tente novamente em instantes.';
+      toast({ title: 'Erro ao salvar', description, variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setBusy(false);
     }
   };
@@ -495,7 +518,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setStep('edit')}><Pencil className="h-4 w-4 mr-1" />Editar orçamento</Button>
               <Button onClick={handleGenerate} disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}Gerar PDF
+                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}
               </Button>
               <Button variant="outline" onClick={handleDownload} disabled={!previewUrl}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
               <Button variant="outline" onClick={handlePrint} disabled={!previewBlob}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
@@ -724,7 +747,7 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
               <Button variant="outline" onClick={handlePreview} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Eye className="h-4 w-4 mr-1" />}Pré-visualizar
               </Button>
-              <Button onClick={handleGenerate} disabled={busy}><FileCheck className="h-4 w-4 mr-1" />Gerar PDF</Button>
+              <Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}</Button>
             </div>
           </div>
         )}
