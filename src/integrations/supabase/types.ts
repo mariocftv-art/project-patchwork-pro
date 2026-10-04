@@ -84,6 +84,7 @@ export type Database = {
           reminder_hour: number
           send_window_end: number
           send_window_start: number
+          show_header_shortcut: boolean
           updated_at: string
         }
         Insert: {
@@ -95,6 +96,7 @@ export type Database = {
           reminder_hour?: number
           send_window_end?: number
           send_window_start?: number
+          show_header_shortcut?: boolean
           updated_at?: string
         }
         Update: {
@@ -106,6 +108,7 @@ export type Database = {
           reminder_hour?: number
           send_window_end?: number
           send_window_start?: number
+          show_header_shortcut?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -115,6 +118,7 @@ export type Database = {
           address: string | null
           cancel_reason: string | null
           confirm_pending_at: string | null
+          confirm_sent_at: string | null
           created_at: string
           customer_doc: Json
           customer_name: string
@@ -124,16 +128,19 @@ export type Database = {
           id: string
           kind: string
           notes: string | null
+          on_way_sent_at: string | null
           reference_point: string | null
           starts_at: string
           status: string
           technician: string | null
+          technician_id: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           cancel_reason?: string | null
           confirm_pending_at?: string | null
+          confirm_sent_at?: string | null
           created_at?: string
           customer_doc?: Json
           customer_name: string
@@ -143,16 +150,19 @@ export type Database = {
           id?: string
           kind?: string
           notes?: string | null
+          on_way_sent_at?: string | null
           reference_point?: string | null
           starts_at: string
           status?: string
           technician?: string | null
+          technician_id?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           cancel_reason?: string | null
           confirm_pending_at?: string | null
+          confirm_sent_at?: string | null
           created_at?: string
           customer_doc?: Json
           customer_name?: string
@@ -162,10 +172,12 @@ export type Database = {
           id?: string
           kind?: string
           notes?: string | null
+          on_way_sent_at?: string | null
           reference_point?: string | null
           starts_at?: string
           status?: string
           technician?: string | null
+          technician_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1037,6 +1049,27 @@ export type Database = {
         }
         Relationships: []
       }
+      technicians: {
+        Row: {
+          created_at: string
+          email: string
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1088,6 +1121,11 @@ export type Database = {
           _order_number: string
           _p256dh: string
         }
+        Returns: boolean
+      }
+      staff_shortcut: { Args: never; Returns: Json }
+      tech_update_appointment: {
+        Args: { _id: string; _mark: string; _status: string }
         Returns: boolean
       }
     }
