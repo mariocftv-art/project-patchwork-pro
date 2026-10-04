@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
+import { getActiveDraft, getLocalDraft } from '@/lib/quoteDrafts';
 import TeamManagement from '@/components/admin/TeamManagement';
 import SiteContentForm from '@/components/admin/SiteContentForm';
 import PaymentSettingsForm from '@/components/admin/PaymentSettingsForm';
@@ -46,7 +47,11 @@ function scrollAdminTop() {
 }
 
 export default function Admin() {
-  const [tab, setTab] = useState('sales');
+  // Rascunho aberto quando a página foi descartada pelo celular: volta direto para ele
+  const [tab, setTab] = useState(() => {
+    const id = getActiveDraft(); const d = id ? getLocalDraft(id) : null;
+    return d ? (d.docType === 'contrato' ? 'contracts' : 'quotes') : 'sales';
+  });
   useEffect(() => {
     const prev = window.history.scrollRestoration;
     window.history.scrollRestoration = 'manual';

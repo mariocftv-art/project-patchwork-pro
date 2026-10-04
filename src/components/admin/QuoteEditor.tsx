@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2 } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -130,9 +131,18 @@ interface Props {
   /** Dados do cliente para preencher um documento novo (ex.: vindo de um agendamento) */
   prefillCustomer?: Partial<DocCustomer>;
   onSaved: () => void;
+  /** Rascunho a continuar (volta exatamente como estava) */
+  draft?: QuoteDraft | null;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, draft }: Props) {
+  const record = recordProp ?? (draft?.record as QuoteRecord | null) ?? null;
+  const draftIdRef = useRef<string>(newDraftId());
+  const draftCreatedRef = useRef<string>(new Date().toISOString());
+  const skipDirtyRef = useRef(true);
+  const dirtyRef = useRef(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [data, setData] = useState<PremiumDocData | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [status, setStatus] = useState('rascunho');
@@ -175,6 +185,24 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
     if (!open) return;
     (async () => {
       const profile = await getCompanyProfile(true);
+      skipDirtyRef.current = true;
+      dirtyRef.current = false;
+      if (draft) {
+        draftIdRef.current = draft.id;
+        draftCreatedRef.current = draft.createdAt;
+        setActiveDraft(draft.id);
+        setData({ ...draft.data, date: new Date(draft.data.date || Date.now()) });
+        setRecordId(draft.recordId);
+        setStatus(draft.status || 'rascunho');
+        setPdfUrl(null);
+        setSavedAt(new Date(draft.updatedAt));
+        setErrors([]); setPreviewBlob(null); setPreviewPages([]); setStep('edit');
+        setTimeout(() => contentRef.current?.scrollTo({ top: draft.scroll || 0 }), 400);
+        return;
+      }
+      draftIdRef.current = newDraftId();
+      draftCreatedRef.current = new Date().toISOString();
+      setSavedAt(null);
       if (record) {
         const d = recordToDoc(record);
         if (duplicate) {
@@ -223,13 +251,49 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, record, duplicate, mode]);
+  }, [open, record, duplicate, mode, draft]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
   const totals = useMemo(() => (data ? computeTotals(data) : null), [data]);
+
+  // ===== Rascunho automático =====
+  const persistRef = useRef<() => void>(() => {});
+  persistRef.current = () => {
+    if (!open || !data || !dirtyRef.current) return;
+    const now = new Date().toISOString();
+    saveDraftLocal({
+      id: draftIdRef.current, docType: data.docType, customerName: data.customer?.name || '',
+      recordId, record: record ?? null, data, status, scroll: contentRef.current?.scrollTop || 0,
+      createdAt: draftCreatedRef.current, updatedAt: now,
+    });
+    setActiveDraft(draftIdRef.current);
+    setSavedAt(new Date(now));
+  };
+  useEffect(() => {
+    if (!data) return;
+    if (skipDirtyRef.current) { skipDirtyRef.current = false; return; }
+    dirtyRef.current = true;
+    const t = setTimeout(() => persistRef.current(), 3000);
+    return () => clearTimeout(t);
+  }, [data, status]);
+  const itemCount = data?.items.length ?? 0;
+  useEffect(() => { if (dirtyRef.current) persistRef.current(); }, [itemCount, step]);
+  useEffect(() => {
+    if (!open) return;
+    const now = () => persistRef.current();
+    const vis = () => { if (document.visibilityState === 'hidden') now(); };
+    document.addEventListener('visibilitychange', vis);
+    window.addEventListener('pagehide', now);
+    window.addEventListener('beforeunload', now);
+    return () => { document.removeEventListener('visibilitychange', vis); window.removeEventListener('pagehide', now); window.removeEventListener('beforeunload', now); };
+  }, [open]);
+  const handleOpenChange = (v: boolean) => {
+    if (!v) { persistRef.current(); setActiveDraft(null); }
+    onOpenChange(v);
+  };
 
   if (!data || !totals) return null;
 
@@ -395,6 +459,11 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
         return URL.createObjectURL(blob);
       });
       setStep('preview');
+      void deleteDraft(draftIdRef.current);
+      draftIdRef.current = newDraftId();
+      draftCreatedRef.current = new Date().toISOString();
+      dirtyRef.current = false; skipDirtyRef.current = true; setSavedAt(null);
+      setActiveDraft(null);
       onSaved();
       toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
     } catch (e) {
@@ -491,13 +560,16 @@ export default function QuoteEditor({ open, onOpenChange, record, mode = 'edit',
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent ref={contentRef} onBlurCapture={() => persistRef.current()} className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === 'preview' ? 'Pré-visualização do documento' : recordId ? 'Editar documento' : 'Novo documento'}
-            {data.number && <span className="ml-2 text-sm text-muted-foreground">{data.number}</span>}
+            <span className="ml-2 text-sm text-muted-foreground">{data.number || 'Rascunho — sem número ainda'}</span>
           </DialogTitle>
+          {savedAt && step === 'edit' && (
+            <p className="text-xs text-muted-foreground">💾 Rascunho salvo automaticamente às {savedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+          )}
         </DialogHeader>
 
         {step === 'preview' ? (
