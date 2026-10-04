@@ -504,32 +504,51 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Configurações dos agendamentos</DialogTitle></DialogHeader>
           {cfg && (
-            <div className="space-y-4">
-              <div className="space-y-2 rounded-lg border border-border p-3">
+            <div className="space-y-5">
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">🔔 Lembretes para mim</h3>
+                  <p className="text-sm text-muted-foreground italic">Avisos que chegam no SEU aparelho. O cliente não recebe nada disto.</p></div>
+                <p className="text-sm font-semibold rounded-md bg-muted px-3 py-2">
+                  {notif === 'granted' ? '🔔 Notificações: Ativadas' : notif === 'denied' ? '🔕 Notificações: Bloqueadas' : notif === 'unsupported' ? '⚠️ Este navegador não aceita notificações' : '⚪ Ainda não autorizadas'}
+                </p>
+                {notif === 'denied' && <p className="text-sm rounded-md border border-destructive/50 bg-destructive/10 p-2"><b>Como liberar:</b> {NOTIF_HELP[deviceKind()]}</p>}
+                {notif === 'unsupported' && <p className="text-sm rounded-md border border-border p-2">{NOTIF_HELP.iphone} Em computador, use Chrome, Edge ou Firefox atualizados.</p>}
+                {isLovablePreview() && <p className="text-xs rounded-md border border-border p-2">ℹ️ Dentro da prévia de edição a notificação não funciona. Use o site publicado, instalado no celular.</p>}
                 <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                  <input type="checkbox" className="h-5 w-5" checked={cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_enabled: e.target.checked })} />
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.reminder_enabled} onChange={async (e) => {
+                    const on = e.target.checked;
+                    setCfg({ ...cfg, reminder_enabled: on });
+                    if (on) {
+                      const err = await enableAdminPush();
+                      setNotif(notifState());
+                      if (err) toast({ title: 'Aviso não ativado neste aparelho', description: err, variant: 'destructive' });
+                      else toast({ title: 'Este aparelho vai receber o aviso de manhã' });
+                    }
+                  }} />
                   Aviso de manhã com os agendamentos do dia
                 </label>
                 <Label>Horário do aviso</Label>
                 <select className={selectCls} value={cfg.reminder_hour} disabled={!cfg.reminder_enabled} onChange={(e) => setCfg({ ...cfg, reminder_hour: Number(e.target.value) })}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                 </select>
-                <p className="text-xs text-muted-foreground">Ao salvar ligado, este aparelho pede permissão para notificações. Ative em cada celular/computador onde quer receber. Para ter alarme com som, use também "Adicionar à agenda do celular" em cada agendamento.</p>
+                <p className="text-xs text-muted-foreground">A permissão é pedida só quando você liga a chavinha. Ligue em cada celular/computador onde quer receber.</p>
                 <Button variant="outline" className="h-11 w-full" onClick={async () => {
                   const err = await enableAdminPush();
+                  setNotif(notifState());
                   if (err) return toast({ title: 'Aviso não ativado', description: err, variant: 'destructive' });
-                  try { const r = await sendTestReminder(); toast({ title: r.sent ? 'Aviso de teste enviado' : 'Nenhum aparelho recebeu', description: `${r.sent} de ${r.total} aparelho(s)` }); }
+                  try { const r = await sendTestReminder(); toast({ title: r.sent ? 'Aviso de teste enviado para você' : 'Nenhum aparelho recebeu', description: `${r.sent} de ${r.total} aparelho(s). Nada foi enviado a clientes.` }); }
                   catch { toast({ title: 'Falha ao enviar teste', variant: 'destructive' }); }
-                }}>Enviar aviso de teste agora</Button>
-              </div>
-              <div className="space-y-2">
+                }}>Testar aviso no meu aparelho</Button>
+              </section>
+
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">💬 Mensagens para o cliente</h3>
+                  <p className="text-sm text-muted-foreground italic">Enviadas pelo WhatsApp, por você, a partir de cada agendamento.</p></div>
                 <div className="flex items-center justify-between"><Label>Mensagem "Estou a caminho"</Label>
                   <Button variant="ghost" size="sm" onClick={() => setCfg({ ...cfg, on_the_way_template: DEFAULT_ON_THE_WAY })}>Restaurar padrão</Button></div>
                 <Textarea rows={5} value={cfg.on_the_way_template} onChange={(e) => setCfg({ ...cfg, on_the_way_template: e.target.value })} />
-                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'} , {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
-              </div>
-              <div className="space-y-2 rounded-md border border-border p-3">
-                <Label>Horário permitido para mensagens automáticas</Label>
+                <p className="text-xs text-muted-foreground">Use {'{CLIENTE}'}, {'{EMPRESA}'}, {'{ENDERECO}'}, {'{CHEGADA}'} (horário previsto) e {'{HORARIO}'} (faixa do agendamento). A saudação Bom dia/Boa tarde/Boa noite entra sozinha.</p>
+                <Label>Horário permitido para mensagens</Label>
                 <div className="flex items-center gap-2">
                   <select className={selectCls} value={cfg.send_window_start} onChange={(e) => setCfg({ ...cfg, send_window_start: Number(e.target.value) })}>
                     {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
@@ -541,11 +560,40 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
                 </div>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" className="h-5 w-5" checked={cfg.auto_confirm} onChange={(e) => setCfg({ ...cfg, auto_confirm: e.target.checked })} />
-                  Abrir a confirmação pelo WhatsApp sozinha ao criar um agendamento
+                  Abrir o WhatsApp com a confirmação logo depois de criar um agendamento
                 </label>
-                <p className="text-xs text-muted-foreground">Fora desse horário a confirmação fica guardada até o horário de início. Os botões que você toca continuam enviando na hora.</p>
-              </div>
-              <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(cfg.reminder_enabled && !settings?.reminder_enabled); }}>Salvar</Button>
+                <p className="text-xs text-muted-foreground">Nenhuma mensagem sai sozinha: o WhatsApp abre com o texto pronto e você toca em enviar. Fora desse horário o site pergunta antes de abrir.</p>
+              </section>
+
+              <section className="space-y-3 rounded-lg border-2 border-border p-3">
+                <div><h3 className="text-lg font-bold">👷 Equipe e atalho</h3>
+                  <p className="text-sm text-muted-foreground italic">Técnicos veem só os agendamentos deles. Nada de preços de custo, contratos, orçamentos ou configurações.</p></div>
+                <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                  <input type="checkbox" className="h-5 w-5" checked={cfg.show_header_shortcut} onChange={(e) => setCfg({ ...cfg, show_header_shortcut: e.target.checked })} />
+                  Mostrar atalho de Agendamentos no cabeçalho
+                </label>
+                {techs.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum técnico convidado.</p> : techs.map((t) => (
+                  <div key={t.user_id} className="flex items-center gap-2 rounded-md border border-border p-2">
+                    <div className="flex-1 min-w-0"><p className="font-semibold truncate">{t.name || t.email}</p><p className="text-xs text-muted-foreground truncate">{t.email}</p></div>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive" aria-label={`Remover ${t.email}`} onClick={async () => {
+                      if (!window.confirm(`Remover o acesso de ${t.email}?`)) return;
+                      const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'remove', user_id: t.user_id } });
+                      if (error || data?.error) return toast({ title: 'Não foi possível remover', description: data?.error, variant: 'destructive' });
+                      toast({ title: 'Acesso removido' }); refetchTechs();
+                    }}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                <Input className="h-11" placeholder="Nome do técnico" value={invite.name} onChange={(e) => setInvite({ ...invite, name: e.target.value })} />
+                <Input className="h-11" type="email" placeholder="E-mail do técnico" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
+                <Button variant="outline" className="h-11 w-full" disabled={!invite.email.includes('@')} onClick={async () => {
+                  const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'invite', ...invite, redirect: `${window.location.origin}/agenda` } });
+                  if (error || data?.error) return toast({ title: 'Não foi possível convidar', description: data?.error || 'Tente de novo.', variant: 'destructive' });
+                  toast({ title: data.invited ? 'Convite enviado por e-mail' : 'Acesso de técnico liberado', description: 'Ele entra em /agenda com o e-mail convidado.' });
+                  setInvite({ email: '', name: '' }); refetchTechs();
+                }}>Convidar técnico</Button>
+              </section>
+
+              <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(false); }}>Salvar</Button>
             </div>
           )}
         </DialogContent>
