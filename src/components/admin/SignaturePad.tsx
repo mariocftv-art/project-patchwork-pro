@@ -169,7 +169,7 @@ export default function SignaturePad({ title, signerName, contractLabel, onCance
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col bg-secondary text-secondary-foreground" style={{ touchAction: 'none' }}>
+    <div className="keep-light fixed inset-0 z-[100] flex flex-col bg-secondary text-secondary-foreground" style={{ touchAction: 'none' }}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b-2 border-primary">
         <div className="min-w-0">
           <p className="text-xs font-bold tracking-wide text-primary">{title}</p>
