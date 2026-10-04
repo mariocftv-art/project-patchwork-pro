@@ -1,3 +1,4 @@
+import { uploadImage as uploadImageFile, validateImage } from '@/lib/imageUpload';
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,16 +78,12 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
   const promoInvalid = f.promo_enabled && (!(promo > 0) || promo >= normal);
   const pct = normal > 0 && promo > 0 && promo < normal ? Math.round((1 - promo / normal) * 100) : 0;
 
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('service-photos').upload(fileName, file);
-    if (uploadError) throw uploadError;
-    return supabase.storage.from('service-photos').getPublicUrl(fileName).data.publicUrl;
-  };
+  const uploadImage = (file: File) => uploadImageFile(file, { bucket: 'service-photos', folder: 'services' });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    const bad = file && validateImage(file);
+    if (bad) { e.target.value = ''; return toast({ title: 'Foto não aceita', description: bad, variant: 'destructive' }); }
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
@@ -156,7 +153,7 @@ function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) {
       <div>
         <Label>Foto do serviço</Label>
         <div className="flex items-start gap-4 mt-2">
-          <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/jpeg,image/png,image/webp" className="hidden" />
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
             <Upload className="w-4 h-4 mr-2" />{imagePreview ? 'Trocar foto' : 'Escolher foto'}
           </Button>
