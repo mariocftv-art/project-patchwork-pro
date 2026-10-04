@@ -441,6 +441,21 @@ export type Database = {
           },
         ]
       }
+      doc_number_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
       installation_services: {
         Row: {
           active: boolean | null
