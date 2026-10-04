@@ -9,3 +9,4 @@
 - Primeiro admin de um site novo vem da RPC claim_first_admin (só funciona sem nenhum admin), chamada no AdminGuard. Why: remix pertence ao novo dono.
 - Mercado Pago: Access Token fica só na tabela payment_secrets (só service_role) e só as funções do servidor mp-* leem; o webhook sempre consulta o pagamento na API do Mercado Pago. Why: o token nunca chega ao navegador e um aviso falso não muda o pedido.
 - Categorias da loja (menu, barra preta, ícones, subcategorias) vêm só da tabela categories (is_active/show_in_menu/icon/parent_slug); links antigos /categoria/:slug redirecionam no App.tsx. Why: o dono reorganiza pelo painel sem código.
+- Equipe: papel 'tecnico' em user_roles; técnico só lê agendamentos com technician_id = ele (RLS) e muda status/envios só pela RPC tech_update_appointment; convites pela função manage-technicians; atalho do cabeçalho via RPC staff_shortcut, página /agenda. Why: separação admin/técnico garantida no banco.
