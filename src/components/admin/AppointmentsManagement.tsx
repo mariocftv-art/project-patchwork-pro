@@ -13,6 +13,8 @@ import { maskPhone } from '@/lib/masks';
 import QuoteEditor from '@/components/admin/QuoteEditor';
 import type { DocCustomer } from '@/lib/premiumPDF';
 import { loadSettings, saveSettings, fillOnTheWay, enableAdminPush, sendTestReminder, downloadIcs, DEFAULT_ON_THE_WAY, inSendWindow, nextWindowOpen, notifState, deviceKind, NOTIF_HELP, isLovablePreview, lookupCep, type AppointmentSettings } from '@/lib/appointmentExtras';
+import { loadMyProfile } from '@/lib/staffProfile';
+import { Link } from 'react-router-dom';
 import { Truck, CalendarPlus, Settings2, Phone, Trash2 } from 'lucide-react';
 import { maskCEP } from '@/lib/masks';
 import { Plus, MessageCircle, MapPin, CalendarClock, XCircle, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle, Pencil } from 'lucide-react';
@@ -118,8 +120,12 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
   const { data: settings, refetch: refetchSettings } = useQuery({ queryKey: ['appointment-settings'], queryFn: loadSettings });
   const [cfg, setCfg] = useState<AppointmentSettings | null>(null);
   const [onWay, setOnWay] = useState<{ a: Appointment; mins: number; msg: string } | null>(null);
+  const { data: myProfile } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: async () => { const { data } = await supabase.auth.getUser(); return data.user ? loadMyProfile(data.user.id) : null; },
+  });
   const buildOnWay = (a: Appointment, mins: number) => {
-    const tpl = settings?.on_the_way_template || DEFAULT_ON_THE_WAY;
+    const tpl = myProfile?.on_the_way_template || settings?.on_the_way_template || DEFAULT_ON_THE_WAY;
     let msg = fillOnTheWay(tpl, {
       cliente: a.customer_name.split(' ')[0], empresa: getBrand().name, endereco: a.address || '',
       chegada: fmtTime(new Date(Date.now() + mins * 60_000)),
@@ -565,32 +571,9 @@ export default function AppointmentsManagement({ staffRole = 'admin' }: { staffR
                 <p className="text-xs text-muted-foreground">Nenhuma mensagem sai sozinha: o WhatsApp abre com o texto pronto e você toca em enviar. Fora desse horário o site pergunta antes de abrir.</p>
               </section>
 
-              <section className="space-y-3 rounded-lg border-2 border-border p-3">
-                <div><h3 className="text-lg font-bold">👷 Equipe e atalho</h3>
-                  <p className="text-sm text-muted-foreground italic">Técnicos veem só os agendamentos deles. Nada de preços de custo, contratos, orçamentos ou configurações.</p></div>
-                <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                  <input type="checkbox" className="h-5 w-5" checked={cfg.show_header_shortcut} onChange={(e) => setCfg({ ...cfg, show_header_shortcut: e.target.checked })} />
-                  Mostrar atalho de Agendamentos no cabeçalho
-                </label>
-                {techs.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum técnico convidado.</p> : techs.map((t) => (
-                  <div key={t.user_id} className="flex items-center gap-2 rounded-md border border-border p-2">
-                    <div className="flex-1 min-w-0"><p className="font-semibold truncate">{t.name || t.email}</p><p className="text-xs text-muted-foreground truncate">{t.email}</p></div>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive" aria-label={`Remover ${t.email}`} onClick={async () => {
-                      if (!window.confirm(`Remover o acesso de ${t.email}?`)) return;
-                      const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'remove', user_id: t.user_id } });
-                      if (error || data?.error) return toast({ title: 'Não foi possível remover', description: data?.error, variant: 'destructive' });
-                      toast({ title: 'Acesso removido' }); refetchTechs();
-                    }}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-                <Input className="h-11" placeholder="Nome do técnico" value={invite.name} onChange={(e) => setInvite({ ...invite, name: e.target.value })} />
-                <Input className="h-11" type="email" placeholder="E-mail do técnico" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
-                <Button variant="outline" className="h-11 w-full" disabled={!invite.email.includes('@')} onClick={async () => {
-                  const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'invite', ...invite, redirect: `${window.location.origin}/agenda` } });
-                  if (error || data?.error) return toast({ title: 'Não foi possível convidar', description: data?.error || 'Tente de novo.', variant: 'destructive' });
-                  toast({ title: data.invited ? 'Convite enviado por e-mail' : 'Acesso de técnico liberado', description: 'Ele entra em /agenda com o e-mail convidado.' });
-                  setInvite({ email: '', name: '' }); refetchTechs();
-                }}>Convidar técnico</Button>
+              <section className="space-y-2 rounded-lg border-2 border-border p-3">
+                <h3 className="text-lg font-bold">👷 Equipe e atalho</h3>
+                <p className="text-sm text-muted-foreground">O atalho do cabeçalho, o seu modelo de mensagem e o seu aviso ficam em <Link to="/perfil" className="underline font-semibold">Meu perfil</Link>. Convites e acessos da equipe ficam em Configurações → Equipe.</p>
               </section>
 
               <Button className="w-full h-12 font-bold" onClick={() => { if (cfg.send_window_end <= cfg.send_window_start) return toast({ title: 'O horário final precisa ser depois do inicial', variant: 'destructive' }); saveCfg(false); }}>Salvar</Button>

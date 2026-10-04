@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
+import TeamManagement from '@/components/admin/TeamManagement';
 import SiteContentForm from '@/components/admin/SiteContentForm';
 import PaymentSettingsForm from '@/components/admin/PaymentSettingsForm';
 import ContactForm from '@/components/admin/ContactForm';
@@ -424,6 +425,8 @@ export default function Admin() {
               Configurações da Loja
             </h2>
             <StoreSettingsForm />
+            <h2 className="text-xl font-semibold text-foreground mt-8 mb-4">Equipe</h2>
+            <TeamManagement />
           </div>
         </TabsContent>
       </Tabs>
