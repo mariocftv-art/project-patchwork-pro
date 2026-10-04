@@ -24,53 +24,63 @@ Deno.serve(async (req) => {
   const action = body.action || "cron";
 
   if (action === "vapid") return json({ publicKey: pub });
+  if (!pub || !priv) return json({ error: "VAPID keys missing" }, 500);
 
-  let force = false;
+  const now = spParts();
+  const start = new Date(`${now.date}T00:00:00-03:00`);
+  const end = new Date(start.getTime() + 86400_000);
+  const { data: apts } = await admin.from("appointments").select("customer_name,starts_at,kind,status,address,technician_id")
+    .gte("starts_at", start.toISOString()).lt("starts_at", end.toISOString())
+    .in("status", ["agendado", "confirmado", "acaminho", "andamento"]).order("starts_at");
+  const all = apts || [];
+  const fmt = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+  webpush.setVapidDetails("mailto:admin@example.com", pub, priv);
+
+  // Envia a um usuário só os agendamentos que ele pode ver
+  const sendTo = async (userId: string, isAdm: boolean) => {
+    const list = isAdm ? all : all.filter((a) => a.technician_id === userId);
+    const lines = list.map((a) => `${fmt(a.starts_at)} ${KIND[a.kind] || a.kind} — ${a.customer_name}${a.status === "agendado" ? " (não confirmado)" : ""}`);
+    const payload = JSON.stringify({
+      title: list.length ? `📅 ${list.length} agendamento(s) hoje` : "📅 Nenhum agendamento hoje",
+      body: list.length ? lines.slice(0, 6).join("\n") + (lines.length > 6 ? `\n+${lines.length - 6} outros` : "") : "Sua agenda de hoje está livre.",
+      tag: `agenda-${now.date}`, url: "/agenda",
+    });
+    const { data: subs } = await admin.from("admin_push_subscriptions").select("*").eq("user_id", userId);
+    let sent = 0;
+    for (const s of subs || []) {
+      try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload); sent++; }
+      catch (e) {
+        const code = (e as { statusCode?: number }).statusCode;
+        if (code === 404 || code === 410) await admin.from("admin_push_subscriptions").delete().eq("id", s.id);
+      }
+    }
+    return { sent, total: subs?.length || 0 };
+  };
+
   if (action === "test") {
     const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return json({ error: "unauthorized" }, 401);
-    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
-    if (!isAdmin) return json({ error: "forbidden" }, 403);
-    force = true;
+    const { data: isA } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+    const { data: isT } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "tecnico" });
+    if (!isA && !isT) return json({ error: "forbidden" }, 403);
+    return json(await sendTo(u.user.id, !!isA));
   }
 
-  const { data: st } = await admin.from("appointment_settings").select("*").eq("id", 1).maybeSingle();
-  const now = spParts();
-  if (!force) {
-    if (!st?.reminder_enabled || st.reminder_hour !== now.hour || st.last_sent_date === now.date) return json({ skipped: true });
-    await admin.from("appointment_settings").update({ last_sent_date: now.date }).eq("id", 1);
-  }
-  if (!pub || !priv) return json({ error: "VAPID keys missing" }, 500);
-
-  // Agendamentos de hoje (fuso de São Paulo, UTC-3)
-  const start = new Date(`${now.date}T00:00:00-03:00`);
-  const end = new Date(start.getTime() + 86400_000);
-  const { data: apts } = await admin.from("appointments").select("customer_name,starts_at,kind,status,address")
-    .gte("starts_at", start.toISOString()).lt("starts_at", end.toISOString())
-    .in("status", ["agendado", "confirmado", "andamento"]).order("starts_at");
-  const list = apts || [];
-  const fmt = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
-  const lines = list.map((a) => `${fmt(a.starts_at)} ${KIND[a.kind] || a.kind} — ${a.customer_name}${a.status === "agendado" ? " (não confirmado)" : ""}`);
-  const payload = JSON.stringify({
-    title: list.length ? `📅 ${list.length} agendamento(s) hoje` : "📅 Nenhum agendamento hoje",
-    body: list.length ? lines.slice(0, 6).join("\n") + (lines.length > 6 ? `\n+${lines.length - 6} outros` : "") : "Sua agenda de hoje está livre.",
-    tag: `agenda-${now.date}`,
-    url: "/admin",
-  });
-
-  webpush.setVapidDetails("mailto:admin@example.com", pub, priv);
-  const { data: subs } = await admin.from("admin_push_subscriptions").select("*");
+  // Rotina de hora em hora: cada pessoa no horário que escolheu no perfil
+  const { data: roles } = await admin.from("user_roles").select("user_id,role").in("role", ["admin", "tecnico"]);
+  const ids = [...new Set((roles || []).map((r) => r.user_id))];
+  const { data: profs } = await admin.from("staff_profiles").select("user_id,reminder_enabled,reminder_hour,reminder_last_sent").in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: st } = await admin.from("appointment_settings").select("reminder_enabled,reminder_hour").eq("id", 1).maybeSingle();
   let sent = 0;
-  for (const s of subs || []) {
-    try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
-      sent++;
-    } catch (e) {
-      const code = (e as { statusCode?: number }).statusCode;
-      if (code === 404 || code === 410) await admin.from("admin_push_subscriptions").delete().eq("id", s.id);
-      console.error("push fail", code);
-    }
+  for (const id of ids) {
+    const isAdm = (roles || []).some((r) => r.user_id === id && r.role === "admin");
+    const p = profs?.find((x) => x.user_id === id);
+    const enabled = p ? p.reminder_enabled : isAdm && !!st?.reminder_enabled;
+    const hour = p ? p.reminder_hour : st?.reminder_hour ?? 7;
+    if (!enabled || hour !== now.hour || p?.reminder_last_sent === now.date) continue;
+    await admin.from("staff_profiles").upsert({ user_id: id, reminder_last_sent: now.date, ...(p ? {} : { reminder_enabled: true, reminder_hour: hour }) });
+    sent += (await sendTo(id, isAdm)).sent;
   }
-  return json({ sent, total: subs?.length || 0, appointments: list.length });
+  return json({ sent });
 });

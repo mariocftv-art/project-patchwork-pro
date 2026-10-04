@@ -155,7 +155,6 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center gap-3">
               <NotificationsPopover />
               <ThemeToggle />
-              <StaffAgendaShortcut />
 
               <Link
                 to="/wishlist"
@@ -168,6 +167,8 @@ export default function Layout({ children }: LayoutProps) {
                   </span>
                 )}
               </Link>
+
+              <StaffAgendaShortcut />
 
               <Link
                 to="/carrinho"
@@ -197,6 +198,12 @@ export default function Layout({ children }: LayoutProps) {
                         <Button variant="outline" size="sm" className="w-full justify-start gap-2">
                           <User className="w-4 h-4" />
                           Painel Admin
+                        </Button>
+                      </Link>
+                      <Link to="/perfil">
+                        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                          <User className="w-4 h-4" />
+                          Meu perfil
                         </Button>
                       </Link>
                       <Button 
@@ -266,7 +273,6 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center">
                 <NotificationsPopover />
                 <ThemeToggle />
-              <StaffAgendaShortcut />
 
                 <Link
                   to="/wishlist"
@@ -279,6 +285,8 @@ export default function Layout({ children }: LayoutProps) {
                     </span>
                   )}
                 </Link>
+
+                <StaffAgendaShortcut />
 
                 <Link
                   to="/carrinho"
