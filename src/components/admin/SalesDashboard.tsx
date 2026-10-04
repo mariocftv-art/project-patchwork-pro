@@ -20,6 +20,13 @@ import {
 } from 'recharts';
 import { ShoppingBag, Clock, CheckCircle2, TrendingUp, Receipt } from 'lucide-react';
 
+const axisTick = { fill: 'hsl(var(--muted-foreground))' };
+const tooltipStyle = {
+  contentStyle: { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--popover-foreground))' },
+  labelStyle: { color: 'hsl(var(--popover-foreground))' },
+  itemStyle: { color: 'hsl(var(--popover-foreground))' },
+};
+
 type PeriodKey = 'today' | '7' | '30' | '90' | 'custom';
 
 interface OrderRow {
@@ -195,9 +202,9 @@ export default function SalesDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={daily}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" fontSize={11} tickLine={false} />
-                <YAxis fontSize={11} tickLine={false} width={50} />
-                <Tooltip formatter={(v: number) => formatBRL(v)} />
+                <XAxis dataKey="label" fontSize={11} tickLine={false} tick={axisTick} stroke="hsl(var(--border))" />
+                <YAxis fontSize={11} tickLine={false} width={50} tick={axisTick} stroke="hsl(var(--border))" />
+                <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
                 <Line type="monotone" dataKey="faturamento" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -210,9 +217,9 @@ export default function SalesDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={daily}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" fontSize={11} tickLine={false} />
-                <YAxis fontSize={11} allowDecimals={false} tickLine={false} width={30} />
-                <Tooltip />
+                <XAxis dataKey="label" fontSize={11} tickLine={false} tick={axisTick} stroke="hsl(var(--border))" />
+                <YAxis fontSize={11} allowDecimals={false} tickLine={false} width={30} tick={axisTick} stroke="hsl(var(--border))" />
+                <Tooltip {...tooltipStyle} cursor={{ fill: 'hsl(var(--muted))' }} />
                 <Bar dataKey="pedidos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

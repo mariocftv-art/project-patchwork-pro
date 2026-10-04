@@ -19,6 +19,7 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('categoria');
   const searchQuery = searchParams.get('busca');
+  const selectedSub = searchParams.get('sub');
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'relevance' | 'price-asc' | 'price-desc'>('relevance');
   const setShowMobileFilters = (_: boolean) => {};
@@ -43,12 +44,19 @@ export default function Home() {
     count: products.filter(p => p.category === cat.slug).length
   }));
   const categoryCounts = allCategoryCounts.filter(c => c.count > 0);
+  // Subcategorias da categoria aberta (ex.: Cabos e Acessórios → Cabos, Conectores…)
+  const subCats = selectedCategory ? categories.filter(c => c.parent_slug === selectedCategory && c.is_active !== false) : [];
+  const setSub = (slug: string | null) => {
+    if (slug) searchParams.set('sub', slug); else searchParams.delete('sub');
+    setSearchParams(searchParams);
+  };
 
   // Filter products (esgotados por último; serviços de instalação ficam na página Instalações)
   let filteredProducts = (products ?? []).filter((p): p is Product => !!p && typeof p.title === 'string' && p.category !== 'instalacoes').sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0));
   
   if (selectedCategory) {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
+    if (selectedSub) filteredProducts = filteredProducts.filter(p => p.subcategory === selectedSub);
   }
   
   if (searchQuery) {
@@ -84,6 +92,7 @@ export default function Home() {
   const clearFilters = () => {
     searchParams.delete('categoria');
     searchParams.delete('busca');
+    searchParams.delete('sub');
     setSearchParams(searchParams);
     setSelectedPrice(null);
   };
@@ -155,12 +164,43 @@ export default function Home() {
           </label>
         </div>
 
+        {subCats.length > 0 && !searchQuery && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1" role="tablist" aria-label="Subcategorias">
+            {[{ slug: null as string | null, name: 'Todos' }, ...subCats.map(c => ({ slug: c.slug as string | null, name: c.name }))].map(c => (
+              <button
+                key={c.slug ?? 'all'}
+                type="button"
+                role="tab"
+                aria-selected={(selectedSub ?? null) === c.slug}
+                onClick={() => setSub(c.slug)}
+                className={`shrink-0 rounded-full border px-4 min-h-9 text-sm font-medium transition-colors ${(selectedSub ?? null) === c.slug ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:border-primary'}`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-lg">
             <p className="text-muted-foreground mb-4">Nenhum produto encontrado.</p>
             <button onClick={clearFilters} className="bg-primary text-primary-foreground font-medium px-6 py-2.5 rounded-md text-sm">
               Ver todos os produtos
             </button>
+          </div>
+        ) : subCats.length > 0 && !selectedSub && !searchQuery ? (
+          <div className="space-y-6">
+            {[...subCats.map(c => ({ key: c.slug, name: c.name, items: filteredProducts.filter(p => p.subcategory === c.slug) })),
+              { key: '_outros', name: 'Outros', items: filteredProducts.filter(p => !subCats.some(c => c.slug === p.subcategory)) }]
+              .filter(g => g.items.length > 0)
+              .map(g => (
+                <div key={g.key}>
+                  <h2 className="text-base md:text-lg font-semibold text-foreground mb-2 border-l-4 border-primary pl-2">{g.name} <span className="text-sm font-normal text-muted-foreground">({g.items.length})</span></h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                    {g.items.map(product => <ProductCard key={product.id} product={product} />)}
+                  </div>
+                </div>
+              ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">

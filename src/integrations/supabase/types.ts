@@ -174,25 +174,34 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number | null
+          icon: string | null
           id: string
+          is_active: boolean
           name: string
           parent_slug: string | null
+          show_in_menu: boolean
           slug: string
         }
         Insert: {
           created_at?: string
           display_order?: number | null
+          icon?: string | null
           id?: string
+          is_active?: boolean
           name: string
           parent_slug?: string | null
+          show_in_menu?: boolean
           slug: string
         }
         Update: {
           created_at?: string
           display_order?: number | null
+          icon?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           parent_slug?: string | null
+          show_in_menu?: boolean
           slug?: string
         }
         Relationships: []

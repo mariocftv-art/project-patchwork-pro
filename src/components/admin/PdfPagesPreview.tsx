@@ -111,7 +111,7 @@ export default function PdfPagesPreview({ blob, onPages }: Props) {
       </p>
       <div className="max-h-[65vh] overflow-y-auto rounded border border-border bg-muted p-3 space-y-3">
         {pages.map((src, i) => (
-          <img key={i} src={src} alt={`Página ${i + 1}`} className="mx-auto w-full max-w-[640px] shadow-md bg-background" />
+          <img key={i} src={src} alt={`Página ${i + 1}`} className="doc-page mx-auto w-full max-w-[640px] shadow-md bg-white" />
         ))}
       </div>
     </div>

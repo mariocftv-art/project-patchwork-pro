@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
 import StoreSettingsForm from '@/components/admin/StoreSettingsForm';
@@ -104,10 +105,13 @@ export default function Admin() {
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
           ⚙️ Painel Administrativo
         </h1>
-        <Button variant="outline" size="sm" onClick={() => signOut()} className="flex items-center gap-2 min-h-11 shrink-0">
-          <LogOut className="w-4 h-4" />
-          Sair
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle variant="panel" />
+          <Button variant="outline" size="sm" onClick={() => signOut()} className="flex items-center gap-2 min-h-11 shrink-0">
+            <LogOut className="w-4 h-4" />
+            Sair
+          </Button>
+        </div>
       </div>
 
 

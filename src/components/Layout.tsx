@@ -8,6 +8,9 @@ import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
 import ThemeToggle from './ThemeToggle';
 import { applyMode } from '@/lib/theme';
+import { useQuery } from '@tanstack/react-query';
+import { categoriesApi, productsApi } from '@/lib/supabaseApi';
+import { CategoryIcon, categoryPath } from '@/lib/categoryIcons';
 import InstallAppBanner, { InstallAppButton, useInstallPrompt } from './InstallAppBanner';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -82,17 +85,15 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, []);
 
-  // Menu único: nomes iguais às categorias reais da loja
-  const categories = [
-    { name: 'Câmeras de Segurança', path: '/?categoria=câmeras' },
-    { name: 'DVR / NVR', path: '/?categoria=dvr' },
-    { name: 'Cercas Elétricas', path: '/?categoria=cercas' },
-    { name: 'Automação', path: '/?categoria=automação' },
-    { name: 'Interfones e Porteiros', path: '/?categoria=interfones' },
-    { name: 'Alarmes', path: '/?categoria=alarmes' },
-    { name: 'Cabos', path: '/?categoria=cabos' },
-    { name: 'Instalações', path: '/servicos' },
-  ];
+  // Categorias vêm do painel (aba Categorias)
+  const { data: dbCats = [] } = useQuery({ queryKey: ['categories'], queryFn: () => categoriesApi.list(), staleTime: 300000 });
+  const { data: allProducts = [] } = useQuery({ queryKey: ['products'], queryFn: () => productsApi.list(), staleTime: 300000 });
+  const rootCats = dbCats.filter((c) => !c.parent_slug && c.is_active !== false);
+  const allCategories = rootCats.map((c) => ({
+    name: c.name, slug: c.slug, icon: c.icon, path: categoryPath(c.slug), menu: !!c.show_in_menu,
+    count: allProducts.filter((p) => p?.category === c.slug).length,
+  }));
+  const categories = allCategories.filter((c) => c.menu);
   const [catOpen, setCatOpen] = useState(false);
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
 
@@ -372,36 +373,38 @@ export default function Layout({ children }: LayoutProps) {
         {/* Categories Bar */}
         <div className="bg-foreground border-b border-primary relative">
           <div className="container mx-auto px-4 flex items-center gap-6">
-            <div
-              className="relative hidden md:block shrink-0"
-              onMouseEnter={() => setCatOpen(true)}
-              onMouseLeave={() => setCatOpen(false)}
-            >
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setCatOpen((o) => !o)}
                 aria-expanded={catOpen}
+                aria-label="Ver todas as categorias"
                 className="flex items-center gap-1 py-2 text-sm text-background hover:text-primary whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
-                Categorias
+                <span className="hidden sm:inline">Categorias</span>
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
               {catOpen && (
-                <div className="absolute left-0 top-full z-50 w-64 rounded-b-md border border-border bg-card py-2 shadow-lg">
-                  {categories.map((cat) => (
-                    <Link key={cat.path} to={cat.path} className="block px-4 py-2 text-sm text-foreground hover:bg-secondary">
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} aria-hidden />
+                  <div className="absolute left-0 top-full z-50 w-[min(18rem,calc(100vw-2rem))] rounded-b-md border border-border bg-card py-2 shadow-lg">
+                    {allCategories.map((cat) => (
+                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary">
+                        <CategoryIcon name={cat.icon} className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1">{cat.name}</span>
+                        {cat.slug !== 'instalacoes' && <span className="text-xs text-muted-foreground">{cat.count}</span>}
+                      </Link>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
             <div className="relative flex-1 min-w-0">
               <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide pr-6">
                 {categories.map((cat) => (
                   <Link
-                    key={cat.path}
+                    key={cat.slug}
                     to={cat.path}
                     className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
                   >

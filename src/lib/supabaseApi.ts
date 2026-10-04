@@ -114,6 +114,9 @@ export interface Category {
   slug: string;
   display_order: number;
   parent_slug: string | null;
+  is_active?: boolean;
+  show_in_menu?: boolean;
+  icon?: string | null;
   created_at: string;
 }
 

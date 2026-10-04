@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 const KEY = 'mr-theme';
 const listeners = new Set<(d: boolean) => void>();
-// Telas que ficam sempre claras: painel admin e documentos/assinatura.
-const LIGHT_ONLY = /^\/(admin|assinar|contrato)(\/|$)/;
+// Telas que ficam sempre claras: documentos/assinatura (o painel admin segue o tema).
+const LIGHT_ONLY = /^\/(assinar|contrato)(\/|$)/;
 
 export function preferredDark(): boolean {
   try {
