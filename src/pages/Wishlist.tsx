@@ -47,7 +47,7 @@ export default function Wishlist() {
 
   if (wishlistItems.length === 0) {
     return (
-      <div className="bg-white rounded-lg p-8 text-center">
+      <div className="bg-card rounded-lg p-8 text-center">
         <Heart className="w-16 h-16 text-ml-light-gray mx-auto mb-4" />
         <h2 className="text-xl text-foreground mb-2">
           Você ainda não tem favoritos
@@ -64,7 +64,7 @@ export default function Wishlist() {
 
   return (
     <div>
-      <div className="bg-white rounded-lg">
+      <div className="bg-card rounded-lg">
         <div className="p-4 border-b border-border">
           <h1 className="text-xl font-light text-foreground">
             Favoritos ({wishlistWithProducts.length})

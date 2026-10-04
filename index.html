@@ -31,6 +31,18 @@
   <meta name="twitter:card" content="summary_large_image">
 </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem('mr-theme');
+          var d = s ? s === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (d && !/^\/(admin|assinar|contrato)(\/|$)/.test(location.pathname)) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

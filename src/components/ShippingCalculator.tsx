@@ -112,7 +112,7 @@ export default function ShippingCalculator({ productPrice }: ShippingCalculatorP
             Entrega para <span className="font-medium text-foreground">{address.city} - {address.state}</span>
           </p>
 
-          <div className="p-4 bg-white rounded-lg border border-border">
+          <div className="p-4 bg-card rounded-lg border border-border">
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 text-green-600 mt-0.5" />
               <div>

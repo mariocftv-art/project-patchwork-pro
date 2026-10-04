@@ -127,7 +127,7 @@ export default function NotificationsPopover() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-0 bg-white border shadow-lg" align="end">
+        <PopoverContent className="w-96 p-0 bg-card border shadow-lg" align="end">
           <div className="p-3 border-b border-border flex items-center justify-between">
             <h3 className="font-medium text-foreground text-sm flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -222,7 +222,7 @@ export default function NotificationsPopover() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-white border shadow-lg" align="end">
+      <PopoverContent className="w-80 p-0 bg-card border shadow-lg" align="end">
         <div className="p-3 border-b border-border flex items-center justify-between">
           <h3 className="font-medium text-foreground text-sm flex items-center gap-2">
             <Bell className="w-4 h-4" />
