@@ -20,23 +20,21 @@ export const tokens = (q: string) => norm(q).split(' ').filter((w) => w && !STOP
 
 function lev(a: string, b: string, max: number) {
   if (Math.abs(a.length - b.length) > max) return max + 1;
+  let pp: number[] = [];
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
     const cur = [i];
     let best = i;
     for (let j = 1; j <= b.length; j++) {
       let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      // troca de duas letras vizinhas conta como 1 erro
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, (prevPrev?.[j - 2] ?? 99) + 1);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, pp[j - 2] + 1);
       cur.push(v); best = Math.min(best, v);
     }
     if (best > max) return max + 1;
-    prevPrev = prev; prev = cur;
+    pp = prev; prev = cur;
   }
-  prevPrev = null;
   return prev[b.length];
 }
-let prevPrev: number[] | null = null;
 
 type Fields = { title: string[]; cat: string[]; body: string[]; all: Set<string>; raw: string };
 const cache = new WeakMap<Product, Fields>();
