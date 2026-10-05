@@ -253,6 +253,8 @@ export type Database = {
           whatsapp: string | null
           whatsapp_admin_template: string | null
           whatsapp_customer_template: string | null
+          whatsapp_sales_template: string | null
+          whatsapp_support_template: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -288,6 +290,8 @@ export type Database = {
           whatsapp?: string | null
           whatsapp_admin_template?: string | null
           whatsapp_customer_template?: string | null
+          whatsapp_sales_template?: string | null
+          whatsapp_support_template?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -323,6 +327,8 @@ export type Database = {
           whatsapp?: string | null
           whatsapp_admin_template?: string | null
           whatsapp_customer_template?: string | null
+          whatsapp_sales_template?: string | null
+          whatsapp_support_template?: string | null
         }
         Relationships: []
       }
@@ -1169,6 +1175,33 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          page: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          page?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          page?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1190,6 +1223,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      my_support_info: {
+        Args: never
+        Returns: {
+          contract_date: string
+          contract_number: string
+          customer_address: string
+          customer_name: string
+        }[]
       }
       next_quote_number: { Args: never; Returns: string }
       save_push_subscription: {

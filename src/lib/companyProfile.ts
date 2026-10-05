@@ -32,6 +32,8 @@ export interface CompanyProfile {
   theme_dark: string;
   theme_price: string;
   theme_price_old: string;
+  whatsapp_support_template: string;
+  whatsapp_sales_template: string;
 }
 
 export const DEFAULT_CUSTOMER_TEMPLATE = `🛡️ *{EMPRESA}*
@@ -125,6 +127,8 @@ export const defaultCompanyProfile: CompanyProfile = {
   theme_dark: '#1A1A1A',
   theme_price: '#1D4ED8',
   theme_price_old: '#DC2626',
+  whatsapp_support_template: '',
+  whatsapp_sales_template: '',
 };
 
 function normalize(row: Record<string, unknown> | null): CompanyProfile {
@@ -194,6 +198,8 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     theme_dark: profile.theme_dark,
     theme_price: profile.theme_price,
     theme_price_old: profile.theme_price_old,
+    whatsapp_support_template: profile.whatsapp_support_template || null,
+    whatsapp_sales_template: profile.whatsapp_sales_template || null,
   };
 
   if (profile.id) {

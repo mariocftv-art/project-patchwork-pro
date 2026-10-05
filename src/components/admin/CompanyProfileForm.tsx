@@ -1,3 +1,4 @@
+import { CONTACT_VARIABLES, DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE } from '@/lib/whatsappContact';
 import ImageUploadField from './ImageUploadField';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -332,6 +333,25 @@ export default function CompanyProfileForm() {
               value={profile.whatsapp_admin_template}
               onChange={(e) => set('whatsapp_admin_template', e.target.value)}
             />
+          </div>
+
+          <div className="rounded-md border border-border p-3 space-y-3">
+            <p className="font-semibold">Botão flutuante "WhatsApp Suporte"</p>
+            <p className="text-xs text-muted-foreground">Variáveis: {CONTACT_VARIABLES.join(' ')} — linha com dado faltando não aparece. Mantenha o começo diferente em cada uma ("Preciso de suporte…" / "Estou interessado…").</p>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Mensagem de SUPORTE (já sou cliente)</Label>
+                <Button variant="ghost" size="sm" onClick={() => set('whatsapp_support_template', DEFAULT_SUPPORT_TEMPLATE)}>Restaurar padrão</Button>
+              </div>
+              <Textarea rows={6} value={profile.whatsapp_support_template || DEFAULT_SUPPORT_TEMPLATE} onChange={(e) => set('whatsapp_support_template', e.target.value)} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Mensagem de ORÇAMENTO</Label>
+                <Button variant="ghost" size="sm" onClick={() => set('whatsapp_sales_template', DEFAULT_SALES_TEMPLATE)}>Restaurar padrão</Button>
+              </div>
+              <Textarea rows={5} value={profile.whatsapp_sales_template || DEFAULT_SALES_TEMPLATE} onChange={(e) => set('whatsapp_sales_template', e.target.value)} />
+            </div>
           </div>
         </TabsContent>
       </Tabs>

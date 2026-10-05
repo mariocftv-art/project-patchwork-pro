@@ -6,6 +6,8 @@ import ServiceGallery from '@/components/ServiceGallery';
 import QuoteCTA from '@/components/QuoteCTA';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
+import { smartSearch, similar } from '@/lib/smartSearch';
+import { openWhatsApp } from '@/lib/whatsappContact';
 
 const priceRanges = [
   { id: '0-100', label: 'Até R$ 100', min: 0, max: 100 },
@@ -59,18 +61,9 @@ export default function Home() {
     if (selectedSub) filteredProducts = filteredProducts.filter(p => p.subcategory === selectedSub);
   }
   
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    filteredProducts = filteredProducts.filter(p => 
-      (p.title ?? '').toLowerCase().includes(query) || 
-      (p.description?.toLowerCase() || '').includes(query) ||
-      (p.category?.toLowerCase() || '').includes(query) ||
-      (p.subcategory?.toLowerCase() || '').includes(query) ||
-      (p.brand?.toLowerCase() || '').includes(query) ||
-      (p.model?.toLowerCase() || '').includes(query) ||
-      (p.sku?.toLowerCase() || '').includes(query)
-    );
-  }
+  const searchBase = filteredProducts;
+  const search = searchQuery ? smartSearch(filteredProducts, searchQuery) : null;
+  if (search) filteredProducts = search.items;
 
   if (selectedPrice) {
     const range = priceRanges.find(r => r.id === selectedPrice);
@@ -108,6 +101,32 @@ export default function Home() {
     );
   }
 
+  if (searchQuery && filteredProducts.length === 0) {
+    const sugg = similar(searchBase, searchQuery);
+    const mainCats = categoryCounts.slice(0, 6);
+    return (
+      <div className="space-y-6 bg-card rounded-lg p-5 md:p-8">
+        <button onClick={clearFilters} className="text-sm font-medium text-foreground hover:underline">← Ver todos os produtos</button>
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">Não achamos nada para "{searchQuery}"</h1>
+        {sugg.length > 0 && (
+          <div>
+            <h2 className="font-semibold mb-2 text-foreground">Talvez você procure por:</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{sugg.map(p => <ProductCard key={p.id} product={p} />)}</div>
+          </div>
+        )}
+        <div>
+          <h2 className="font-semibold mb-2 text-foreground">Ou navegue por categoria:</h2>
+          <div className="flex flex-wrap gap-2">{mainCats.map(c => (
+            <Link key={c.slug} to={`/?categoria=${encodeURIComponent(c.slug)}`} className="rounded-full border border-border px-4 min-h-10 inline-flex items-center text-sm font-medium text-foreground hover:border-primary">{c.name}</Link>
+          ))}</div>
+        </div>
+        <button type="button" onClick={() => openWhatsApp(`Olá! Procurei por '${searchQuery}' no site e não encontrei. Vocês têm?`, 'busca')} className="ml-btn-primary inline-flex items-center min-h-12 px-5">
+          💬 Não achou o que precisa? Fale com a gente no WhatsApp
+        </button>
+      </div>
+    );
+  }
+
   if (sortBy === 'price-asc') {
     filteredProducts.sort((a, b) => Number(a.stock === 0) - Number(b.stock === 0) || a.price - b.price);
   } else if (sortBy === 'price-desc') {
@@ -136,6 +155,9 @@ export default function Home() {
           <button onClick={clearFilters} className="mb-2 text-sm font-medium text-foreground hover:underline">
             ← Ver todos os produtos
           </button>
+        )}
+        {search?.corrected && (
+          <p className="text-sm text-muted-foreground mb-1">Mostrando resultados para <strong className="text-foreground">{search.corrected}</strong></p>
         )}
         <div className="flex items-center justify-between gap-3 mb-3">
           <div className="min-w-0">
