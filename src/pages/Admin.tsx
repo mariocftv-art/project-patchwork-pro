@@ -21,6 +21,7 @@ import ServiceDefaultsForm from '@/components/admin/ServiceDefaultsForm';
 import OrdersManagement from '@/components/admin/OrdersManagement';
 import QuotesManagement from '@/components/admin/QuotesManagement';
 import ContractsManagement from '@/components/admin/ContractsManagement';
+import WhatsAppContactsList from '@/components/admin/WhatsAppContactsList';
 import SalesDashboard from '@/components/admin/SalesDashboard';
 import CompanyProfileForm from '@/components/admin/CompanyProfileForm';
 import AppointmentsManagement, { useAppointments, countAlerts } from '@/components/admin/AppointmentsManagement';
@@ -196,6 +197,7 @@ export default function Admin() {
             📊 Painel de Vendas
           </h2>
           <SalesDashboard />
+          <WhatsAppContactsList />
         </TabsContent>
 
         {/* Orders Tab */}
