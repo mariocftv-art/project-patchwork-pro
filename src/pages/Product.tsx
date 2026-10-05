@@ -1,3 +1,5 @@
+import { formatBRL } from '@/lib/formatCurrency';
+import { isPromoActive as promoOn } from '@/lib/supabaseApi';
 import { useParams, Link } from 'react-router-dom';
 import { waLink, getBrand } from '@/lib/brand';
 import { openWhatsApp } from '@/lib/whatsappContact';
@@ -267,7 +269,7 @@ export default function Product() {
                     </button>
                   </>
                 )}
-                <button type="button" onClick={() => openWhatsApp(`Olá! Vim pelo site da ${getBrand().name.replace(/^[^\p{L}\d]+/u, '')}.\nTenho uma dúvida sobre: *${product.title}* — ${formatBRL(isPromoActive(product) && product.promo_price ? product.promo_price : product.price)}\n${window.location.origin}/produto/${product.id}`, 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
+                <button type="button" onClick={() => openWhatsApp(`Olá! Vim pelo site da ${getBrand().name.replace(/^[^\p{L}\d]+/u, '')}.\nTenho uma dúvida sobre: *${product.title}* — ${formatBRL(promoOn(product) && product.promo_price ? product.promo_price : product.price)}\n${window.location.origin}/produto/${product.id}`, 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
                   💬 Tirar dúvida no WhatsApp
                 </button>
               </div>
