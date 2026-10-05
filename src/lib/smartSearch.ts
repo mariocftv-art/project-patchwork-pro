@@ -58,7 +58,7 @@ const has = (list: string[], t: string) => list.some((w) => w === t || w.startsW
 
 /** Corrige palavra digitada errada usando o vocabulário dos produtos (1–2 letras). */
 function correct(t: string, vocab: Set<string>): string {
-  if (t.length <= 4 || /\d/.test(t) || vocab.has(t)) return t;
+  if (t.length < 4 || /\d/.test(t) || vocab.has(t)) return t;
   for (const v of vocab) if (v.startsWith(t)) return t;
   let best = t, bestD = 3;
   const max = t.length > 6 ? 2 : 1;
