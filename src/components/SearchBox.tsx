@@ -98,7 +98,7 @@ export default function SearchBox({ variant }: { variant: 'desktop' | 'mobile' }
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => { setQ(e.target.value); setOpen(true); setActive(-1); },
     onFocus: focus, onKeyDown: onKey, 'aria-label': 'Buscar produtos',
   };
-  const onSubmit = (e: React.FormEvent) => { e.preventDefault(); submit(res?.corrected && false ? res.corrected : q); };
+  const onSubmit = (e: React.FormEvent) => { e.preventDefault(); submit(q); };
 
   if (variant === 'desktop') return (
     <form onSubmit={onSubmit} className="flex-1 max-w-md">
@@ -113,7 +113,7 @@ export default function SearchBox({ variant }: { variant: 'desktop' | 'mobile' }
     <form onSubmit={onSubmit} className="pb-2">
       <div ref={box} className="relative">
         <div className="relative flex items-center bg-card border border-border rounded-md overflow-hidden">
-          <input {...input} placeholder="Buscar produtos..." className="flex-1 px-3 py-2 text-sm outline-none" onFocus={(e) => { focus(); setTimeout(() => e.target.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); }} />
+          <input {...input} placeholder="Buscar produtos..." className="flex-1 px-3 py-2 text-sm outline-none" />
           <button type="submit" aria-label="Buscar" className="px-3 py-2 text-ml-gray hover:text-ml-dark-gray bg-secondary"><Search className="w-4 h-4" /></button>
         </div>
         {panel}
