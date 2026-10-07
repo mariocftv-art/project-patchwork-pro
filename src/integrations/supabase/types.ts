@@ -241,6 +241,7 @@ export type Database = {
           primary_color: string | null
           quote_validity_days: number
           responsible_name: string | null
+          responsible_role: string | null
           secondary_color: string | null
           state: string | null
           tagline: string | null
@@ -278,6 +279,7 @@ export type Database = {
           primary_color?: string | null
           quote_validity_days?: number
           responsible_name?: string | null
+          responsible_role?: string | null
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           primary_color?: string | null
           quote_validity_days?: number
           responsible_name?: string | null
+          responsible_role?: string | null
           secondary_color?: string | null
           state?: string | null
           tagline?: string | null
@@ -329,6 +332,36 @@ export type Database = {
           whatsapp_customer_template?: string | null
           whatsapp_sales_template?: string | null
           whatsapp_support_template?: string | null
+        }
+        Relationships: []
+      }
+      company_signatures: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          includes_brand: boolean
+          is_default: boolean
+          name: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          includes_brand?: boolean
+          is_default?: boolean
+          name?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          includes_brand?: boolean
+          is_default?: boolean
+          name?: string
+          storage_path?: string
         }
         Relationships: []
       }
@@ -396,10 +429,13 @@ export type Database = {
           device: string | null
           doc_hash: string
           id: string
+          includes_brand: boolean
           link_id: string | null
+          method: string
           party: string
           quote_id: string
           remote: boolean
+          saved_signature_name: string | null
           signature_image: string
           signed_at: string
           signed_pdf_path: string | null
@@ -416,10 +452,13 @@ export type Database = {
           device?: string | null
           doc_hash: string
           id?: string
+          includes_brand?: boolean
           link_id?: string | null
+          method?: string
           party: string
           quote_id: string
           remote?: boolean
+          saved_signature_name?: string | null
           signature_image: string
           signed_at?: string
           signed_pdf_path?: string | null
@@ -436,10 +475,13 @@ export type Database = {
           device?: string | null
           doc_hash?: string
           id?: string
+          includes_brand?: boolean
           link_id?: string | null
+          method?: string
           party?: string
           quote_id?: string
           remote?: boolean
+          saved_signature_name?: string | null
           signature_image?: string
           signed_at?: string
           signed_pdf_path?: string | null
