@@ -4,6 +4,7 @@ import { categorize, ItemCategory } from '@/lib/docScope';
 import {
   computeTotals,
   DOC_TYPE_LABELS,
+  isPriceHidden,
   lineTotal,
   PAYMENT_LABELS,
   PremiumDocData,
@@ -77,13 +78,16 @@ export function buildQuoteWhatsAppMessage(
     list.forEach((i) => {
       const q = Number(i.quantity);
       const e = ITEM_EMOJI[categorize(i)] || g.emoji;
-      push(`${e} ${q}x ${i.description.trim()}`, `💰 ${formatBRL(Number(i.unitPrice) || 0)} cada`, `💵 Total: ${formatBRL(lineTotal(i))}`, '');
+      if (isPriceHidden(data, i)) push(`${e} ${q}x ${i.description.trim()}`, '');
+      else push(`${e} ${q}x ${i.description.trim()}`, `💰 ${formatBRL(Number(i.unitPrice) || 0)} cada`, `💵 Total: ${formatBRL(lineTotal(i))}`, '');
     });
   });
   if (out[out.length - 1] === '') out.pop();
-  push('', SEP, '', '💰 *RESUMO FINANCEIRO*', '', `Subtotal: ${formatBRL(t.products + t.services)}`);
-  if (t.shipping > 0) push(`Frete: ${formatBRL(t.shipping)}`);
-  if (t.discount > 0) push(`Desconto: - ${formatBRL(t.discount)}`);
+  if (!items.some((i) => isPriceHidden(data, i))) {
+    push('', SEP, '', '💰 *RESUMO FINANCEIRO*', '', `Subtotal: ${formatBRL(t.products + t.services)}`);
+    if (t.shipping > 0) push(`Frete: ${formatBRL(t.shipping)}`);
+    if (t.discount > 0) push(`Desconto: - ${formatBRL(t.discount)}`);
+  }
   push('', SEP, '', `💰 *TOTAL: ${formatBRL(t.total)}*`, '');
 
   const p = data.payment;

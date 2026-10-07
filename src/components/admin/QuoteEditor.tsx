@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2 } from 'lucide-react';
+import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2, EyeOff, MoreVertical } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import { TECH_SERVICES, listServiceDefaults } from '@/lib/serviceDefaults';
 import { applyCompanySignature, listSignatures } from '@/lib/contractSignatures';
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { getCompanyProfile } from '@/lib/companyProfile';
@@ -61,6 +63,7 @@ export interface QuoteRecord {
   contract_text?: string | null;
   validity_days: number | null;
   show_signatures: boolean;
+  show_item_prices?: boolean | null;
   total: number;
   pdf_url: string | null;
   created_at: string;
@@ -88,7 +91,9 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
       unitPrice: Number(i.unitPrice ?? i.price) || 0,
       kind: i.kind === 'service' ? 'service' : 'product',
       imageUrl: i.imageUrl || undefined,
+      hidePrice: !!i.hidePrice,
     })),
+    showItemPrices: r.show_item_prices !== false,
     discount: Number(r.discount) || 0,
     shipping: Number(r.shipping_fee) || 0,
     payment: r.payment || { method: '' },
@@ -137,6 +142,7 @@ interface Props {
   convertToContract?: boolean;
 }
 
+const hideWarnedRef_init = false;
 export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, draft, convertToContract }: Props) {
   const record = recordProp ?? (draft?.record as QuoteRecord | null) ?? null;
   const draftIdRef = useRef<string>(newDraftId());
@@ -304,6 +310,13 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
   if (!data || !totals) return null;
 
+  const hiddenCount = data.items.filter((it) => isPriceHidden(data, it)).length;
+  /** Contrato: avisa uma única vez antes de ocultar */
+  const confirmHide = (apply: () => void) => {
+    if (data.docType === 'contrato' && !hideWarnedRef.current) setHideAsk(() => apply);
+    else apply();
+  };
+
   const set = <K extends keyof PremiumDocData>(k: K, v: PremiumDocData[K]) => setData({ ...data, [k]: v });
   const setC = (k: keyof DocCustomer, v: string) => setData({ ...data, customer: { ...data.customer, [k]: v } });
   const setItem = (i: number, patch: Partial<DocItem>) =>
@@ -397,7 +410,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
           total: lineTotal(i),
           kind: i.kind || 'product',
           imageUrl: i.imageUrl || null,
+          hidePrice: !!i.hidePrice,
         })),
+        show_item_prices: final.showItemPrices !== false,
         subtotal: t.products + t.services,
         labor_total: t.services,
         discount: t.discount,

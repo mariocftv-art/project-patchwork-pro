@@ -37,7 +37,12 @@ export interface DocItem {
   unitPrice: number;
   kind?: 'product' | 'service';
   imageUrl?: string;
+  /** Oculta o valor deste item para o cliente (PDF, prévia, impressão, WhatsApp) */
+  hidePrice?: boolean;
 }
+
+/** O valor do item fica escondido do cliente? */
+export const isPriceHidden = (d: Pick<PremiumDocData, 'showItemPrices'>, it: DocItem) => d.showItemPrices === false || !!it.hidePrice;
 
 export interface DocPayment {
   method: PaymentMethod;
@@ -60,6 +65,8 @@ export interface PremiumDocData {
   serviceTitle?: string;
   customer: DocCustomer;
   items: DocItem[];
+  /** Mostrar valores de cada item (padrão: sim) */
+  showItemPrices?: boolean;
   discount?: number;
   shipping?: number;
   payment?: DocPayment;
@@ -662,18 +669,23 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const images = await Promise.all(data.items.map((it) => tryLoad(it.imageUrl, 240)));
   const hasImages = true; // coluna de foto sempre presente: foto real ou ícone neutro da categoria
   const badges = data.items.map((it) => CATEGORY_BADGE[categorize(it)]);
+  const anyPriceHidden = data.items.some((it) => isPriceHidden(data, it));
+  const allPricesHidden = data.items.length > 0 && data.items.every((it) => isPriceHidden(data, it));
   y = ensureSpace(doc, y, 30);
 
   autoTable(doc, {
     startY: y,
-    head: [['ITEM', 'DESCRIÇÃO', 'QUANT.', 'VALOR UNIT.', 'TOTAL']],
-    body: data.items.map((it, i) => [
-      String(i + 1).padStart(2, '0'),
-      it.description + (it.kind === 'service' ? '\n(Serviço Técnico Especializado)' : ''),
-      String(it.quantity),
-      formatBRL(Number(it.unitPrice) || 0),
-      formatBRL(lineTotal(it)),
-    ]),
+    head: [allPricesHidden ? ['ITEM', 'DESCRIÇÃO', 'QUANT.'] : ['ITEM', 'DESCRIÇÃO', 'QUANT.', 'VALOR UNIT.', 'TOTAL']],
+    body: data.items.map((it, i) => {
+      const row = [
+        String(i + 1).padStart(2, '0'),
+        it.description + (it.kind === 'service' ? '\n(Serviço Técnico Especializado)' : ''),
+        String(it.quantity),
+      ];
+      if (allPricesHidden) return row;
+      const hid = isPriceHidden(data, it);
+      return [...row, hid ? '—' : formatBRL(Number(it.unitPrice) || 0), hid ? 'Incluso' : formatBRL(lineTotal(it))];
+    }),
     theme: 'plain',
     styles: {
       font: 'helvetica',
@@ -699,7 +711,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     columnStyles: {
       0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold', textColor: MUTED },
       1: { cellWidth: 'auto', halign: 'left' },
-      2: { cellWidth: 20, halign: 'center', textColor: INK },
+      2: { cellWidth: allPricesHidden ? 24 : 20, halign: 'center', textColor: INK },
       3: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: BLUE_2 },
       4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLUE, fontSize: 9.8 },
     },
@@ -754,7 +766,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
 
   /* ---- Resumo + Total ---- */
   const summary: Array<[string, string]> = [];
-  if (totals.services > 0 && totals.products > 0) {
+  if (anyPriceHidden) {
+    // valores ocultos: só o total, com frete/desconto embutidos
+  } else if (totals.services > 0 && totals.products > 0) {
     summary.push(['Equipamentos', formatBRL(totals.products)]);
     summary.push(['Serviço Técnico Especializado', formatBRL(totals.services)]);
   } else {
@@ -763,7 +777,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   if (totals.shipping > 0) summary.push(['Frete', formatBRL(totals.shipping)]);
   if (totals.discount > 0) summary.push(['Desconto', `- ${formatBRL(totals.discount)}`]);
 
-  const sumH = summary.length * 6 + 4;
+  if (anyPriceHidden) summary.length = 0;
+  const sumH = summary.length ? summary.length * 6 + 4 : 0;
   const totalBoxH = 22;
   y = ensureSpace(doc, y, sumH + totalBoxH + 4);
   const boxW = 92;
@@ -771,7 +786,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   doc.setFillColor(...BLUE_LIGHT);
   doc.setDrawColor(...t.gold);
   doc.setLineWidth(0.35);
-  doc.rect(boxX, y, boxW, sumH, 'FD');
+  if (sumH) doc.rect(boxX, y, boxW, sumH, 'FD');
   doc.setFontSize(9);
   summary.forEach(([l, v], i) => {
     const isDiscount = l === 'Desconto';
@@ -782,7 +797,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     doc.setFont('helvetica', 'bold');
     doc.text(v, RIGHT - 4, y + 6 + i * 6, { align: 'right' });
   });
-  y += sumH + 3;
+  y += sumH ? sumH + 3 : 0;
 
   doc.setFillColor(...BLACK);
   doc.rect(LEFT, y, CONTENT_W, totalBoxH, 'F');
