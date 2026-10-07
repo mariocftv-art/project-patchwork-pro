@@ -81,6 +81,8 @@ export interface DocSignature {
   ip?: string | null;
   /** Código de integridade do documento */
   code?: string | null;
+  /** A arte já traz o nome e o risco da empresa (não repetir embaixo) */
+  includesBrand?: boolean;
 }
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {

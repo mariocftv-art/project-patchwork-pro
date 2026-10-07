@@ -23,6 +23,7 @@ export interface CompanyProfile {
   whatsapp_customer_template: string;
   whatsapp_admin_template: string;
   responsible_name: string;
+  responsible_role: string;
   footer_slogan: string;
   default_warranty: string;
   default_warranty_text: string;
@@ -117,6 +118,7 @@ export const defaultCompanyProfile: CompanyProfile = {
   whatsapp_customer_template: DEFAULT_CUSTOMER_TEMPLATE,
   whatsapp_admin_template: DEFAULT_ADMIN_TEMPLATE,
   responsible_name: '',
+  responsible_role: '',
   footer_slogan: '',
   default_warranty: '',
   default_warranty_text:
@@ -189,6 +191,7 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     whatsapp_customer_template: profile.whatsapp_customer_template,
     whatsapp_admin_template: profile.whatsapp_admin_template,
     responsible_name: profile.responsible_name,
+    responsible_role: profile.responsible_role,
     footer_slogan: profile.footer_slogan,
     default_warranty: profile.default_warranty,
     default_warranty_text: profile.default_warranty_text,
