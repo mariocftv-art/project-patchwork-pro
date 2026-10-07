@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2 } from 'lucide-react';
+import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2, EyeOff, MoreVertical } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import { TECH_SERVICES, listServiceDefaults } from '@/lib/serviceDefaults';
 import { applyCompanySignature, listSignatures } from '@/lib/contractSignatures';
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { getCompanyProfile } from '@/lib/companyProfile';
@@ -29,6 +31,7 @@ import {
   DocType,
   DOC_TYPE_LABELS,
   lineTotal,
+  isPriceHidden,
   nextDocNumber,
   PaymentMethod,
   PAYMENT_LABELS,
@@ -61,6 +64,7 @@ export interface QuoteRecord {
   contract_text?: string | null;
   validity_days: number | null;
   show_signatures: boolean;
+  show_item_prices?: boolean | null;
   total: number;
   pdf_url: string | null;
   created_at: string;
@@ -88,7 +92,9 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
       unitPrice: Number(i.unitPrice ?? i.price) || 0,
       kind: i.kind === 'service' ? 'service' : 'product',
       imageUrl: i.imageUrl || undefined,
+      hidePrice: !!i.hidePrice,
     })),
+    showItemPrices: r.show_item_prices !== false,
     discount: Number(r.discount) || 0,
     shipping: Number(r.shipping_fee) || 0,
     payment: r.payment || { method: '' },
@@ -153,6 +159,8 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const hideWarnedRef = useRef(false);
+  const [hideAsk, setHideAsk] = useState<null | (() => void)>(null);
   const savingRef = useRef(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -304,6 +312,13 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
   if (!data || !totals) return null;
 
+  const hiddenCount = data.items.filter((it) => isPriceHidden(data, it)).length;
+  /** Contrato: avisa uma única vez antes de ocultar */
+  const confirmHide = (apply: () => void) => {
+    if (data.docType === 'contrato' && !hideWarnedRef.current) setHideAsk(() => apply);
+    else apply();
+  };
+
   const set = <K extends keyof PremiumDocData>(k: K, v: PremiumDocData[K]) => setData({ ...data, [k]: v });
   const setC = (k: keyof DocCustomer, v: string) => setData({ ...data, customer: { ...data.customer, [k]: v } });
   const setItem = (i: number, patch: Partial<DocItem>) =>
@@ -397,7 +412,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
           total: lineTotal(i),
           kind: i.kind || 'product',
           imageUrl: i.imageUrl || null,
+          hidePrice: !!i.hidePrice,
         })),
+        show_item_prices: final.showItemPrices !== false,
         subtotal: t.products + t.services,
         labor_total: t.services,
         discount: t.discount,
@@ -593,6 +610,11 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
         {step === 'preview' ? (
           <div className="space-y-3">
+            {hiddenCount > 0 && (
+              <p className="text-sm text-muted-foreground rounded-md border border-border bg-secondary/40 px-3 py-2">
+                👁️‍🗨️ {hiddenCount === data.items.length ? <>Este documento vai sair <strong>sem os valores dos itens</strong> — só com o total de {formatBRL(totals.total)}.</> : <>{hiddenCount} {hiddenCount === 1 ? 'item vai sair' : 'itens vão sair'} <strong>sem valor</strong>; o resumo mostra só o total de {formatBRL(totals.total)}.</>}
+              </p>
+            )}
             <PdfPagesPreview blob={previewBlob} onPages={setPreviewPages} />
             {!data.number && (
               <p className="text-xs text-muted-foreground">Prévia — o número definitivo é criado ao clicar em "Gerar PDF".</p>
@@ -722,6 +744,17 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                   <Button size="sm" variant="outline" onClick={() => set('items', [...data.items, { description: 'Serviço técnico', quantity: 1, unitPrice: 0, kind: 'service' }])}><Plus className="h-4 w-4 mr-1" />Serviço livre</Button>
                 </div>
               </div>
+              <div className="mb-3 rounded-md border border-border bg-secondary/40 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="show-item-prices" className="font-semibold">👁️ Mostrar valores de cada item</Label>
+                  <Switch
+                    id="show-item-prices"
+                    checked={data.showItemPrices !== false}
+                    onCheckedChange={(v) => (v ? set('showItemPrices', true) : confirmHide(() => setData((d) => (d ? { ...d, showItemPrices: false } : d))))}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Desligado, o documento mostra os itens e as quantidades, mas só o valor total no final.</p>
+              </div>
               <datalist id="labor-suggestions">{LABOR_SUGGESTIONS.map((s) => <option key={s} value={s} />)}</datalist>
               <div className="space-y-2">
                 {data.items.map((it, i) => (
@@ -738,15 +771,31 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                       <Label className="text-xs">Valor unit.</Label>
                       <Input type="number" min={0} step="0.01" value={it.unitPrice} onChange={(e) => setItem(i, { unitPrice: Number(e.target.value) })} />
                     </div>
-                    <div className="col-span-5 sm:col-span-2 text-right text-sm font-semibold pb-2">{formatBRL(lineTotal(it))}</div>
+                    <div className={`col-span-5 sm:col-span-2 text-right text-sm font-semibold pb-2 ${isPriceHidden(data, it) ? 'text-muted-foreground line-through decoration-dotted' : ''}`}>{formatBRL(lineTotal(it))}</div>
                     <div className="col-span-10 sm:col-span-1">
                       <select className={`${selectCls} px-1 text-xs`} value={it.kind || 'product'} onChange={(e) => setItem(i, { kind: e.target.value as DocItem['kind'] })}>
                         <option value="product">Item</option>
                         <option value="service">Serviço</option>
                       </select>
                     </div>
-                    <div className="col-span-2 sm:col-span-1 flex justify-end">
-                      <Button size="icon" variant="ghost" onClick={() => set('items', data.items.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <div className="col-span-2 sm:col-span-1 flex justify-end items-center">
+                      {isPriceHidden(data, it) && <EyeOff className="h-4 w-4 text-muted-foreground self-center mr-1" aria-label="Valor oculto para o cliente" />}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" aria-label="Mais opções do item"><MoreVertical className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={data.showItemPrices === false}
+                            onSelect={() => (it.hidePrice ? setItem(i, { hidePrice: false }) : confirmHide(() => setData((d) => (d ? { ...d, items: d.items.map((x, j) => (j === i ? { ...x, hidePrice: true } : x)) } : d))))}
+                          >
+                            <EyeOff className="h-4 w-4 mr-2" />{it.hidePrice ? 'Mostrar valor deste item' : 'Ocultar valor deste item'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onSelect={() => set('items', data.items.filter((_, j) => j !== i))}>
+                            <Trash2 className="h-4 w-4 mr-2" />Remover item
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <div className="col-span-12">
                       <ImageUploadField compact bucket="quotes" folder="item-images" value={it.imageUrl} onChange={(url) => setItem(i, { imageUrl: url })} />
@@ -865,6 +914,18 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
             </div>
           </div>
         )}
+        <AlertDialog open={!!hideAsk} onOpenChange={(v) => !v && setHideAsk(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ocultar valores no contrato?</AlertDialogTitle>
+              <AlertDialogDescription>⚠️ Em contrato, discriminar os valores facilita resolver mudanças de escopo depois. Tem certeza que quer ocultar?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { hideWarnedRef.current = true; }}>Mostrar valores</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { hideWarnedRef.current = true; hideAsk?.(); setHideAsk(null); }}>Ocultar mesmo assim</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

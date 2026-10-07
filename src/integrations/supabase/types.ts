@@ -983,6 +983,7 @@ export type Database = {
           quote_number: string
           service_title: string | null
           shipping_fee: number
+          show_item_prices: boolean
           show_signatures: boolean
           status: string
           subtotal: number
@@ -1014,6 +1015,7 @@ export type Database = {
           quote_number: string
           service_title?: string | null
           shipping_fee?: number
+          show_item_prices?: boolean
           show_signatures?: boolean
           status?: string
           subtotal: number
@@ -1045,6 +1047,7 @@ export type Database = {
           quote_number?: string
           service_title?: string | null
           shipping_fee?: number
+          show_item_prices?: boolean
           show_signatures?: boolean
           status?: string
           subtotal?: number
