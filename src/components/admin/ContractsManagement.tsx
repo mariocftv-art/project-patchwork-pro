@@ -15,7 +15,8 @@ import { buildPremiumPDF, docFileName } from '@/lib/premiumPDF';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from './SignaturePad';
-import { listSignatures, signContract, applyCompanySignature, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
+import CompanySignChooser from './CompanySignChooser';
+import { listSignatures, signContract, signWithSaved, SavedSignature, applyCompanySignature, signedPdfBlob, buildSignedPdf, SignatureRow, Party } from '@/lib/contractSignatures';
 import { createContractLink, contractPhone, sendContractSignLink } from '@/lib/contractActions';
 import QuoteEditor, { QuoteRecord, CONTRACT_STATUSES, QUOTE_STATUSES, recordToDoc } from './QuoteEditor';
 
@@ -92,6 +93,29 @@ export default function ContractsManagement() {
   const { data: signatures = [] } = useQuery({ queryKey: ['admin-contract-signatures'], queryFn: listSignatures });
   const [signing, setSigning] = useState<QuoteRecord | null>(null);
   const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string } | null>(null);
+  const [redo, setRedo] = useState(false);
+  const afterSign = async (q: QuoteRecord, both: boolean, wasRedo: boolean, how: string) => {
+    if (wasRedo) {
+      const { data: auth } = await supabase.auth.getUser();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('admin_logs' as any) as any).insert({ user_id: auth.user?.id, user_email: auth.user?.email, action: 'refazer_assinatura_contratada', entity_type: 'contrato', entity_id: q.quote_number, details: { metodo: how, em: new Date().toISOString() } });
+    }
+    setRedo(false);
+    toast({ title: wasRedo ? 'Assinatura da empresa refeita' : 'Assinatura registrada', description: both ? 'Contrato assinado pelas duas partes. PDF assinado salvo.' : 'PDF atualizado e salvo. Falta a outra parte.' });
+    await Promise.all(['admin-contract-signatures', 'admin-contract-versions', 'admin-contracts'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+    const fresh = (qc.getQueryData(['admin-contracts']) as QuoteRecord[] | undefined)?.find((x) => x.id === q.id);
+    if (fresh) setSigning(fresh);
+  };
+  const useSaved = async (q: QuoteRecord, sv: SavedSignature) => {
+    try {
+      const r = await signWithSaved(q, sv, signatures);
+      await afterSign(q, r.both, redo, `salva: ${sv.name}`);
+    } catch (e) {
+      const m = (e as Error).message;
+      toast({ title: 'Assinatura não registrada', description: m === 'no-name' ? 'Preencha o nome do responsável em Personalização.' : 'Nada foi salvo. Tente de novo.', variant: 'destructive' });
+    }
+  };
+  const canRedo = (q: QuoteRecord) => !sigsOf(q.id).some((x) => x.party === 'contratante') && !linksOf(q.id).some((l) => l.kind === 'sign') && !['enviado', 'assinado', 'em_execucao', 'concluido'].includes(q.status || '');
 
   const contentVersion = (id: string) => versions.filter((v) => v.quote_id === id && v.change_type !== 'status')[0]?.version || 1;
   const sigsOf = (id: string) => {
@@ -111,16 +135,10 @@ export default function ContractsManagement() {
   const confirmSignature = async (png: string) => {
     if (!pad) return;
     try {
-      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures);
-      toast({ title: 'Assinatura registrada', description: r.both ? 'Contrato assinado pelas duas partes. PDF assinado salvo.' : 'PDF atualizado e salvo. Falta a outra parte.' });
+      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures, { method: 'desenhada' });
+      const q = pad.q;
       setPad(null);
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ['admin-contract-signatures'] }),
-        qc.invalidateQueries({ queryKey: ['admin-contract-versions'] }),
-        qc.invalidateQueries({ queryKey: ['admin-contracts'] }),
-      ]);
-      const fresh = (qc.getQueryData(['admin-contracts']) as QuoteRecord[] | undefined)?.find((x) => x.id === pad.q.id);
-      if (fresh) setSigning(fresh);
+      await afterSign(q, r.both, redo && pad.party === 'contratada', 'desenhada');
     } catch (e) {
       console.error(e);
       toast({ title: 'Assinatura não registrada', description: 'Nada foi salvo. Verifique a conexão e tente de novo.', variant: 'destructive' });
@@ -484,7 +502,7 @@ export default function ContractsManagement() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!signing && !pad} onOpenChange={(v) => !v && setSigning(null)}>
+      <Dialog open={!!signing && !pad} onOpenChange={(v) => { if (!v) { setSigning(null); setRedo(false); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Assinaturas — {signing?.quote_number} (versão {signing ? contentVersion(signing.id) : ''})</DialogTitle></DialogHeader>
           {signing && (() => {
@@ -501,10 +519,19 @@ export default function ContractsManagement() {
                   return (
                     <div key={x.p} className="rounded border border-border p-3 space-y-2">
                       <p className="text-xs font-bold tracking-wide">{x.label}</p>
-                      {done ? (
+                      {x.p === 'contratada' && (!done || redo) ? (
+                        <CompanySignChooser
+                          companyName={getBrand().name}
+                          onUseSaved={(sv) => useSaved(signing, sv)}
+                          onDraw={() => setPad({ q: signing, party: 'contratada', name: x.name, document: x.doc })}
+                        />
+                      ) : done ? (
                         <>
                           <p className="text-sm flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-price" />{done.signer_name} — {new Date(done.signed_at).toLocaleString('pt-BR')}</p>
-                          <img src={done.signature_image} alt={`Assinatura de ${done.signer_name}`} className="h-14 bg-card rounded border border-border px-2" />
+                          <img src={done.signature_image} alt={`Assinatura de ${done.signer_name}`} className="h-14 max-w-full object-contain bg-card rounded border border-border px-2" />
+                          {x.p === 'contratada' && canRedo(signing) && (
+                            <Button size="sm" variant="outline" onClick={() => setRedo(true)}>Refazer minha assinatura</Button>
+                          )}
                         </>
                       ) : (
                         <SignForm defaultName={x.p === 'contratante' ? x.name : ''} btn={x.btn} onStart={(name) => setPad({ q: signing, party: x.p, name, document: x.doc })} />
@@ -528,7 +555,7 @@ export default function ContractsManagement() {
 
       {pad && (
         <SignaturePad
-          title={pad.party === 'contratante' ? 'CONTRATANTE' : 'CONTRATADA — MR SEGURANÇA MÁXIMA'}
+          title={pad.party === 'contratante' ? 'CONTRATANTE' : `CONTRATADA — ${getBrand().name.toUpperCase()}`}
           signerName={pad.name}
           contractLabel={`Contrato ${pad.q.quote_number}`}
           onCancel={() => setPad(null)}

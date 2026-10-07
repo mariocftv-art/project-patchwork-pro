@@ -81,6 +81,8 @@ export interface DocSignature {
   ip?: string | null;
   /** Código de integridade do documento */
   code?: string | null;
+  /** A arte já traz o nome e o risco da empresa (não repetir embaixo) */
+  includesBrand?: boolean;
 }
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
@@ -970,29 +972,84 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         ].filter(Boolean),
       },
     ];
+    const goldRule = (x0: number, yy: number, w0: number) => {
+      // Risco dourado: escuro → claro no meio → escuro, sumindo nas pontas
+      const n = 60;
+      const dark: [number, number, number] = [150, 108, 28];
+      const light: [number, number, number] = [244, 214, 122];
+      const paper: [number, number, number] = [255, 255, 255];
+      for (let k = 0; k < n; k++) {
+        const u = (k + 0.5) / n;
+        const mid = 1 - Math.abs(u - 0.5) * 2; // 0 nas pontas, 1 no meio
+        const fade = Math.min(1, Math.min(u, 1 - u) / 0.18);
+        const g = dark.map((d, j) => d + (light[j] - d) * mid);
+        const c = g.map((v, j) => Math.round(paper[j] + (v - paper[j]) * fade)) as [number, number, number];
+        doc.setDrawColor(...c);
+        doc.setLineWidth(0.7);
+        doc.line(x0 + (w0 * k) / n, yy, x0 + (w0 * (k + 1)) / n + 0.05, yy);
+      }
+    };
+    const fmtCnpj = (v?: string | null) => {
+      const d = String(v || '').replace(/\D/g, '');
+      return d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : v || '';
+    };
+    let extra = 0;
     sigs.forEach((s, i) => {
       const x = LEFT + i * (sw + 16);
+      const isCompany = i === 1 && data.docType === 'contrato';
+      const embedded = isCompany && !!s.sig?.includesBrand;
       if (s.sig?.image) {
         try {
-          const ih = 18;
-          const iw = Math.min(sw - 6, ih * (s.sig.ratio || 3));
-          doc.addImage(s.sig.image, 'PNG', x + (sw - iw) / 2, y - ih - 0.5, iw, ih);
+          const ih = embedded ? 22 : 18;
+          let iw = ih * (s.sig.ratio || 3);
+          let h = ih;
+          if (iw > sw - 6) { iw = sw - 6; h = iw / (s.sig.ratio || 3); }
+          doc.addImage(s.sig.image, 'PNG', x + (sw - iw) / 2, y - h - 0.5 + (embedded ? 8 : 0), iw, h);
         } catch (e) {
           console.error('assinatura', e);
         }
       }
-      doc.setDrawColor(...BLACK);
-      doc.setLineWidth(0.4);
-      doc.line(x, y, x + sw, y);
-      doc.setTextColor(...BLACK);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.6);
-      doc.text(s.title, x + sw / 2, y + 5, { align: 'center' });
+      if (!isCompany) {
+        doc.setDrawColor(...BLACK);
+        doc.setLineWidth(0.4);
+        doc.line(x, y, x + sw, y);
+        doc.setTextColor(...BLACK);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.6);
+        doc.text(s.title, x + sw / 2, y + 5, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+        s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
+        return;
+      }
+      const when = sm ? `Assinado em ${new Date(sm.signedAt).toLocaleDateString('pt-BR')} às ${new Date(sm.signedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Data: ____/____/________';
+      const cnpj = profile.cnpj ? `CNPJ: ${fmtCnpj(profile.cnpj)}` : '';
+      let ly = y;
+      if (embedded) {
+        ly = y + 10;
+      } else {
+        doc.setDrawColor(...BLACK);
+        doc.setLineWidth(0.4);
+        doc.line(x, y, x + sw, y);
+        goldRule(x + 4, y + 1.6, sw - 8);
+        doc.setTextColor(...BLACK);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.6);
+        doc.text(String(profile.name || '').toUpperCase(), x + sw / 2, y + 6.5, { align: 'center', charSpace: 0.8 });
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+        const resp = sm?.name || profile.responsible_name;
+        const role = (profile as { responsible_role?: string }).responsible_role;
+        if (resp) { doc.text(`Responsável: ${resp}${role ? ` — ${role}` : ''}`, x + sw / 2, y + 11, { align: 'center' }); ly = y + 4.5; }
+        ly += 6.5;
+      }
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...MUTED);
-      s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
+      doc.setFontSize(8.6);
+      [cnpj, when].filter(Boolean).forEach((l, j) => doc.text(l, x + sw / 2, ly + 4.5 + j * 4.6, { align: 'center' }));
+      extra = Math.max(extra, ly - y);
     });
-    y += 24;
+    y += 24 + Math.max(0, extra - 6);
 
     // Rodapé de autenticidade
     const fmtDoc = (v?: string | null) => {
