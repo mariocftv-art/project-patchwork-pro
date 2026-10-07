@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Palette, FileText, MessageCircle, Loader2, Upload, CreditCard } from 'lucide-react';
 import MercadoPagoForm from './MercadoPagoForm';
-import CompanySignatureUpload from './CompanySignatureUpload';
+import SavedSignaturesManager from './SavedSignaturesManager';
 
 export default function CompanyProfileForm() {
   const { toast } = useToast();
@@ -123,11 +123,6 @@ export default function CompanyProfileForm() {
             <Input value={profile.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5511999999999" />
           </div>
           <div>
-            <Label>Nome do responsável (assina como CONTRATADA)</Label>
-            <Input value={profile.responsible_name} onChange={(e) => set('responsible_name', e.target.value)} />
-          </div>
-          <CompanySignatureUpload />
-          <div>
             <Label>E-mail</Label>
             <Input value={profile.email} onChange={(e) => set('email', e.target.value)} />
           </div>
@@ -154,6 +149,7 @@ export default function CompanyProfileForm() {
         </TabsContent>
 
         <TabsContent value="brand" className="space-y-6">
+          <SavedSignaturesManager responsibleName={profile.responsible_name} responsibleRole={profile.responsible_role || ''} onChange={(f, v) => set(f, v)} />
           <div className="flex flex-col sm:flex-row gap-4 items-start">
             <div className="w-32 h-32 rounded-lg border border-border bg-secondary flex items-center justify-center overflow-hidden">
               {profile.logo_url ? (

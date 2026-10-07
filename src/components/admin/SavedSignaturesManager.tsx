@@ -88,7 +88,7 @@ export default function SavedSignaturesManager({ responsibleName, responsibleRol
       <div className="space-y-3">
         {list.map((s) => (
           <div key={s.id} className="rounded-md border border-border p-3 space-y-2">
-            <div className="h-24 rounded border border-dashed border-border bg-white flex items-center justify-center p-2">
+            <div className="h-24 rounded border border-dashed border-border keep-light bg-card flex items-center justify-center p-2">
               {imgs[s.id] ? <img src={imgs[s.id]!} alt={`Prévia: ${s.name}`} className="max-h-full max-w-full object-contain" /> : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
             <div className="flex flex-wrap items-end gap-2">
