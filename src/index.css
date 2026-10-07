@@ -274,9 +274,6 @@
     animation: slide-up 0.4s ease-out;
   }
 }
-#lovable-badge {
-display: none !important;
-}
 
 /* Foco visível por teclado (AA) */
 @layer base {
@@ -351,3 +348,7 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 .dark .border-amber-200, .dark .border-yellow-200, .dark .border-amber-300 { border-color: hsl(45 50% 35%) !important; }
 /* Documentos sempre brancos */
 .dark img.doc-page { background-color: hsl(0 0% 100%) !important; }
+
+#lovable-badge {
+display: none !important;
+}
