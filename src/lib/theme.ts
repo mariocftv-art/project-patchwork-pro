@@ -18,6 +18,8 @@ export function applyMode(path = window.location.pathname) {
   const dark = preferredDark() && !LIGHT_ONLY.test(path);
   el.classList.toggle('dark', dark);
   el.style.colorScheme = dark ? 'dark' : 'light';
+  // Barra de status do celular/app acompanha o tema
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#000000' : '#FFD600'));
 }
 
 export function setDark(d: boolean) {

@@ -352,3 +352,16 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 #lovable-badge {
 display: none !important;
 }
+
+/* Menu de categorias no celular segue o tema, mesmo dentro do cabeçalho claro */
+.dark .keep-light .follow-theme {
+  --background: 220 6% 9% !important;
+  --foreground: 40 8% 88% !important;
+  --card: 220 5% 13% !important;
+  --secondary: 220 5% 18% !important;
+  --muted-foreground: 40 5% 66% !important;
+  --border: 220 5% 22% !important;
+  color-scheme: dark;
+}
+/* Botão flutuante do WhatsApp nunca cobre menus, janelas ou galeria */
+body.overlay-open .wa-fab, body[data-scroll-locked] .wa-fab { display: none !important; }

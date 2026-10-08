@@ -18,3 +18,4 @@
 - Excluir documento = soft delete (quotes.deleted_at) + registro em document_deletions (só inserção, admin); listas filtram deleted_at nulo e a Lixeira mostra 30 dias. Why: número nunca reaproveitado e prova preservada.
 - Pages except Home load on demand (React.lazy in App.tsx) with idle prefetch of Product/Cart/Services; vendor chunks split in vite.config. Why: first load was a single 2.4 MB script.
 - Service photos gallery lives only in the menu tab overlay (ServicesOverlay) and /servicos-realizados, ordered by service_photos.display_order and filtered by is_active; tab toggle/subtitle in company_profile. Why: keep the home short and let the owner curate from the panel.
+- Floating buttons carry class wa-fab and hide while body has overlay-open (set by Layout for category menu/gallery) or Radix scroll lock. Why: a floating button must never cover open content.

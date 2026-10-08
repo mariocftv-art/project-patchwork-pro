@@ -67,9 +67,9 @@ export default function WhatsAppMenu() {
 
   const opt = 'w-full flex items-start gap-3 text-left rounded-lg border border-primary/40 bg-secondary/40 hover:bg-primary/15 px-3 py-3 min-h-12 transition-colors';
   return (
-    <div ref={ref} className="fixed bottom-6 left-3 sm:left-6 z-50">
+    <div ref={ref} className="wa-fab fixed z-50 right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6">
       {open && ask && (
-        <form role="dialog" aria-label="Para agilizar seu atendimento" onSubmit={(e) => { e.preventDefault(); continueGuest(false); }} className="keep-light absolute bottom-full mb-2 left-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-4 space-y-3">
+        <form role="dialog" aria-label="Para agilizar seu atendimento" onSubmit={(e) => { e.preventDefault(); continueGuest(false); }} className="keep-light absolute bottom-full mb-2 right-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-4 space-y-3">
           <p className="font-bold text-primary">🛡️ {companyVars(brand.name).EMPRESA_MAIUSCULA}</p>
           <p className="text-sm">Para agilizar seu atendimento:</p>
           <label className="block text-sm font-semibold">Nome
@@ -83,7 +83,7 @@ export default function WhatsAppMenu() {
         </form>
       )}
       {open && !ask && (
-        <div role="menu" className="keep-light absolute bottom-full mb-2 left-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-3 space-y-2">
+        <div role="menu" className="keep-light absolute bottom-full mb-2 right-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-3 space-y-2">
           <p className="text-sm font-bold text-primary px-1">Como podemos ajudar?</p>
           <button role="menuitem" type="button" className={opt} onClick={() => go('suporte')}>
             <WaIcon className="w-5 h-5 mt-0.5 shrink-0 text-[#25D366]" />
