@@ -94,10 +94,14 @@ export default function Layout({ children }: LayoutProps) {
   const { data: dbCats = [] } = useQuery({ queryKey: ['categories'], queryFn: () => categoriesApi.list(), staleTime: 300000 });
   const { data: allProducts = [] } = useQuery({ queryKey: ['products'], queryFn: () => productsApi.list(), staleTime: 300000 });
   const rootCats = dbCats.filter((c) => !c.parent_slug && c.is_active !== false);
-  const allCategories = rootCats.map((c) => ({
-    name: c.name, slug: c.slug, icon: c.icon, path: categoryPath(c.slug), menu: !!c.show_in_menu,
-    count: allProducts.filter((p) => p?.category === c.slug).length,
-  }));
+  const subsOf = (slug: string) => dbCats.filter((c) => c.parent_slug === slug).map((c) => c.slug);
+  const allCategories = rootCats.map((c) => {
+    const slugs = [c.slug, ...subsOf(c.slug)];
+    return {
+      name: c.name, slug: c.slug, icon: c.icon, path: categoryPath(c.slug), menu: !!c.show_in_menu,
+      count: allProducts.filter((p) => p && (p as { is_active?: boolean }).is_active !== false && slugs.includes(p.category)).length,
+    };
+  }).filter((c) => c.slug === 'instalacoes' || c.count > 0); // categoria vazia não aparece para o cliente
   const categories = allCategories.filter((c) => c.menu);
   const menuEntries = allCategories.map((c) => ({ ...c, count: c.slug === 'instalacoes' ? null : c.count as number | null }));
   const { data: gallerySettings } = useGallerySettings();
@@ -111,6 +115,22 @@ export default function Layout({ children }: LayoutProps) {
   };
   const [catOpen, setCatOpen] = useState(false);
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
+  // Esconde o botão do WhatsApp com menu/galeria abertos
+  useEffect(() => {
+    document.body.classList.toggle('overlay-open', catOpen || servicesOpen);
+    return () => document.body.classList.remove('overlay-open');
+  }, [catOpen, servicesOpen]);
+  // Botão voltar do celular fecha o menu de categorias
+  useEffect(() => {
+    if (!catOpen) return;
+    window.history.pushState({ mrMenu: true }, '');
+    const onPop = () => setCatOpen(false);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if ((window.history.state as { mrMenu?: boolean } | null)?.mrMenu) window.history.back();
+    };
+  }, [catOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,28 +399,32 @@ export default function Layout({ children }: LayoutProps) {
               <ChevronDown className={`w-4 h-4 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
             </button>
             {catOpen && (
-              <nav aria-label="Categorias" className="mt-2 rounded-md bg-card border border-border py-1">
-                {showServicesTab && (
-                  <>
-                    <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
-                      className="w-full flex items-center gap-3 px-4 min-h-12 text-sm font-bold text-foreground">
-                      <span className="inline-flex items-center gap-2 rounded-md border border-primary bg-foreground text-primary px-2.5 py-1.5"><Camera className="w-4 h-4" />NOSSOS SERVIÇOS</span>
-                    </button>
-                    <div className="my-1 border-t border-border" />
-                  </>
-                )}
-                {menuEntries.map((cat) => {
-                  const active = isActiveCat(cat);
-                  return (
-                    <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-3 px-4 min-h-12 text-sm ${active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
-                      <CategoryIcon name={cat.icon} className="w-5 h-5 shrink-0" />
-                      <span className="flex-1">{cat.name}</span>
-                      {cat.count != null && <span className="text-xs opacity-75">({cat.count})</span>}
-                    </Link>
-                  );
-                })}
-              </nav>
+              <div className="follow-theme relative -mx-4 -mb-2 border-t border-primary bg-background rounded-b-xl overflow-hidden">
+                <nav aria-label="Categorias" className="max-h-[calc(100dvh-230px)] overflow-y-auto overscroll-contain pb-20">
+                  {showServicesTab && (
+                    <>
+                      <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
+                        className="w-full flex items-center gap-3 px-4 min-h-[54px] text-sm font-bold text-gold-strong">
+                        <Images className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
+                        <span>NOSSOS SERVIÇOS REALIZADOS</span>
+                      </button>
+                      <div className="mx-4 border-t-2 border-primary/60" />
+                    </>
+                  )}
+                  {menuEntries.map((cat) => {
+                    const active = isActiveCat(cat);
+                    return (
+                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} aria-current={active ? 'page' : undefined}
+                        className={`flex items-center gap-3 px-4 min-h-[54px] text-sm border-b border-border/60 last:border-b-0 ${active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
+                        <CategoryIcon name={cat.icon} className={`w-[18px] h-[18px] shrink-0 ${active ? '' : 'dark:text-primary'}`} />
+                        <span className="flex-1">{cat.name}</span>
+                        {cat.count != null && <span className={`text-xs ${active ? '' : 'text-muted-foreground'}`}>{cat.count}</span>}
+                      </Link>
+                    );
+                  })}
+                </nav>
+                <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background to-transparent" />
+              </div>
             )}
           </div>
           <div className="hidden md:flex container mx-auto px-4 items-center gap-6">
