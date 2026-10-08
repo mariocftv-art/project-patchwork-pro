@@ -8,5 +8,5 @@
 - [x] Assinatura eletrônica de contratos (cliente e empresa, PDF assinado privado)
 - [x] Instruções 37: segurança, menu único, carrossel, bloco de orçamento, galeria, rodapé, carrinho, cards
 - [x] 23. Ocultar valores dos itens
-- [ ] 24. Seleção em documentos, Lixeira, mensagens WhatsApp
-- [ ] 25. Ordem da home, menu de categorias no celular, /servicos-realizados, produto abre no topo
+- [x] 24. Seleção em documentos, Lixeira, mensagens WhatsApp
+- [x] 25. Ordem da home, menu de categorias no celular, /servicos-realizados, produto abre no topo
