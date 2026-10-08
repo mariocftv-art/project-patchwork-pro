@@ -2,7 +2,7 @@ import { formatBRL } from '@/lib/formatCurrency';
 import { isPromoActive as promoOn } from '@/lib/supabaseApi';
 import { useParams, Link } from 'react-router-dom';
 import { waLink, getBrand } from '@/lib/brand';
-import { openWhatsApp } from '@/lib/whatsappContact';
+import { openWhatsApp, fillTemplate, companyVars, PRODUCT_QUESTION_TEMPLATE } from '@/lib/whatsappContact';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '@/lib/supabaseApi';
 import { Heart, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
@@ -269,7 +269,7 @@ export default function Product() {
                     </button>
                   </>
                 )}
-                <button type="button" onClick={() => openWhatsApp(`Olá! Vim pelo site da ${getBrand().name.replace(/^[^\p{L}\d]+/u, '')}.\nTenho uma dúvida sobre: *${product.title}* — ${formatBRL(promoOn(product) && product.promo_price ? product.promo_price : product.price)}\n${window.location.origin}/produto/${product.id}`, 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
+                <button type="button" onClick={() => openWhatsApp(fillTemplate(PRODUCT_QUESTION_TEMPLATE, { ...companyVars(getBrand().name), NOME_DO_PRODUTO: product.title, PRECO: formatBRL(promoOn(product) && product.promo_price ? product.promo_price : product.price), LINK_DO_PRODUTO: `${window.location.origin}/produto/${product.id}` }), 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
                   💬 Tirar dúvida no WhatsApp
                 </button>
               </div>
