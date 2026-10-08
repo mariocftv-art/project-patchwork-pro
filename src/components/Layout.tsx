@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useBrand, brandLogo, waLink, waNumber, getBrand, loadBrand } from '@/lib/brand';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield } from 'lucide-react';
+import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield, Camera } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +10,8 @@ import ThemeToggle from './ThemeToggle';
 import StaffAgendaShortcut from './StaffAgendaShortcut';
 import SearchBox from './SearchBox';
 import WhatsAppMenu from './WhatsAppMenu';
+import ServicesOverlay from './ServicesOverlay';
+import { useGallerySettings } from './ServiceGallery';
 import { applyMode } from '@/lib/theme';
 import { useQuery } from '@tanstack/react-query';
 import { categoriesApi, productsApi } from '@/lib/supabaseApi';
@@ -97,8 +99,11 @@ export default function Layout({ children }: LayoutProps) {
     count: allProducts.filter((p) => p?.category === c.slug).length,
   }));
   const categories = allCategories.filter((c) => c.menu);
-  const portfolioEntry = { name: 'Serviços Realizados', slug: '_portfolio', icon: 'portfolio', path: '/servicos-realizados', menu: true, count: null as number | null };
-  const menuEntries = [...allCategories.map((c) => ({ ...c, count: c.slug === 'instalacoes' ? null : c.count as number | null })), portfolioEntry];
+  const menuEntries = allCategories.map((c) => ({ ...c, count: c.slug === 'instalacoes' ? null : c.count as number | null }));
+  const { data: gallerySettings } = useGallerySettings();
+  const showServicesTab = gallerySettings?.menuEnabled !== false;
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const servicesTabClass = 'inline-flex items-center gap-1.5 rounded-md border border-primary px-2.5 text-sm font-bold text-primary hover:bg-primary hover:text-primary-foreground whitespace-nowrap transition-colors';
   const isActiveCat = (c: { slug: string; path: string }) => {
     const sp = new URLSearchParams(location.search);
     if (c.path.startsWith('/?')) return location.pathname === '/' && sp.get('categoria') === c.slug;
@@ -358,7 +363,12 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Categories Bar — celular: menu vertical que abre; computador: barra */}
         <div className="bg-foreground border-b border-primary relative">
-          <div className="md:hidden px-4 py-2">
+          <div className="md:hidden px-4 py-2 flex flex-col gap-2">
+            {showServicesTab && (
+              <button type="button" onClick={() => setServicesOpen(true)} className={`${servicesTabClass} justify-center min-h-11`}>
+                <Camera className="w-4 h-4" /> NOSSOS SERVIÇOS
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setCatOpen((o) => !o)}
@@ -370,6 +380,15 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             {catOpen && (
               <nav aria-label="Categorias" className="mt-2 rounded-md bg-card border border-border py-1">
+                {showServicesTab && (
+                  <>
+                    <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
+                      className="w-full flex items-center gap-3 px-4 min-h-12 text-sm font-bold text-foreground">
+                      <span className="inline-flex items-center gap-2 rounded-md border border-primary bg-foreground text-primary px-2.5 py-1.5"><Camera className="w-4 h-4" />NOSSOS SERVIÇOS</span>
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                  </>
+                )}
                 {menuEntries.map((cat) => {
                   const active = isActiveCat(cat);
                   return (
@@ -412,8 +431,13 @@ export default function Layout({ children }: LayoutProps) {
                 </>
               )}
             </div>
+            {showServicesTab && (
+              <button type="button" onClick={() => setServicesOpen(true)} className={`${servicesTabClass} shrink-0 py-1`}>
+                <Camera className="w-4 h-4" /> NOSSOS SERVIÇOS
+              </button>
+            )}
             <nav className="flex flex-wrap items-center gap-x-6 py-2 min-w-0">
-              {[...categories, portfolioEntry].map((cat) => (
+              {categories.map((cat) => (
                 <Link key={cat.slug} to={cat.path}
                   className={`text-sm whitespace-nowrap transition-colors ${isActiveCat(cat) ? 'text-primary font-semibold' : 'text-background hover:text-primary'}`}>
                   {cat.name}
@@ -423,6 +447,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </header>
+
+      <ServicesOverlay open={servicesOpen} onClose={() => setServicesOpen(false)} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-4">
