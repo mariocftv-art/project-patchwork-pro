@@ -124,7 +124,7 @@ export default function Product() {
                         ))}
                       </div>
                     )}
-                    <div className="relative flex-1 w-full h-[45vh] lg:h-auto lg:aspect-square rounded-lg overflow-hidden bg-card border border-border">
+                    <div className="relative lg:flex-1 w-full h-[45vh] lg:h-auto lg:aspect-square rounded-lg overflow-hidden bg-card border border-border">
                       {onPromo && (
                         <span className="absolute top-2 left-2 z-10 rounded bg-destructive text-destructive-foreground text-sm font-bold px-2 py-1">{discount}% OFF</span>
                       )}
