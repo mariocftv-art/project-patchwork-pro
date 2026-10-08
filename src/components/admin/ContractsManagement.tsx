@@ -1,3 +1,4 @@
+import { BulkBar, SelectAllRow, SelectBox, TrashSection, useSelection } from './DocBulkActions';
 import { useCallback, useMemo, useState } from 'react';
 import DraftsBanner from './DraftsBanner';
 import type { QuoteDraft } from '@/lib/quoteDrafts';
@@ -59,6 +60,7 @@ function clientName(q: QuoteRecord) {
 
 export default function ContractsManagement() {
   const qc = useQueryClient();
+  const { sel, setSel, toggle, clear } = useSelection();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [from, setFrom] = useState('');
@@ -72,7 +74,7 @@ export default function ContractsManagement() {
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['admin-contracts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('quotes').select('*').eq('doc_type', 'contrato').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('quotes').select('*').eq('doc_type', 'contrato').is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as QuoteRecord[];
     },
@@ -401,11 +403,14 @@ export default function ContractsManagement() {
         <div className="text-center py-10 text-muted-foreground">Nenhum contrato encontrado.</div>
       ) : (
         <div className="space-y-3">
+          <SelectAllRow items={filtered} sel={sel} setSel={setSel} />
           {filtered.map((q) => {
             const vs = versionsOf(q.id);
             return (
-              <div key={q.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div key={q.id} className={`rounded-lg border bg-card p-4 space-y-3 ${sel.has(q.id) ? 'border-primary ring-1 ring-primary' : 'border-border'}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex items-start gap-3 min-w-0">
+                  <SelectBox checked={sel.has(q.id)} onChange={() => toggle(q.id)} label={`Selecionar ${q.quote_number}`} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{q.quote_number}</span>
@@ -427,6 +432,7 @@ export default function ContractsManagement() {
                         )}
                       </p>
                     ))}
+                  </div>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-price">{formatBRL(Number(q.total))}</p>
@@ -459,6 +465,9 @@ export default function ContractsManagement() {
           })}
         </div>
       )}
+
+      <TrashSection docType="contrato" />
+      <BulkBar items={filtered} sel={sel} clear={clear} onDownload={(q) => download(q, undefined, versionsOf(q.id)[0]?.version)} queryKeys={['admin-contracts']} />
 
       <Dialog open={!!sendSigned} onOpenChange={(v) => !v && setSendSigned(null)}>
         <DialogContent className="max-w-md">

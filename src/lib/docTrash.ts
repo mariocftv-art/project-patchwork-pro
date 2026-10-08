@@ -53,6 +53,5 @@ export function duplicateAsDraft(q: QuoteRecord) {
   });
 }
 
-export const isSignedContract = (q: QuoteRecord) => q.doc_type === 'contrato' && q.status === 'assinado';
 export const daysLeft = (deletedAt: string) =>
   Math.max(0, TRASH_DAYS - Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000));
