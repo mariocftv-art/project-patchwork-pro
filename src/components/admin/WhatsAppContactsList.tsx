@@ -23,9 +23,10 @@ const db = supabase as any;
 function weekStart(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
 const digits = (p: string) => p.replace(/\D/g, '');
 const waHref = (p: string) => { const d = digits(p); return `https://wa.me/${d.length <= 11 ? '55' + d : d}`; };
-const pageLabel = (r: Row) => {
+const pageLabel = (r: Row, titles: Record<string, string> = {}) => {
   if (r.product_title) return r.product_title;
   const p = r.page || '';
+  const m = p.match(/^\/produto\/([0-9a-f-]{36})/i); if (m) return titles[m[1]] || 'Produto';
   if (p === '/' || p === '') return 'Início';
   try {
     const u = new URL(p, 'http://x');
@@ -53,6 +54,14 @@ export default function WhatsAppContactsList() {
     },
   });
 
+  const oldIds = useMemo(() => [...new Set(rows.filter((r) => !r.product_title).map((r) => r.page?.match(/^\/produto\/([0-9a-f-]{36})/i)?.[1]).filter(Boolean) as string[])], [rows]);
+  const { data: titles = {} } = useQuery({
+    queryKey: ['wa-old-titles', oldIds.join()], enabled: oldIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from('products').select('id,title').in('id', oldIds);
+      return Object.fromEntries((data || []).map((p) => [p.id, p.title])) as Record<string, string>;
+    },
+  });
   const weeks = useMemo(() => {
     const m = new Map<string, Record<string, number>>();
     rows.forEach((r) => {
@@ -129,8 +138,8 @@ export default function WhatsAppContactsList() {
                 <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                 <td className="p-2 whitespace-nowrap">{LABEL[r.kind] || r.kind}</td>
                 <td className="p-2 whitespace-nowrap">{who(r)}</td>
-                <td className="p-2 whitespace-nowrap">{r.customer_phone ? <a href={waHref(r.customer_phone)} target="_blank" rel="noopener noreferrer" className="underline text-primary">{r.customer_phone}</a> : '—'}</td>
-                <td className="p-2 min-w-[10rem]">{pageLabel(r)}</td>
+                <td className="p-2 whitespace-nowrap">{r.customer_phone ? <a href={waHref(r.customer_phone)} target="_blank" rel="noopener noreferrer" className="underline font-semibold text-foreground">{r.customer_phone}</a> : '—'}</td>
+                <td className="p-2 min-w-[10rem]">{pageLabel(r, titles)}</td>
                 <td className="p-2"><Button size="sm" variant="outline" onClick={() => setPreview(r)}>👁️ Prévia</Button></td>
               </tr>))}</tbody>
           </table></div>
