@@ -120,7 +120,7 @@ export default function Home() {
             <Link key={c.slug} to={`/?categoria=${encodeURIComponent(c.slug)}`} className="rounded-full border border-border px-4 min-h-10 inline-flex items-center text-sm font-medium text-foreground hover:border-primary">{c.name}</Link>
           ))}</div>
         </div>
-        <button type="button" onClick={() => openWhatsApp(`Olá! Procurei por '${searchQuery}' no site e não encontrei. Vocês têm?`, 'busca')} className="ml-btn-primary inline-flex items-center min-h-12 px-5">
+        <button type="button" onClick={() => openWhatsApp(`Olá! Procurei por '${searchQuery}' no site e não encontrei. Vocês têm?`, 'busca', { searchTerm: searchQuery })} className="ml-btn-primary inline-flex items-center min-h-12 px-5">
           💬 Não achou o que precisa? Fale com a gente no WhatsApp
         </button>
       </div>

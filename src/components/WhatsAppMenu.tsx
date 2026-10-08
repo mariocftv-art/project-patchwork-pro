@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useBrand } from '@/lib/brand';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { companyVars, DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE, fillTemplate, openWhatsApp } from '@/lib/whatsappContact';
+import { companyVars, DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE, fillTemplate, openWhatsApp, getSavedContact, saveContact } from '@/lib/whatsappContact';
+import { maskPhone } from '@/lib/masks';
 
 const WaIcon = ({ className = '' }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -17,6 +18,9 @@ export default function WhatsAppMenu() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState<Info>(null);
+  const [ask, setAsk] = useState<null | 'suporte' | 'orcamento'>(null);
+  const [fName, setFName] = useState('');
+  const [fPhone, setFPhone] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,31 +31,58 @@ export default function WhatsAppMenu() {
   }, [user]);
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const h = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setAsk(null); } };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setAsk(null); } };
     document.addEventListener('mousedown', h); document.addEventListener('touchstart', h); document.addEventListener('keydown', k);
     return () => { document.removeEventListener('mousedown', h); document.removeEventListener('touchstart', h); document.removeEventListener('keydown', k); };
   }, [open]);
 
   const meta = (user?.user_metadata || {}) as Record<string, string>;
-  const name = info?.customer_name || meta.full_name || meta.name || '';
-  const vars = {
-    ...companyVars(brand.name),
-    NOME_CLIENTE: user ? name : '',
-    ENDERECO: info?.customer_address,
-    NUMERO_CONTRATO: info?.contract_number,
-    DATA_INSTALACAO: info?.contract_date ? new Date(info.contract_date).toLocaleDateString('pt-BR') : '',
+  const send = (kind: 'suporte' | 'orcamento', guest?: { name: string; phone: string }) => {
+    const name = user ? (info?.customer_name || meta.full_name || meta.name || '') : (guest?.name || '');
+    const vars = {
+      ...companyVars(brand.name),
+      NOME_CLIENTE: name,
+      ENDERECO: info?.customer_address,
+      NUMERO_CONTRATO: info?.contract_number,
+      DATA_INSTALACAO: info?.contract_date ? new Date(info.contract_date).toLocaleDateString('pt-BR') : '',
+    };
+    const tpl = kind === 'suporte' ? (brand.whatsapp_support_template || DEFAULT_SUPPORT_TEMPLATE) : (brand.whatsapp_sales_template || DEFAULT_SALES_TEMPLATE);
+    setOpen(false); setAsk(null);
+    openWhatsApp(fillTemplate(tpl, vars), kind, { customerName: name, customerPhone: user ? (user.phone || meta.phone || '') : (guest?.phone || '') });
   };
   const go = (kind: 'suporte' | 'orcamento') => {
-    const tpl = kind === 'suporte' ? (brand.whatsapp_support_template || DEFAULT_SUPPORT_TEMPLATE) : (brand.whatsapp_sales_template || DEFAULT_SALES_TEMPLATE);
-    setOpen(false);
-    openWhatsApp(fillTemplate(tpl, vars), kind);
+    if (user) return send(kind);
+    const saved = getSavedContact();
+    if (saved) return send(kind, saved);
+    setFName(''); setFPhone(''); setAsk(kind);
+  };
+  const continueGuest = (skip: boolean) => {
+    if (!ask) return;
+    if (skip) return send(ask);
+    const c = { name: fName.trim(), phone: fPhone.trim() };
+    if (c.name || c.phone) saveContact(c);
+    send(ask, c);
   };
 
   const opt = 'w-full flex items-start gap-3 text-left rounded-lg border border-primary/40 bg-secondary/40 hover:bg-primary/15 px-3 py-3 min-h-12 transition-colors';
   return (
     <div ref={ref} className="fixed bottom-6 left-3 sm:left-6 z-50">
-      {open && (
+      {open && ask && (
+        <form role="dialog" aria-label="Para agilizar seu atendimento" onSubmit={(e) => { e.preventDefault(); continueGuest(false); }} className="keep-light absolute bottom-full mb-2 left-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-4 space-y-3">
+          <p className="font-bold text-primary">🛡️ {companyVars(brand.name).EMPRESA_MAIUSCULA}</p>
+          <p className="text-sm">Para agilizar seu atendimento:</p>
+          <label className="block text-sm font-semibold">Nome
+            <input autoFocus value={fName} onChange={(e) => setFName(e.target.value)} maxLength={120} autoComplete="name" className="mt-1 w-full min-h-11 rounded-md border border-primary/50 bg-background text-foreground px-3" />
+          </label>
+          <label className="block text-sm font-semibold">WhatsApp
+            <input value={fPhone} onChange={(e) => setFPhone(maskPhone(e.target.value))} inputMode="tel" autoComplete="tel" placeholder="(11) 9____-____" className="mt-1 w-full min-h-11 rounded-md border border-primary/50 bg-background text-foreground px-3" />
+          </label>
+          <button type="submit" className="w-full min-h-12 rounded-md bg-primary text-primary-foreground font-bold">Continuar para o WhatsApp →</button>
+          <button type="button" onClick={() => continueGuest(true)} className="w-full text-sm underline opacity-80 min-h-10">pular esta etapa</button>
+        </form>
+      )}
+      {open && !ask && (
         <div role="menu" className="keep-light absolute bottom-full mb-2 left-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-3 space-y-2">
           <p className="text-sm font-bold text-primary px-1">Como podemos ajudar?</p>
           <button role="menuitem" type="button" className={opt} onClick={() => go('suporte')}>
@@ -69,7 +100,7 @@ export default function WhatsAppMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="WhatsApp Suporte"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setAsk(null); setOpen((o) => !o); }}
         className="flex items-center gap-2 bg-green-500 text-white px-3 sm:px-4 py-2 rounded-full shadow-lg hover:bg-green-600 hover:scale-105 transition-all"
       >
         <WaIcon className="w-5 h-5 shrink-0" />
