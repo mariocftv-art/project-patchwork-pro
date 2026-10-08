@@ -5,7 +5,7 @@ export default function ThemeToggle({ variant = 'header' }: { variant?: 'header'
   const [dark, setDark] = useDarkMode();
   const cls = variant === 'panel'
     ? 'w-11 h-11 rounded-md border border-input bg-background text-foreground hover:bg-secondary'
-    : 'mx-0.5 w-9 h-9 rounded-full border-2 border-ml-dark-gray/70 bg-white/40 text-ml-dark-gray hover:bg-white/70';
+    : `p-2 hover:text-ml-blue ${dark ? 'text-ml-blue' : 'text-ml-dark-gray'}`;
   return (
     <button
       type="button"

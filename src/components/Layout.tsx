@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useBrand, brandLogo, waLink, waNumber, getBrand, loadBrand } from '@/lib/brand';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield, Camera } from 'lucide-react';
+import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield, Camera, Images } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
@@ -140,16 +140,16 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       {/* Faixa de frete */}
       <div className="keep-light bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
         🚚 <strong>Entrega e instalação combinadas com você</strong> — agendamos data e horário pelo WhatsApp
       </div>
 
       {/* Header */}
-      <header className="keep-light ml-header sticky top-0 z-50">
+      <header className="keep-light ml-header sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
         {/* Top Header */}
-        <div className="container mx-auto px-2 sm:px-4 py-2">
+        <div className="container mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:px-4 py-2">
           {/* Desktop Layout */}
           <div className="hidden sm:flex items-center gap-4">
             {/* Logo */}
@@ -287,7 +287,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </Link>
 
-              <div className="flex items-center">
+              <div className="flex items-center min-w-0 shrink-0 -mr-1">
                 <NotificationsPopover />
                 <ThemeToggle />
 
@@ -319,7 +319,7 @@ export default function Layout({ children }: LayoutProps) {
 
                 <Sheet>
                   <SheetTrigger asChild>
-                    <button className="p-2 text-ml-dark-gray">
+                    <button aria-label="Abrir menu" className="p-2 text-ml-dark-gray hover:text-ml-blue transition-colors">
                       <Menu className="w-5 h-5" />
                     </button>
                   </SheetTrigger>
@@ -404,7 +404,7 @@ export default function Layout({ children }: LayoutProps) {
                   {showServicesTab && (
                     <>
                       <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
-                        className="w-full flex items-center gap-3 px-4 min-h-[54px] text-sm font-bold text-gold-strong">
+                        className="w-full flex items-center gap-3 px-4 min-h-[54px] text-sm font-bold text-foreground dark:text-primary">
                         <Images className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
                         <span>NOSSOS SERVIÇOS REALIZADOS</span>
                       </button>
@@ -538,7 +538,7 @@ export default function Layout({ children }: LayoutProps) {
         <>
           <button
             onClick={() => isIOS ? setShowIOSModal(true) : install()}
-            className="sm:hidden fixed bottom-20 right-3 z-50 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-transform animate-pulse"
+            className="wa-fab sm:hidden fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-transform "
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

@@ -15,15 +15,15 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt"],
+      includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png", "pwa-maskable-512x512.png"],
       manifest: {
-        name: "Segurança Máxima",
-        short_name: "Seg. Máxima",
+        name: "MR Segurança Máxima",
+        short_name: "MR Segurança",
         description: "CNPJ: 45.858.215/0001-86 - Loja de equipamentos de segurança: câmeras, DVR, cercas elétricas e automação",
-        theme_color: "#FFD700",
-        background_color: "#ffffff",
+        theme_color: "#000000",
+        background_color: "#000000",
         display: "standalone",
-        orientation: "portrait",
+        orientation: "any",
         start_url: "/",
         scope: "/",
         icons: [
@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => ({
             type: "image/png",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/pwa-maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
