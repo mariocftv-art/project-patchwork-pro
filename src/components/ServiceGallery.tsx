@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { servicePhotosApi, ServicePhoto } from '@/lib/servicePhotosApi';
 import { Camera, X, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useBrand, waLink } from '@/lib/brand';
 
-export default function ServiceGallery() {
+export default function ServiceGallery({ limit, asPage }: { limit?: number; asPage?: boolean } = {}) {
   const [selectedPhoto, setSelectedPhoto] = useState<ServicePhoto | null>(null);
   const brand = useBrand();
 
@@ -28,18 +29,19 @@ export default function ServiceGallery() {
   }
 
   if (photos.length === 0) {
-    return null;
+    return asPage ? <p className="text-center text-muted-foreground py-12">Em breve, fotos dos nossos trabalhos.</p> : null;
   }
+  const shown = limit ? photos.slice(0, limit) : photos;
 
   return (
-    <section className="py-12 bg-muted/30">
+    <section className="py-8 md:py-12 bg-muted/30 rounded-xl">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Camera className="w-6 h-6 text-primary" />
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-              Nossos Serviços Realizados
-            </h2>
+            {asPage
+              ? <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Serviços Realizados</h1>
+              : <h2 className="font-display text-xl md:text-2xl font-bold text-foreground">Nossos Serviços Realizados</h2>}
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Confira alguns dos projetos de segurança que já realizamos para nossos clientes
@@ -47,7 +49,7 @@ export default function ServiceGallery() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {photos.map((photo) => (
+          {shown.map((photo) => (
             <div
               key={photo.id}
               className="group bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
@@ -85,6 +87,11 @@ export default function ServiceGallery() {
             </div>
           ))}
         </div>
+        {limit && photos.length > limit && (
+          <div className="text-center mt-6">
+            <Link to="/servicos-realizados" className="ml-btn-primary inline-flex items-center min-h-11 px-5">Ver todos os {photos.length} trabalhos →</Link>
+          </div>
+        )}
       </div>
 
       {/* Lightbox Modal */}

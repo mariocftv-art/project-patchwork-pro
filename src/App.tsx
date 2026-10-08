@@ -3,6 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ScrollToTop from "./components/ScrollToTop";
+import ServicesPortfolio from "./pages/ServicesPortfolio";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
@@ -44,6 +46,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -52,6 +55,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/pedido-confirmado/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/servicos-realizados" element={<ServicesPortfolio />} />
             <Route path="/servicos" element={<Services />} />
             <Route path="/servicos/:id" element={<ServiceDetail />} />
             <Route path="/contrato/:token" element={<ContractLink />} />
