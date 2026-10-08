@@ -238,7 +238,7 @@ export default function Product() {
                   </a>
                 ) : (
                   <>
-                    <button onClick={handleAddToCart} className="w-full ml-btn-primary min-h-12 font-bold uppercase">
+                    <button onClick={handleAddToCart} className="w-full min-h-12 rounded-md bg-primary text-primary-foreground font-bold uppercase hover:opacity-90">
                       Adicionar ao carrinho
                     </button>
                     <button onClick={handleBuyNow} className="w-full ml-btn-secondary min-h-11">
