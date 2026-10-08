@@ -1270,26 +1270,53 @@ export type Database = {
       }
       whatsapp_contacts: {
         Row: {
+          cart: Json | null
           created_at: string
+          customer_name: string | null
+          customer_phone: string | null
           id: string
           kind: string
+          message: string | null
           page: string | null
+          pages: string[] | null
+          product_id: string | null
+          product_title: string | null
+          search_term: string | null
+          searches: string[] | null
           user_email: string | null
           user_id: string | null
         }
         Insert: {
+          cart?: Json | null
           created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           kind: string
+          message?: string | null
           page?: string | null
+          pages?: string[] | null
+          product_id?: string | null
+          product_title?: string | null
+          search_term?: string | null
+          searches?: string[] | null
           user_email?: string | null
           user_id?: string | null
         }
         Update: {
+          cart?: Json | null
           created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           kind?: string
+          message?: string | null
           page?: string | null
+          pages?: string[] | null
+          product_id?: string | null
+          product_title?: string | null
+          search_term?: string | null
+          searches?: string[] | null
           user_email?: string | null
           user_id?: string | null
         }
