@@ -10,6 +10,7 @@ import ThemeToggle from './ThemeToggle';
 import StaffAgendaShortcut from './StaffAgendaShortcut';
 import SearchBox from './SearchBox';
 import WhatsAppMenu from './WhatsAppMenu';
+import OfflineScreen from './OfflineScreen';
 import ServicesOverlay from './ServicesOverlay';
 import { useGallerySettings } from './ServiceGallery';
 import { applyMode } from '@/lib/theme';
@@ -532,6 +533,7 @@ export default function Layout({ children }: LayoutProps) {
       </footer>
 
       <WhatsAppMenu />
+      <OfflineScreen />
 
       {/* Floating Install App Button - Mobile Only */}
       {canInstall && (
