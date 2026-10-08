@@ -138,18 +138,6 @@ export default function Home() {
   return (
     <div className="space-y-5">
       {isHome && <PromoBanner />}
-      {isHome && <QuoteCTA />}
-      {isHome && <ServiceGallery />}
-      {isHome && (
-        <section className="rounded-xl bg-secondary text-secondary-foreground p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold">Já tem o equipamento? A gente instala.</h2>
-            <p className="text-sm md:text-base opacity-90 mt-1">Serviço Técnico Especializado avulso. Equipamentos comprados conosco: <strong className="font-bold bg-primary text-primary-foreground px-1 rounded-sm">1 ANO DE GARANTIA</strong>. Equipamentos comprados em outro lugar: <strong className="font-bold bg-primary text-primary-foreground px-1 rounded-sm">3 MESES</strong> de garantia da instalação.</p>
-          </div>
-          <Link to="/servicos" className="ml-btn-primary inline-flex items-center justify-center min-h-11 px-5 whitespace-nowrap">Ver serviços e preços →</Link>
-        </section>
-      )}
-
       <section className="w-full min-w-0">
         {(selectedCategory || searchQuery) && (
           <button onClick={clearFilters} className="mb-2 text-sm font-medium text-foreground hover:underline">
@@ -232,6 +220,17 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {isHome && <ServiceGallery limit={8} />}
+      {isHome && (
+        <section className="rounded-xl bg-secondary text-secondary-foreground p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold">Já tem o equipamento? A gente instala.</h2>
+            <p className="text-sm md:text-base opacity-90 mt-1">Serviço Técnico Especializado avulso. Equipamentos comprados conosco: <strong className="font-bold bg-primary text-primary-foreground px-1 rounded-sm">1 ANO DE GARANTIA</strong>. Equipamentos comprados em outro lugar: <strong className="font-bold bg-primary text-primary-foreground px-1 rounded-sm">3 MESES</strong> de garantia da instalação.</p>
+          </div>
+          <Link to="/servicos" className="ml-btn-primary inline-flex items-center justify-center min-h-11 px-5 whitespace-nowrap">Ver serviços e preços →</Link>
+        </section>
+      )}
 
       {isHome && <QuoteCTA />}
     </div>

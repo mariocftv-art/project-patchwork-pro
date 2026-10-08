@@ -1,4 +1,4 @@
-import { Camera, HardDrive, Zap, Bell, Phone, DoorOpen, Settings, Cable, Wrench, Tag, type LucideIcon } from 'lucide-react';
+import { Camera, HardDrive, Zap, Bell, Phone, DoorOpen, Settings, Cable, Wrench, Tag, Images, type LucideIcon } from 'lucide-react';
 
 /** Ícones disponíveis para categorias (nome salvo no banco → ícone). */
 export const CATEGORY_ICONS: Record<string, { label: string; Icon: LucideIcon }> = {
@@ -12,6 +12,7 @@ export const CATEGORY_ICONS: Record<string, { label: string; Icon: LucideIcon }>
   cable: { label: 'Cabo', Icon: Cable },
   wrench: { label: 'Ferramenta', Icon: Wrench },
   tag: { label: 'Etiqueta', Icon: Tag },
+  portfolio: { label: 'Galeria', Icon: Images },
 };
 
 export function CategoryIcon({ name, className }: { name?: string | null; className?: string }) {

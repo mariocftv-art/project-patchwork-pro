@@ -516,6 +516,45 @@ export type Database = {
         }
         Relationships: []
       }
+      document_deletions: {
+        Row: {
+          action: string
+          created_at: string
+          customer_name: string | null
+          doc_type: string | null
+          id: string
+          quote_id: string
+          quote_number: string | null
+          reason: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          customer_name?: string | null
+          doc_type?: string | null
+          id?: string
+          quote_id: string
+          quote_number?: string | null
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          customer_name?: string | null
+          doc_type?: string | null
+          id?: string
+          quote_id?: string
+          quote_number?: string | null
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       installation_services: {
         Row: {
           active: boolean | null
@@ -972,6 +1011,9 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           customer_whatsapp: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           discount: number
           doc_type: string
           id: string
@@ -1004,6 +1046,9 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           customer_whatsapp?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           discount?: number
           doc_type?: string
           id?: string
@@ -1036,6 +1081,9 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           customer_whatsapp?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           discount?: number
           doc_type?: string
           id?: string

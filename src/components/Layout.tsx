@@ -97,6 +97,13 @@ export default function Layout({ children }: LayoutProps) {
     count: allProducts.filter((p) => p?.category === c.slug).length,
   }));
   const categories = allCategories.filter((c) => c.menu);
+  const portfolioEntry = { name: 'Serviços Realizados', slug: '_portfolio', icon: 'portfolio', path: '/servicos-realizados', menu: true, count: null as number | null };
+  const menuEntries = [...allCategories.map((c) => ({ ...c, count: c.slug === 'instalacoes' ? null : c.count as number | null })), portfolioEntry];
+  const isActiveCat = (c: { slug: string; path: string }) => {
+    const sp = new URLSearchParams(location.search);
+    if (c.path.startsWith('/?')) return location.pathname === '/' && sp.get('categoria') === c.slug;
+    return location.pathname === c.path;
+  };
   const [catOpen, setCatOpen] = useState(false);
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
 
@@ -349,9 +356,35 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Categories Bar */}
+        {/* Categories Bar — celular: menu vertical que abre; computador: barra */}
         <div className="bg-foreground border-b border-primary relative">
-          <div className="container mx-auto px-4 flex items-center gap-6">
+          <div className="md:hidden px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setCatOpen((o) => !o)}
+              aria-expanded={catOpen}
+              className="w-full flex items-center justify-between gap-2 rounded-md border border-background/30 px-3 min-h-11 text-sm font-semibold text-background"
+            >
+              <span className="flex items-center gap-2"><Menu className="w-4 h-4" />Categorias</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {catOpen && (
+              <nav aria-label="Categorias" className="mt-2 rounded-md bg-card border border-border py-1">
+                {menuEntries.map((cat) => {
+                  const active = isActiveCat(cat);
+                  return (
+                    <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} aria-current={active ? 'page' : undefined}
+                      className={`flex items-center gap-3 px-4 min-h-12 text-sm ${active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
+                      <CategoryIcon name={cat.icon} className="w-5 h-5 shrink-0" />
+                      <span className="flex-1">{cat.name}</span>
+                      {cat.count != null && <span className="text-xs opacity-75">({cat.count})</span>}
+                    </Link>
+                  );
+                })}
+              </nav>
+            )}
+          </div>
+          <div className="hidden md:flex container mx-auto px-4 items-center gap-6">
             <div className="relative shrink-0">
               <button
                 type="button"
@@ -361,39 +394,32 @@ export default function Layout({ children }: LayoutProps) {
                 className="flex items-center gap-1 py-2 text-sm text-background hover:text-primary whitespace-nowrap"
               >
                 <Menu className="w-4 h-4" />
-                <span className="hidden sm:inline">Categorias</span>
+                <span>Categorias</span>
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
               {catOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} aria-hidden />
-                  <div className="absolute left-0 top-full z-50 w-[min(18rem,calc(100vw-2rem))] rounded-b-md border border-border bg-card py-2 shadow-lg">
-                    {allCategories.map((cat) => (
-                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary">
-                        <CategoryIcon name={cat.icon} className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  <div className="absolute left-0 top-full z-50 w-72 rounded-b-md border border-border bg-card py-2 shadow-lg">
+                    {menuEntries.map((cat) => (
+                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} className={`flex items-center gap-3 px-4 py-2.5 text-sm ${isActiveCat(cat) ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
+                        <CategoryIcon name={cat.icon} className="w-4 h-4 shrink-0" />
                         <span className="flex-1">{cat.name}</span>
-                        {cat.slug !== 'instalacoes' && <span className="text-xs text-muted-foreground">{cat.count}</span>}
+                        {cat.count != null && <span className="text-xs opacity-75">{cat.count}</span>}
                       </Link>
                     ))}
                   </div>
                 </>
               )}
             </div>
-            <div className="relative flex-1 min-w-0">
-              <nav className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide pr-6">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    to={cat.path}
-                    className="text-sm text-background hover:text-primary whitespace-nowrap transition-colors"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
-              </nav>
-              {/* Degradê indicando mais itens ao lado */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-foreground to-transparent md:hidden" />
-            </div>
+            <nav className="flex flex-wrap items-center gap-x-6 py-2 min-w-0">
+              {[...categories, portfolioEntry].map((cat) => (
+                <Link key={cat.slug} to={cat.path}
+                  className={`text-sm whitespace-nowrap transition-colors ${isActiveCat(cat) ? 'text-primary font-semibold' : 'text-background hover:text-primary'}`}>
+                  {cat.name}
+                </Link>
+              ))}
+            </nav>
           </div>
         </div>
       </header>

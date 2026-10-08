@@ -2,7 +2,7 @@ import { formatBRL } from '@/lib/formatCurrency';
 import { isPromoActive as promoOn } from '@/lib/supabaseApi';
 import { useParams, Link } from 'react-router-dom';
 import { waLink, getBrand } from '@/lib/brand';
-import { openWhatsApp } from '@/lib/whatsappContact';
+import { openWhatsApp, fillTemplate, companyVars, PRODUCT_QUESTION_TEMPLATE } from '@/lib/whatsappContact';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '@/lib/supabaseApi';
 import { Heart, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
@@ -86,20 +86,18 @@ export default function Product() {
   return (
     <div className="bg-card rounded-lg">
       {/* Breadcrumb */}
-      <div className="px-4 py-3 border-b border-border">
-        <Link
-          to="/"
-          className="text-sm text-ml-blue hover:underline"
-        >
-          ← Voltar aos resultados
+      <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-2">
+        <Link to="/" onClick={(e) => { if (window.history.length > 1) { e.preventDefault(); window.history.back(); } }} className="text-sm text-ml-blue hover:underline min-h-10 inline-flex items-center">
+          ← Voltar
         </Link>
+        <ShareButton title={product.title} />
       </div>
 
       <div className="p-4 lg:p-6">
-        <div className="grid lg:grid-cols-12 gap-6">
+        <div className="grid lg:grid-cols-12 gap-4 lg:gap-6">
           {/* Image Column */}
           <div className="lg:col-span-5">
-            <div className="sticky top-24">
+            <div className="lg:sticky lg:top-24">
               {(() => {
                 const imgs = [product.image_url, ...(product.gallery_urls ?? [])]
                   .filter((u): u is string => !!u && u.trim() !== '')
@@ -107,9 +105,9 @@ export default function Product() {
                   .slice(0, 5);
                 const main = imgs[activeImg] ?? imgs[0] ?? '/placeholder.svg';
                 return (
-                  <div className="flex gap-3">
+                  <div className="flex flex-col-reverse lg:flex-row gap-2 lg:gap-3">
                     {imgs.length > 1 && (
-                      <div className="flex flex-col gap-2 w-16 shrink-0">
+                      <div className="flex lg:flex-col gap-2 lg:w-16 shrink-0 overflow-x-auto scrollbar-hide">
                         {imgs.map((u, i) => (
                           <button
                             key={u}
@@ -117,7 +115,7 @@ export default function Product() {
                             onMouseEnter={() => setActiveImg(i)}
                             onClick={() => setActiveImg(i)}
                             aria-label={`Ver imagem ${i + 1}`}
-                            className={`aspect-square rounded-md overflow-hidden bg-card border-2 transition-colors ${
+                            className={`w-14 lg:w-auto shrink-0 aspect-square rounded-md overflow-hidden bg-card border-2 transition-colors ${
                               i === activeImg ? 'border-primary' : 'border-border hover:border-muted-foreground'
                             }`}
                           >
@@ -126,7 +124,7 @@ export default function Product() {
                         ))}
                       </div>
                     )}
-                    <div className="relative flex-1 aspect-square rounded-lg overflow-hidden bg-card border border-border">
+                    <div className="relative lg:flex-1 w-full h-[45vh] lg:h-auto lg:aspect-square rounded-lg overflow-hidden bg-card border border-border">
                       {onPromo && (
                         <span className="absolute top-2 left-2 z-10 rounded bg-destructive text-destructive-foreground text-sm font-bold px-2 py-1">{discount}% OFF</span>
                       )}
@@ -138,9 +136,6 @@ export default function Product() {
               {product.image_illustrative && (
                 <p className="mt-2 text-center text-xs text-muted-foreground">Imagem ilustrativa</p>
               )}
-              <div className="mt-4 flex justify-center gap-2">
-                <ShareButton title={product.title} />
-              </div>
             </div>
           </div>
 
@@ -154,12 +149,12 @@ export default function Product() {
             )}
 
             {/* Title */}
-            <h1 className="text-xl lg:text-2xl font-light text-foreground mb-4">
+            <h1 className="text-lg lg:text-2xl font-semibold leading-snug text-foreground mb-2 break-words">
               {product.title}
             </h1>
 
             {/* Price Section */}
-            <div className="mb-4">
+            <div className="mb-2">
               {onPromo && (
                 <p className="text-sm text-price-old font-medium line-through mb-1">
                   R$ {product.original_price!.toFixed(2)}
@@ -183,41 +178,20 @@ export default function Product() {
               )}
             </div>
 
-            {/* Shipping Calculator */}
-            <div className="mb-4">
-              <ShippingCalculator productPrice={product.price} />
-            </div>
-
-            {/* Stock */}
-            <div className="text-sm mb-4">
-              {product.stock > 0 ? (
-                <p className="text-ml-green">
-                  Estoque disponível ({product.stock} unidades)
-                </p>
-              ) : (
-                <p className="text-destructive font-medium">
-                  Produto esgotado
-                </p>
-              )}
-            </div>
-
-            <ShippingInstallBox withInstall={!!product.includes_installation} />
-
-            <ProductDescription product={product} />
           </div>
 
           {/* Buy Box Column */}
           <div className="lg:col-span-3">
-            <div className="sticky top-24 border border-border rounded-lg p-4">
+            <div className="lg:sticky lg:top-24 lg:border border-border rounded-lg lg:p-4">
               {/* Seller Info */}
-              <div className="mb-4 pb-4 border-b border-border">
+              <div className="hidden lg:block mb-4 pb-4 border-b border-border">
                 <p className="text-sm text-ml-gray">
                   Vendido por <span className="text-ml-blue">MR Segurança</span>
                 </p>
               </div>
 
               {/* Price in Buy Box */}
-              <div className="mb-4">
+              <div className="hidden lg:block mb-4">
                 <p className={`text-2xl ${onPromo ? 'font-bold text-promo' : 'font-light text-foreground'}`}>
                   R$ {product.price.toFixed(2)}
                 </p>
@@ -226,13 +200,16 @@ export default function Product() {
                 </p>
               </div>
 
+              <p className={`text-sm mb-2 ${product.stock > 0 ? 'text-ml-green' : 'text-destructive font-medium'}`}>
+                {product.stock > 0 ? `Estoque disponível (${product.stock} unidades)` : 'Produto esgotado'}
+              </p>
               {/* Quantity */}
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="text-sm text-ml-gray block mb-2">Quantidade:</label>
-                <div className="flex items-center border border-border rounded">
+                <div className="inline-flex items-center border border-border rounded">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-2 text-ml-blue hover:bg-secondary"
+                    aria-label="Diminuir quantidade" className="px-4 min-h-11 text-ml-blue hover:bg-secondary"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -241,7 +218,7 @@ export default function Product() {
                   </span>
                   <button
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="px-3 py-2 text-ml-blue hover:bg-secondary"
+                    aria-label="Aumentar quantidade" className="px-4 min-h-11 text-ml-blue hover:bg-secondary"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -261,15 +238,15 @@ export default function Product() {
                   </a>
                 ) : (
                   <>
-                    <button onClick={handleBuyNow} className="w-full ml-btn-primary">
-                      Comprar agora
-                    </button>
-                    <button onClick={handleAddToCart} className="w-full ml-btn-secondary">
+                    <button onClick={handleAddToCart} className="w-full min-h-12 rounded-md bg-primary text-primary-foreground font-bold uppercase hover:opacity-90">
                       Adicionar ao carrinho
+                    </button>
+                    <button onClick={handleBuyNow} className="w-full ml-btn-secondary min-h-11">
+                      Comprar agora
                     </button>
                   </>
                 )}
-                <button type="button" onClick={() => openWhatsApp(`Olá! Vim pelo site da ${getBrand().name.replace(/^[^\p{L}\d]+/u, '')}.\nTenho uma dúvida sobre: *${product.title}* — ${formatBRL(promoOn(product) && product.promo_price ? product.promo_price : product.price)}\n${window.location.origin}/produto/${product.id}`, 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
+                <button type="button" onClick={() => openWhatsApp(fillTemplate(PRODUCT_QUESTION_TEMPLATE, { ...companyVars(getBrand().name), NOME_DO_PRODUTO: product.title, PRECO: formatBRL(promoOn(product) && product.promo_price ? product.promo_price : product.price), LINK_DO_PRODUTO: `${window.location.origin}/produto/${product.id}` }), 'produto')} className="w-full min-h-12 rounded-md border-2 border-green-600 text-foreground font-semibold hover:bg-green-600/10">
                   💬 Tirar dúvida no WhatsApp
                 </button>
               </div>
@@ -298,6 +275,10 @@ export default function Product() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 max-w-3xl">
+          <ProductDescription product={product} shipping={<><ShippingInstallBox withInstall={!!product.includes_installation} /><ShippingCalculator productPrice={product.price} /></>} />
         </div>
 
         <RelatedBlocks product={product} />

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useBrand } from '@/lib/brand';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE, fillTemplate, openWhatsApp } from '@/lib/whatsappContact';
+import { companyVars, DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE, fillTemplate, openWhatsApp } from '@/lib/whatsappContact';
 
 const WaIcon = ({ className = '' }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -36,7 +36,7 @@ export default function WhatsAppMenu() {
   const meta = (user?.user_metadata || {}) as Record<string, string>;
   const name = info?.customer_name || meta.full_name || meta.name || '';
   const vars = {
-    EMPRESA: brand.name.replace(/^[^\p{L}\d]+/u, ''),
+    ...companyVars(brand.name),
     NOME_CLIENTE: user ? name : '',
     ENDERECO: info?.customer_address,
     NUMERO_CONTRATO: info?.contract_number,

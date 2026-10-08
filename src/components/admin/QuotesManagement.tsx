@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import DraftsBanner from './DraftsBanner';
+import { BulkBar, SelectAllRow, SelectBox, TrashSection, useSelection } from './DocBulkActions';
+import { moveToTrash } from '@/lib/docTrash';
 import type { QuoteDraft } from '@/lib/quoteDrafts';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +30,7 @@ const selectCls = 'h-9 rounded-md border border-input bg-background px-2 text-sm
 
 export default function QuotesManagement() {
   const queryClient = useQueryClient();
+  const { sel, setSel, toggle, clear } = useSelection();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [from, setFrom] = useState('');
@@ -42,7 +45,7 @@ export default function QuotesManagement() {
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['admin-quotes'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('quotes').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('quotes').select('*').is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as QuoteRecord[];
     },
@@ -52,14 +55,15 @@ export default function QuotesManagement() {
 
   const deleteQuote = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('quotes').delete().eq('id', id);
-      if (error) throw error;
+      const q = quotes.find((x) => x.id === id);
+      if (q) await moveToTrash(q, '');
     },
     onSuccess: () => {
       refresh();
-      toast({ title: 'Documento excluído' });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
+      toast({ title: 'Movido para a Lixeira', description: 'Fica lá 30 dias e pode ser restaurado.' });
     },
-    onError: () => toast({ title: 'Erro', description: 'Não foi possível excluir.', variant: 'destructive' }),
+    onError: (e: Error) => toast({ title: 'Não foi possível excluir', description: e.message, variant: 'destructive' }),
   });
 
   const changeStatus = async (id: string, status: string) => {
@@ -133,10 +137,13 @@ export default function QuotesManagement() {
         <div className="text-center py-10 text-muted-foreground">Nenhum documento encontrado.</div>
       ) : (
         <div className="space-y-3">
+          <SelectAllRow items={filtered} sel={sel} setSel={setSel} />
           {filtered.map((q) => (
-            <div key={q.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <div key={q.id} className={`rounded-lg border bg-card p-4 space-y-3 ${sel.has(q.id) ? 'border-primary ring-1 ring-primary' : 'border-border'}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
+                <div className="flex items-start gap-3 min-w-0">
+                <SelectBox checked={sel.has(q.id)} onChange={() => toggle(q.id)} label={`Selecionar ${q.quote_number}`} />
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{q.quote_number}</span>
                     <span className="text-xs rounded bg-secondary px-2 py-0.5">{DOC_TYPE_LABELS[q.doc_type as DocType] || 'Orçamento'}</span>
@@ -147,6 +154,7 @@ export default function QuotesManagement() {
                     {q.customer_email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{q.customer_email}</span>}
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(q.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
+                </div>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-primary">{formatBRL(Number(q.total))}</p>
@@ -169,7 +177,7 @@ export default function QuotesManagement() {
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Excluir {q.quote_number}?</AlertDialogTitle>
-                      <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
+                      <AlertDialogDescription>Vai para a Lixeira por 30 dias e pode ser restaurado.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -182,6 +190,9 @@ export default function QuotesManagement() {
           ))}
         </div>
       )}
+
+      <TrashSection docType="orcamento" />
+      <BulkBar items={filtered} sel={sel} clear={clear} onDownload={download} queryKeys={['admin-quotes']} />
 
       <QuoteEditor
         open={editor.open}
