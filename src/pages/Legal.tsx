@@ -21,7 +21,7 @@ export function Privacy() {
     <Wrap title="Política de Privacidade">
       <p>Esta política explica como a {useBrand().name} trata seus dados pessoais, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018 – LGPD).</p>
       <H>1. Dados coletados</H>
-      <p>Nome, e-mail, telefone/WhatsApp, CPF (opcional), endereço de entrega e itens do pedido ou orçamento.</p>
+      <p>Nome, e-mail, telefone/WhatsApp, CPF (opcional), endereço de entrega e itens do pedido ou orçamento. Quando você toca no botão do WhatsApp, registramos para fins de atendimento: o tipo de contato, data e hora, a página e o produto que estava vendo, os itens do carrinho, as buscas e páginas desta visita, sua conta (se estiver logado) e o nome e telefone que você informar. Não registramos sua localização nem a conversa no WhatsApp.</p>
       <H>2. Finalidade</H>
       <p>Processar pedidos e orçamentos, entregar produtos, prestar serviços de instalação, emitir documentos fiscais, informar o status do pedido e dar suporte.</p>
       <H>3. Base legal</H>
