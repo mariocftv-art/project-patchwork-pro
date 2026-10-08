@@ -224,7 +224,7 @@ export default function Cart() {
               <div key={item.id} className="p-4">
                 <div className="flex gap-4">
                   <Link to={linkOf(item.product_id)}>
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={item.product?.image_url || '/placeholder.svg'}
                       alt={item.product?.title}
                       className="w-20 h-20 object-contain rounded border border-border"

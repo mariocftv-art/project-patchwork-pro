@@ -140,7 +140,7 @@ export default function Services() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {servicePhotos.map((photo) => (
               <div key={photo.id} className="relative group rounded-xl overflow-hidden aspect-video">
-                <img
+                <img loading="lazy" decoding="async"
                   src={photo.image_url}
                   alt={photo.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

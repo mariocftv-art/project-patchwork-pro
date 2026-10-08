@@ -181,7 +181,7 @@ export default function OrderConfirmation() {
               {orderData.items.map((item, index) => (
                 <div key={index} className="flex items-center gap-3">
                   {item.imageUrl && (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={item.imageUrl}
                       alt={item.name}
                       className="w-12 h-12 object-contain rounded border border-border"
