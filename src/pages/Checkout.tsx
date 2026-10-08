@@ -445,7 +445,7 @@ export default function Checkout() {
               <div className="space-y-3 mb-4">
                 {cartProducts.map((item) => (
                   <div key={item.id} className="flex gap-3">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={item.product?.image_url || "/placeholder.svg"}
                       alt={item.product?.title}
                       className="w-16 h-16 object-cover rounded"

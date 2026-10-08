@@ -143,7 +143,7 @@ export function RelatedBlocks({ product }: { product: Product }) {
                     onCheckedChange={(v) => setPicked((u) => (v ? [...u, p.id] : u.filter((x) => x !== p.id)))}
                     aria-label={`Incluir ${p.title}`}
                   />
-                  <img src={p.image_url || '/placeholder.svg'} alt="" className="w-14 h-14 object-contain bg-white rounded border border-border" />
+                  <img loading="lazy" decoding="async" src={p.image_url || '/placeholder.svg'} alt="" className="w-14 h-14 object-contain bg-white rounded border border-border" />
                   <span className="text-xs">
                     <span className="line-clamp-2">{p.title}</span>
                     <strong className={p.promo_active ? 'text-promo' : 'text-price'}>{brl(p.price)}</strong>

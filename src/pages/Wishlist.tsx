@@ -80,7 +80,7 @@ export default function Wishlist() {
               <div key={item.id} className="ml-card p-4">
                 <Link to={`/produto/${item.product?.id}`}>
                   <div className="aspect-square rounded overflow-hidden bg-white mb-3">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={item.product?.image_url || '/placeholder.svg'}
                       alt={item.product?.title}
                       className="w-full h-full object-contain"

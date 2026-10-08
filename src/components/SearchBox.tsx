@@ -78,7 +78,7 @@ export default function SearchBox({ variant }: { variant: 'desktop' | 'mobile' }
           {top.length === 0 && <p className="px-3 py-3 text-sm text-muted-foreground">Nenhuma sugestão — toque na lupa para ver opções.</p>}
           {top.map((p, i) => (
             <button key={p.id} type="button" className={rowCls(i)} onClick={rows[i].go}>
-              <img src={p.image_url || '/placeholder.svg'} alt="" className="w-10 h-10 object-contain rounded bg-card shrink-0" />
+              <img loading="lazy" decoding="async" src={p.image_url || '/placeholder.svg'} alt="" className="w-10 h-10 object-contain rounded bg-card shrink-0" />
               <span className="flex-1 min-w-0 line-clamp-2">{p.title}</span>
               <span className="text-price font-semibold shrink-0">{formatBRL(isPromoActive(p) && p.promo_price ? p.promo_price : p.price)}</span>
             </button>

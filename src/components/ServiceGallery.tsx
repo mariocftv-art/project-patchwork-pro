@@ -57,7 +57,7 @@ export default function ServiceGallery({ limit, asPage }: { limit?: number; asPa
             >
               {/* Image Container */}
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-                <img
+                <img loading="lazy" decoding="async"
                   src={photo.image_url}
                   alt={photo.title}
                   className="block w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
@@ -107,7 +107,7 @@ export default function ServiceGallery({ limit, asPage }: { limit?: number; asPa
           {selectedPhoto && (
             <div className="flex flex-col">
               <div className="relative w-full max-h-[70vh] flex items-center justify-center p-4">
-                <img
+                <img loading="lazy" decoding="async"
                   src={selectedPhoto.image_url}
                   alt={selectedPhoto.title}
                   className="max-w-full max-h-[70vh] object-contain rounded-lg"

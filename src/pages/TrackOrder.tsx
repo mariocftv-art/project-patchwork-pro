@@ -362,7 +362,7 @@ export default function TrackOrder() {
               {(order.items as OrderItem[]).map((item, index) => (
                 <div key={index} className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
                   {item.imageUrl && (
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={item.imageUrl} 
                       alt={item.name}
                       className="w-16 h-16 object-contain rounded border border-border"
