@@ -61,12 +61,13 @@ export default function Services() {
   });
 
   const { data: servicePhotos = [] } = useQuery({
-    queryKey: ['service-photos'],
+    queryKey: ['service-photos', 'services-page'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_photos')
         .select('*')
-        .order('created_at', { ascending: false })
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
         .limit(6);
       if (error) throw error;
       return data;

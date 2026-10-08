@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { productsApi, Product, categoriesApi } from '@/lib/supabaseApi';
 import ProductCard from '@/components/ProductCard';
 import PromoBanner from '@/components/PromoBanner';
-import ServiceGallery from '@/components/ServiceGallery';
 import QuoteCTA from '@/components/QuoteCTA';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -221,7 +220,6 @@ export default function Home() {
         )}
       </section>
 
-      {isHome && <ServiceGallery limit={8} />}
       {isHome && (
         <section className="rounded-xl bg-secondary text-secondary-foreground p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

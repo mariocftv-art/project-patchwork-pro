@@ -1,0 +1,3 @@
+ALTER TABLE public.service_photos ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+WITH o AS (SELECT id, row_number() OVER (ORDER BY created_at DESC) AS n FROM public.service_photos) UPDATE public.service_photos p SET display_order = o.n FROM o WHERE o.id = p.id;
+ALTER TABLE public.company_profile ADD COLUMN IF NOT EXISTS gallery_menu_enabled boolean NOT NULL DEFAULT true, ADD COLUMN IF NOT EXISTS gallery_subtitle text;

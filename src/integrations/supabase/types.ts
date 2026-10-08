@@ -229,6 +229,8 @@ export type Database = {
           default_warranty_text: string | null
           email: string | null
           footer_slogan: string | null
+          gallery_menu_enabled: boolean
+          gallery_subtitle: string | null
           id: string
           instagram: string | null
           logo_url: string | null
@@ -267,6 +269,8 @@ export type Database = {
           default_warranty_text?: string | null
           email?: string | null
           footer_slogan?: string | null
+          gallery_menu_enabled?: boolean
+          gallery_subtitle?: string | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
@@ -305,6 +309,8 @@ export type Database = {
           default_warranty_text?: string | null
           email?: string | null
           footer_slogan?: string | null
+          gallery_menu_enabled?: boolean
+          gallery_subtitle?: string | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
@@ -1131,22 +1137,28 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          display_order: number
           id: string
           image_url: string
+          is_active: boolean
           title: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          display_order?: number
           id?: string
           image_url: string
+          is_active?: boolean
           title: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          display_order?: number
           id?: string
           image_url?: string
+          is_active?: boolean
           title?: string
         }
         Relationships: []
