@@ -310,7 +310,7 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 }
 .dark .ml-card:hover { border-color: hsl(var(--gold) / .7); box-shadow: 0 10px 28px -10px hsl(var(--gold) / .35); }
 /* Foto de produto com fundo branco: moldura clara proposital */
-.dark .ml-card .aspect-\[4\/3\] { background: hsl(0 0% 96%); border-radius: .375rem; padding: 4px; }
+.dark .ml-card .product-frame { background: hsl(0 0% 96%); }
 .dark main h1, .dark main h2 { color: hsl(40 10% 95%); }
 .dark main h2.section-title, .dark main section > h2 { color: hsl(var(--gold)); }
 .dark main hr { border-color: hsl(var(--gold) / .35); }
@@ -354,7 +354,7 @@ display: none !important;
 }
 
 /* Menu de categorias no celular segue o tema, mesmo dentro do cabeçalho claro */
-.dark .keep-light .follow-theme {
+.dark .follow-theme, .dark .keep-light .follow-theme {
   --background: 220 6% 9% !important;
   --foreground: 40 8% 88% !important;
   --card: 220 5% 13% !important;

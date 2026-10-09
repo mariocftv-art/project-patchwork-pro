@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
 import ThemeToggle from './ThemeToggle';
 import StaffAgendaShortcut from './StaffAgendaShortcut';
+import { useStaff } from '@/hooks/useStaff';
 import SearchBox from './SearchBox';
 import WhatsAppMenu from './WhatsAppMenu';
 import OfflineScreen from './OfflineScreen';
@@ -70,6 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   const { data: paySettings } = usePaymentSettings();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
+  const { staff } = useStaff();
   const { canInstall, isIOS, install } = useInstallPrompt();
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
@@ -118,17 +120,21 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
   // Esconde o botão do WhatsApp com menu/galeria abertos
   useEffect(() => {
-    document.body.classList.toggle('overlay-open', catOpen || servicesOpen);
-    return () => document.body.classList.remove('overlay-open');
+    const open = catOpen || servicesOpen;
+    document.body.classList.toggle('overlay-open', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.classList.remove('overlay-open'); document.body.style.overflow = ''; };
   }, [catOpen, servicesOpen]);
   // Botão voltar do celular fecha o menu de categorias
   useEffect(() => {
     if (!catOpen) return;
     window.history.pushState({ mrMenu: true }, '');
     const onPop = () => setCatOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCatOpen(false); };
+    window.addEventListener('keydown', onKey);
     window.addEventListener('popstate', onPop);
     return () => {
-      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('popstate', onPop); window.removeEventListener('keydown', onKey);
       if ((window.history.state as { mrMenu?: boolean } | null)?.mrMenu) window.history.back();
     };
   }, [catOpen]);
@@ -288,12 +294,10 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </Link>
 
-              <div className="flex items-center min-w-0 shrink-0 -mr-1">
-                <NotificationsPopover />
-                <ThemeToggle />
-
+              <div className="flex items-center shrink-0" style={{ paddingRight: 'max(0px, calc(env(safe-area-inset-right) - 4px))' }}>
                 <Link
                   to="/wishlist"
+                  aria-label="Favoritos"
                   className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
                 >
                   <Heart className="w-5 h-5" />
@@ -303,8 +307,6 @@ export default function Layout({ children }: LayoutProps) {
                     </span>
                   )}
                 </Link>
-
-                <StaffAgendaShortcut />
 
                 <Link
                   to="/carrinho"
@@ -329,6 +331,28 @@ export default function Layout({ children }: LayoutProps) {
                       <p className="font-semibold text-foreground">Menu</p>
                     </div>
                     <nav className="p-4 space-y-1">
+                      <div className="pb-3 border-b border-border mb-3 space-y-1">
+                        <div className="flex items-center justify-between px-2 min-h-11 text-foreground">
+                          <span>Modo claro / escuro</span>
+                          <ThemeToggle variant="panel" />
+                        </div>
+                        <div className="flex items-center justify-between px-2 min-h-11 text-foreground">
+                          <span>Notificações</span>
+                          <NotificationsPopover />
+                        </div>
+                        {staff?.show && (
+                          <Link to="/agenda" className="flex items-center justify-between py-3 px-2 text-foreground hover:bg-secondary rounded">
+                            <span>Agendamentos</span>
+                            {staff.today > 0 && <span className="min-w-5 h-5 px-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">{staff.today}</span>}
+                          </Link>
+                        )}
+                        <Link to={user ? '/perfil' : '/auth'} className="block py-3 px-2 text-foreground hover:bg-secondary rounded">Minha conta</Link>
+                        {showServicesTab && (
+                          <button type="button" onClick={() => setServicesOpen(true)} className="w-full text-left py-3 px-2 font-bold text-foreground dark:text-primary hover:bg-secondary rounded">
+                            NOSSOS SERVIÇOS REALIZADOS
+                          </button>
+                        )}
+                      </div>
                       {/* Botão Instalar App */}
                       <div className="pb-3 border-b border-border mb-3">
                         <InstallAppButton className="w-full" />
@@ -401,7 +425,7 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             {catOpen && (
               <div className="follow-theme relative -mx-4 -mb-2 border-t border-primary bg-background rounded-b-xl overflow-hidden">
-                <nav aria-label="Categorias" className="max-h-[calc(100dvh-230px)] overflow-y-auto overscroll-contain pb-20">
+                <nav aria-label="Categorias" className="max-h-[70dvh] overflow-y-auto overscroll-contain pb-20">
                   {showServicesTab && (
                     <>
                       <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
@@ -415,7 +439,7 @@ export default function Layout({ children }: LayoutProps) {
                   {menuEntries.map((cat) => {
                     const active = isActiveCat(cat);
                     return (
-                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} aria-current={active ? 'page' : undefined}
+                      <Link key={cat.slug} to={cat.path} onClick={() => { setCatOpen(false); window.scrollTo({ top: 0 }); }} aria-current={active ? 'page' : undefined}
                         className={`flex items-center gap-3 px-4 min-h-[54px] text-sm border-b border-border/60 last:border-b-0 ${active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
                         <CategoryIcon name={cat.icon} className={`w-[18px] h-[18px] shrink-0 ${active ? '' : 'dark:text-primary'}`} />
                         <span className="flex-1">{cat.name}</span>

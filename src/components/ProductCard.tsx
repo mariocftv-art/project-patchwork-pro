@@ -37,12 +37,14 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className={`ml-card p-2 sm:p-4 h-full flex flex-col overflow-hidden min-w-0 ${product.stock === 0 ? "opacity-60" : ""}`}>
         {/* Image Container */}
         <div className="relative -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 mb-2 sm:mb-3">
-          <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+          <div className="product-frame aspect-square w-full overflow-hidden bg-white keep-white rounded-md p-2 sm:p-3 flex items-center justify-center">
             <img 
               src={product.image_url || '/placeholder.svg'} 
               alt={product.title} 
               loading="lazy"
-              className="block w-full h-full object-cover object-center"
+              decoding="async"
+              onError={(e) => { const i = e.currentTarget; if (!i.src.endsWith('/placeholder.svg')) i.src = '/placeholder.svg'; }}
+              className="block max-w-full max-h-full w-auto h-auto object-contain"
             />
           </div>
           
