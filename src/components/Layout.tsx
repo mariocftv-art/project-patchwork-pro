@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import NotificationsPopover from './NotificationsPopover';
 import ThemeToggle from './ThemeToggle';
 import StaffAgendaShortcut from './StaffAgendaShortcut';
+import { useStaff } from '@/hooks/useStaff';
 import SearchBox from './SearchBox';
 import WhatsAppMenu from './WhatsAppMenu';
 import OfflineScreen from './OfflineScreen';
@@ -70,6 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   const { data: paySettings } = usePaymentSettings();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
+  const { staff } = useStaff();
   const { canInstall, isIOS, install } = useInstallPrompt();
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
@@ -118,8 +120,10 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
   // Esconde o botão do WhatsApp com menu/galeria abertos
   useEffect(() => {
-    document.body.classList.toggle('overlay-open', catOpen || servicesOpen);
-    return () => document.body.classList.remove('overlay-open');
+    const open = catOpen || servicesOpen;
+    document.body.classList.toggle('overlay-open', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.classList.remove('overlay-open'); document.body.style.overflow = ''; };
   }, [catOpen, servicesOpen]);
   // Botão voltar do celular fecha o menu de categorias
   useEffect(() => {
@@ -419,7 +423,7 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             {catOpen && (
               <div className="follow-theme relative -mx-4 -mb-2 border-t border-primary bg-background rounded-b-xl overflow-hidden">
-                <nav aria-label="Categorias" className="max-h-[calc(100dvh-230px)] overflow-y-auto overscroll-contain pb-20">
+                <nav aria-label="Categorias" className="max-h-[70dvh] overflow-y-auto overscroll-contain pb-20">
                   {showServicesTab && (
                     <>
                       <button type="button" onClick={() => { setCatOpen(false); setServicesOpen(true); }}
@@ -433,7 +437,7 @@ export default function Layout({ children }: LayoutProps) {
                   {menuEntries.map((cat) => {
                     const active = isActiveCat(cat);
                     return (
-                      <Link key={cat.slug} to={cat.path} onClick={() => setCatOpen(false)} aria-current={active ? 'page' : undefined}
+                      <Link key={cat.slug} to={cat.path} onClick={() => { setCatOpen(false); window.scrollTo({ top: 0 }); }} aria-current={active ? 'page' : undefined}
                         className={`flex items-center gap-3 px-4 min-h-[54px] text-sm border-b border-border/60 last:border-b-0 ${active ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground hover:bg-secondary'}`}>
                         <CategoryIcon name={cat.icon} className={`w-[18px] h-[18px] shrink-0 ${active ? '' : 'dark:text-primary'}`} />
                         <span className="flex-1">{cat.name}</span>

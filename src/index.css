@@ -354,7 +354,7 @@ display: none !important;
 }
 
 /* Menu de categorias no celular segue o tema, mesmo dentro do cabeçalho claro */
-.dark .keep-light .follow-theme {
+.dark .follow-theme, .dark .keep-light .follow-theme {
   --background: 220 6% 9% !important;
   --foreground: 40 8% 88% !important;
   --card: 220 5% 13% !important;
