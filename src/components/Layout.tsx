@@ -288,12 +288,10 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </Link>
 
-              <div className="flex items-center min-w-0 shrink-0 -mr-1">
-                <NotificationsPopover />
-                <ThemeToggle />
-
+              <div className="flex items-center shrink-0" style={{ paddingRight: 'max(0px, calc(env(safe-area-inset-right) - 4px))' }}>
                 <Link
                   to="/wishlist"
+                  aria-label="Favoritos"
                   className="relative p-2 text-ml-dark-gray hover:text-ml-blue transition-colors"
                 >
                   <Heart className="w-5 h-5" />
@@ -303,8 +301,6 @@ export default function Layout({ children }: LayoutProps) {
                     </span>
                   )}
                 </Link>
-
-                <StaffAgendaShortcut />
 
                 <Link
                   to="/carrinho"
@@ -329,6 +325,28 @@ export default function Layout({ children }: LayoutProps) {
                       <p className="font-semibold text-foreground">Menu</p>
                     </div>
                     <nav className="p-4 space-y-1">
+                      <div className="pb-3 border-b border-border mb-3 space-y-1">
+                        <div className="flex items-center justify-between px-2 min-h-11 text-foreground">
+                          <span>Modo claro / escuro</span>
+                          <ThemeToggle variant="panel" />
+                        </div>
+                        <div className="flex items-center justify-between px-2 min-h-11 text-foreground">
+                          <span>Notificações</span>
+                          <NotificationsPopover />
+                        </div>
+                        {staff?.show && (
+                          <Link to="/agenda" className="flex items-center justify-between py-3 px-2 text-foreground hover:bg-secondary rounded">
+                            <span>Agendamentos</span>
+                            {staff.today > 0 && <span className="min-w-5 h-5 px-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">{staff.today}</span>}
+                          </Link>
+                        )}
+                        <Link to={user ? '/perfil' : '/auth'} className="block py-3 px-2 text-foreground hover:bg-secondary rounded">Minha conta</Link>
+                        {showServicesTab && (
+                          <button type="button" onClick={() => setServicesOpen(true)} className="w-full text-left py-3 px-2 font-bold text-foreground dark:text-primary hover:bg-secondary rounded">
+                            NOSSOS SERVIÇOS REALIZADOS
+                          </button>
+                        )}
+                      </div>
                       {/* Botão Instalar App */}
                       <div className="pb-3 border-b border-border mb-3">
                         <InstallAppButton className="w-full" />
