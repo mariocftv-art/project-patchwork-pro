@@ -65,6 +65,8 @@ export interface QuoteRecord {
   validity_days: number | null;
   show_signatures: boolean;
   show_item_prices?: boolean | null;
+  charged_total?: number | null;
+  adjustment_label?: string | null;
   total: number;
   pdf_url: string | null;
   created_at: string;
@@ -96,6 +98,8 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
     })),
     showItemPrices: r.show_item_prices !== false,
     discount: Number(r.discount) || 0,
+    chargedTotal: r.charged_total != null ? Number(r.charged_total) : null,
+    adjustmentLabel: r.adjustment_label || '',
     shipping: Number(r.shipping_fee) || 0,
     payment: r.payment || { method: '' },
     warranty: r.warranty || { option: '' },
@@ -366,6 +370,13 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     return generate(d);
   };
   const generate = async (data: PremiumDocData) => {
+    {
+      const tt = computeTotals(data);
+      if (data.chargedTotal != null && tt.calculated > 0) {
+        const pct = Math.round((Math.abs(tt.adjustment) / tt.calculated) * 100);
+        if (pct > 30 && !window.confirm(`⚠️ O valor a cobrar está ${pct}% ${tt.adjustment < 0 ? 'abaixo' : 'acima'} do somatório dos itens. Confirma?`)) return;
+      }
+    }
     const errs = validateDoc(data);
     if (errs.length) {
       setErrors(errs);
@@ -420,6 +431,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         discount: t.discount,
         shipping_fee: t.shipping,
         total: t.total,
+        items_total: t.calculated,
+        charged_total: final.chargedTotal != null ? t.total : null,
+        adjustment_label: (final.adjustmentLabel || '').trim() || null,
         payment: final.payment || {},
         warranty: final.warranty || {},
         notes: final.notes || null,
@@ -815,7 +829,24 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <div className="sm:col-span-2 rounded-md bg-secondary p-3 text-sm">
                   <div className="flex justify-between"><span>Itens</span><span>{formatBRL(totals.products)}</span></div>
                   <div className="flex justify-between"><span>Serviço Técnico Especializado</span><span>{formatBRL(totals.services)}</span></div>
-                  <div className="flex justify-between font-bold text-base mt-1"><span>Total</span><span>{formatBRL(totals.total)}</span></div>
+                  <div className="flex justify-between"><span>Somatório dos itens</span><span>{formatBRL(totals.calculated)}</span></div>
+                  <Label className="mt-2 block">Valor a cobrar ✏️</Label>
+                  <Input type="number" min={0} step="0.01" inputMode="decimal" aria-label="Valor a cobrar"
+                    value={data.chargedTotal ?? totals.calculated}
+                    onChange={(e) => set('chargedTotal', e.target.value === '' ? null : Number(e.target.value))} />
+                  {totals.adjustment !== 0 && (
+                    <div className="mt-2 space-y-2">
+                      <p>→ Diferença: <b className={totals.adjustment < 0 ? 'text-red-600' : 'text-green-700'}>{totals.adjustment < 0 ? '− ' : '+ '}{formatBRL(Math.abs(totals.adjustment))}</b>
+                        {totals.calculated > 0 && <> ({totals.adjustment < 0 ? 'desconto' : 'acréscimo'} de {(Math.abs(totals.adjustment) / totals.calculated * 100).toFixed(1).replace('.', ',')}%)</>}
+                        <span className="block text-xs text-muted-foreground">Só você vê esta diferença.</span></p>
+                      {!data.items.some((it) => isPriceHidden(data, it)) && (
+                        <div><Label>Nome da linha no documento</Label>
+                          <Input value={data.adjustmentLabel || ''} placeholder={totals.adjustment < 0 ? 'Desconto comercial' : 'Acréscimo'} onChange={(e) => set('adjustmentLabel', e.target.value)} /></div>
+                      )}
+                      <Button type="button" variant="outline" size="sm" onClick={() => setData({ ...data, chargedTotal: null, adjustmentLabel: '' })}>Voltar ao valor calculado</Button>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base mt-2"><span>Total</span><span>{formatBRL(totals.total)}</span></div>
                 </div>
               </div>
             </section>

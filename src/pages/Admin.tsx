@@ -50,6 +50,8 @@ function scrollAdminTop() {
 export default function Admin() {
   // Rascunho aberto quando a página foi descartada pelo celular: volta direto para ele
   const [tab, setTab] = useState(() => {
+    const want = new URLSearchParams(window.location.search).get('tab');
+    if (want) return want;
     const id = getActiveDraft(); const d = id ? getLocalDraft(id) : null;
     return d ? (d.docType === 'contrato' ? 'contracts' : 'quotes') : 'sales';
   });

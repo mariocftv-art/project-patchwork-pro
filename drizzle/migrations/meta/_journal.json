@@ -29,6 +29,13 @@
       "when": 1791448333411,
       "tag": "0003_service_gallery_tab",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791567089103,
+      "tag": "0004_quote_charged_total",
+      "breakpoints": true
     }
   ]
 }

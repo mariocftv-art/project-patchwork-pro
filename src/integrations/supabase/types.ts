@@ -1006,6 +1006,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          adjustment_label: string | null
+          charged_total: number | null
           contract_text: string | null
           created_at: string
           created_by: string | null
@@ -1024,6 +1026,7 @@ export type Database = {
           doc_type: string
           id: string
           items: Json
+          items_total: number | null
           labor_total: number
           notes: string | null
           payment: Json
@@ -1041,6 +1044,8 @@ export type Database = {
           warranty: Json
         }
         Insert: {
+          adjustment_label?: string | null
+          charged_total?: number | null
           contract_text?: string | null
           created_at?: string
           created_by?: string | null
@@ -1059,6 +1064,7 @@ export type Database = {
           doc_type?: string
           id?: string
           items: Json
+          items_total?: number | null
           labor_total?: number
           notes?: string | null
           payment?: Json
@@ -1076,6 +1082,8 @@ export type Database = {
           warranty?: Json
         }
         Update: {
+          adjustment_label?: string | null
+          charged_total?: number | null
           contract_text?: string | null
           created_at?: string
           created_by?: string | null
@@ -1094,6 +1102,7 @@ export type Database = {
           doc_type?: string
           id?: string
           items?: Json
+          items_total?: number | null
           labor_total?: number
           notes?: string | null
           payment?: Json
