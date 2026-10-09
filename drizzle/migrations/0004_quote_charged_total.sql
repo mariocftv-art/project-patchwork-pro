@@ -1,0 +1,1 @@
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS charged_total numeric NULL, ADD COLUMN IF NOT EXISTS items_total numeric NULL, ADD COLUMN IF NOT EXISTS adjustment_label text NULL;
