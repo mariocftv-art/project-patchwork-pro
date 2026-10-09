@@ -68,6 +68,10 @@ export interface PremiumDocData {
   /** Mostrar valores de cada item (padrão: sim) */
   showItemPrices?: boolean;
   discount?: number;
+  /** Valor a cobrar digitado à mão (null = somatório) */
+  chargedTotal?: number | null;
+  /** Nome da linha de ajuste (ex.: Desconto comercial) */
+  adjustmentLabel?: string;
   shipping?: number;
   payment?: DocPayment;
   warranty?: DocWarranty;
@@ -127,7 +131,7 @@ export const WARRANTY_LABELS: Record<Exclude<WarrantyOption, ''>, string> = {
 
 const cents = (v: number) => Math.round((Number(v) || 0) * 100);
 
-export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 'shipping' | 'payment'>) {
+export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 'shipping' | 'payment' | 'chargedTotal'>) {
   let productsC = 0;
   let servicesC = 0;
   data.items.forEach((it) => {
@@ -137,7 +141,10 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
   });
   const discountC = cents(data.discount || 0);
   const shippingC = cents(data.shipping || 0);
-  const totalC = Math.max(0, productsC + servicesC + shippingC - discountC);
+  const calculatedC = Math.max(0, productsC + servicesC + shippingC - discountC);
+  const charged = data.chargedTotal;
+  const totalC = charged != null && Number.isFinite(Number(charged)) && Number(charged) >= 0 ? cents(Number(charged)) : calculatedC;
+  const adjustmentC = totalC - calculatedC;
 
   let installments = 0;
   let installmentValue = 0;
@@ -157,6 +164,8 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
     discount: discountC / 100,
     shipping: shippingC / 100,
     total: totalC / 100,
+    calculated: calculatedC / 100,
+    adjustment: adjustmentC / 100,
     installments,
     installmentValue,
     installmentTotal,
@@ -776,6 +785,10 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
   if (totals.shipping > 0) summary.push(['Frete', formatBRL(totals.shipping)]);
   if (totals.discount > 0) summary.push(['Desconto', `- ${formatBRL(totals.discount)}`]);
+  if (totals.adjustment !== 0) {
+    const lbl = (data.adjustmentLabel || '').trim() || (totals.adjustment < 0 ? 'Desconto comercial' : 'Acréscimo');
+    summary.push([lbl, `${totals.adjustment < 0 ? '- ' : '+ '}${formatBRL(Math.abs(totals.adjustment))}`]);
+  }
 
   if (anyPriceHidden) summary.length = 0;
   const sumH = summary.length ? summary.length * 6 + 4 : 0;
@@ -789,7 +802,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   if (sumH) doc.rect(boxX, y, boxW, sumH, 'FD');
   doc.setFontSize(9);
   summary.forEach(([l, v], i) => {
-    const isDiscount = l === 'Desconto';
+    const isDiscount = v.startsWith('- ');
     doc.setTextColor(...(isDiscount ? RED_SOFT : MUTED));
     doc.setFont('helvetica', 'normal');
     doc.text(l, boxX + 4, y + 6 + i * 6);
