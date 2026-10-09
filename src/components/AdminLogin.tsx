@@ -18,7 +18,7 @@ const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracter
  */
 const AdminLogin = () => {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => { try { return localStorage.getItem('mr-admin-email') || ''; } catch { return ''; } });
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,7 @@ const AdminLogin = () => {
 
     setIsSubmitting(true);
     const { error: signInError } = await signIn(email, password);
+    if (!signInError) { try { localStorage.setItem('mr-admin-email', email.trim()); } catch { /* ignore */ } }
 
     if (signInError) {
       if (signInError.message.includes('Invalid login credentials')) {

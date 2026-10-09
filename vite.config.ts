@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => ({
         orientation: "any",
         start_url: "/",
         scope: "/",
+        shortcuts: [
+          { name: "Painel Administrativo", short_name: "Painel", url: "/admin", icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }] },
+          { name: "Novo Orçamento", short_name: "Orçamento", url: "/admin/orcamentos/novo", icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }] },
+          { name: "Agendamentos", short_name: "Agenda", url: "/admin/agendamentos", icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }] },
+        ],
         icons: [
           {
             src: "/pwa-192x192.png",

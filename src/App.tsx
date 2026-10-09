@@ -91,6 +91,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/agenda" element={<Agenda />} />
             <Route path="/perfil" element={<MyProfile />} />
+            <Route path="/admin/orcamentos/novo" element={<Navigate to="/admin?tab=quotes" replace />} />
+            <Route path="/admin/agendamentos" element={<Navigate to="/admin?tab=appointments" replace />} />
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

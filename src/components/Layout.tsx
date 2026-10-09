@@ -72,6 +72,16 @@ export default function Layout({ children }: LayoutProps) {
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
   const { staff } = useStaff();
+  const [showPanelHint, setShowPanelHint] = useState(false);
+  useEffect(() => {
+    if (!staff?.role || location.pathname.startsWith('/admin') || location.pathname === '/agenda') return;
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (!standalone || sessionStorage.getItem('mr-panel-hint')) return;
+    sessionStorage.setItem('mr-panel-hint', '1');
+    setShowPanelHint(true);
+    const t = setTimeout(() => setShowPanelHint(false), 6000);
+    return () => clearTimeout(t);
+  }, [staff?.role, location.pathname]);
   const { canInstall, isIOS, install } = useInstallPrompt();
   const [searchQuery, setSearchQuery] = useState('');
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
@@ -396,6 +406,11 @@ export default function Layout({ children }: LayoutProps) {
                           Entrar
                         </Link>
                       )}
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <Link to={isAdmin ? '/admin' : staff?.role === 'tecnico' ? '/agenda' : '/admin'} className="flex items-center gap-2 py-3 px-2 text-foreground hover:bg-secondary rounded">
+                          <Shield className="w-4 h-4" />{isAdmin || staff?.role === 'tecnico' ? 'Painel Administrativo' : 'Área administrativa'}
+                        </Link>
+                      </div>
                     </nav>
                   </SheetContent>
                 </Sheet>
@@ -514,6 +529,7 @@ export default function Layout({ children }: LayoutProps) {
                 <li className="font-semibold">{brand.name}</li>
                 {brand.cnpj && <li>CNPJ: {brand.cnpj}</li>}
                 <li><Link to="/servicos" className="underline-offset-2 hover:underline">Serviços</Link></li>
+                <li><Link to="/admin" className="text-xs opacity-60 hover:underline">Área administrativa</Link></li>
               </ul>
             </div>
             <div>
@@ -556,6 +572,11 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </footer>
 
+      {showPanelHint && (
+        <Link to={isAdmin ? '/admin' : '/agenda'} onClick={() => setShowPanelHint(false)}
+          className="fixed left-1/2 -translate-x-1/2 z-50 rounded-full bg-primary text-primary-foreground font-bold px-5 py-3 shadow-lg"
+          style={{ top: 'calc(env(safe-area-inset-top) + 8px)' }}>🔐 Ir para o painel</Link>
+      )}
       <WhatsAppMenu />
       <OfflineScreen />
 
