@@ -130,9 +130,11 @@ export default function Layout({ children }: LayoutProps) {
     if (!catOpen) return;
     window.history.pushState({ mrMenu: true }, '');
     const onPop = () => setCatOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCatOpen(false); };
+    window.addEventListener('keydown', onKey);
     window.addEventListener('popstate', onPop);
     return () => {
-      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('popstate', onPop); window.removeEventListener('keydown', onKey);
       if ((window.history.state as { mrMenu?: boolean } | null)?.mrMenu) window.history.back();
     };
   }, [catOpen]);
