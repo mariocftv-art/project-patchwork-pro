@@ -1,3 +1,4 @@
+import ContractTemplateForm from './ContractTemplateForm';
 import { CONTACT_VARIABLES, DEFAULT_SALES_TEMPLATE, DEFAULT_SUPPORT_TEMPLATE } from '@/lib/whatsappContact';
 import ImageUploadField from './ImageUploadField';
 import { useEffect, useState } from 'react';
@@ -95,11 +96,13 @@ export default function CompanyProfileForm() {
           <TabsTrigger value="company" className="gap-2"><Building2 className="w-4 h-4" /> Dados da empresa</TabsTrigger>
           <TabsTrigger value="brand" className="gap-2"><Palette className="w-4 h-4" /> Identidade visual</TabsTrigger>
           <TabsTrigger value="pdf" className="gap-2"><FileText className="w-4 h-4" /> Orçamento / PDF</TabsTrigger>
+          <TabsTrigger value="contract" className="gap-2"><FileText className="w-4 h-4" /> Modelo de contrato</TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="payment" className="gap-2"><CreditCard className="w-4 h-4" /> Pagamento</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment"><MercadoPagoForm /></TabsContent>
+        <TabsContent value="contract"><ContractTemplateForm /></TabsContent>
 
         <TabsContent value="company" className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
