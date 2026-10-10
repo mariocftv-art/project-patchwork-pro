@@ -21,3 +21,4 @@
 - Floating buttons carry class wa-fab and hide while body has overlay-open (set by Layout for category menu/gallery) or Radix scroll lock. Why: a floating button must never cover open content.
 - Store photos are WebP in 400/800/1600 named `-<w>.webp`; components build srcset via src/lib/imgSizes.ts, and uploadImage writes all three. Why: serve the right size per screen.
 - Pure document rules/types live in src/lib/docModel.ts (re-exported by premiumPDF.ts); store pages import docModel, never premiumPDF statically. Why: keep jsPDF out of the store's download.
+- Contract clauses are structured (ContractClause[] in src/lib/contractClauses.ts): template in company_profile.contract_clauses, per-contract copy in quotes.contract_clauses, composed into contract_text with auto-renumbering. Why: toggle/edit clauses while signed contracts keep their own frozen text.
