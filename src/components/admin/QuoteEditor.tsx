@@ -25,7 +25,6 @@ import { maskCPF, maskCNPJ, maskPhone, maskCEP } from '@/lib/masks';
 import PdfPagesPreview, { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import {
   buildPremiumPDF,
-  buildDefaultContractText,
   computeTotals,
   docFileName,
   DocCustomer,
@@ -201,6 +200,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
   })();
 
+  useEffect(() => { loadContractTemplate().catch(() => undefined); }, []);
   useEffect(() => {
     if (!open) return;
     (async () => {
