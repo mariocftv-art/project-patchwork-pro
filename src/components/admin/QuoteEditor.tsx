@@ -85,6 +85,7 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
   return {
     docType: (r.doc_type as DocType) || 'orcamento',
     number: r.quote_number,
+    status: r.status,
     date: new Date(r.created_at),
     validityDays: r.validity_days ?? 15,
     serviceTitle: r.service_title || '',
@@ -338,7 +339,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     setBusy(true);
     try {
       const profile = await getCompanyProfile(true);
-      const doc = await buildPremiumPDF({ ...d, number: d.number || 'MR-XXXX-XXXX' }, profile);
+      const doc = await buildPremiumPDF({ ...d, status, number: d.number || 'MR-XXXX-XXXX' }, profile);
       const blob = doc.output('blob');
       setPreviewBlob(blob);
       setPreviewUrl((old) => {
@@ -399,7 +400,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
       let number = data.number || (await nextDocNumber());
-      const final = { ...data, number };
+      const final = { ...data, number, status };
       const profile = await getCompanyProfile(true);
       let doc = await buildPremiumPDF(final, profile);
       let url = await uploadPDF(doc, number);
@@ -722,6 +723,18 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <Field className="sm:col-span-2" label="Bairro" v={data.customer.district} on={(v) => setC('district', v)} />
                 <Field className="sm:col-span-1" label="Cidade" v={data.customer.city} on={(v) => setC('city', v)} />
                 <Field className="sm:col-span-1" label="UF" v={data.customer.state} on={(v) => setC('state', v.toUpperCase().slice(0, 2))} />
+                <div className="sm:col-span-6 space-y-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="h-4 w-4" checked={data.customer.installSame !== false && !data.customer.installAddress?.trim() ? true : !!data.customer.installSame} onChange={(e) => setData({ ...data, customer: { ...data.customer, installSame: e.target.checked } })} />
+                    Endereço da instalação: mesmo endereço do cliente
+                  </label>
+                  {!(data.customer.installSame !== false && !data.customer.installAddress?.trim() ? true : !!data.customer.installSame) && (
+                    <Field label="Endereço da instalação (rua, nº, bairro, cidade/UF, CEP)" v={data.customer.installAddress} on={(v) => setC('installAddress', v)} />
+                  )}
+                </div>
+                {data.docType === 'contrato' && (
+                  <Field className="sm:col-span-6" label="Prazo de execução" v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: até 5 dias úteis após o pagamento" />
+                )}
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>

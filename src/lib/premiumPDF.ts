@@ -9,7 +9,7 @@ import { buildScopeLines, categorize, CATEGORY_BADGE } from '@/lib/docScope';
 import { loadDocImage } from '@/lib/docImages';
 
 export * from '@/lib/docModel';
-import { DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
+import { fmtCpfCnpj, fmtPhoneBR, docStatusLabel, DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
 import type { DocType, DocItem, DocCustomer, DocPayment, DocWarranty, PremiumDocData, DocSignature, PaymentMethod, WarrantyOption } from '@/lib/docModel';
 
 
@@ -22,9 +22,6 @@ const INK: RGB = [28, 28, 32];
 const MUTED: RGB = [105, 105, 112];
 const PAPER: RGB = [251, 249, 243];
 const SURFACE: RGB = [244, 242, 236];
-const BLUE: RGB = [21, 101, 192]; // #1565C0
-const BLUE_2: RGB = [25, 118, 210]; // #1976D2
-const BLUE_LIGHT: RGB = [234, 243, 255]; // #EAF3FF
 const RED_SOFT: RGB = [198, 40, 40]; // #C62828
 let EXTRA = 0;
 const G = (base: number) => base + EXTRA;
@@ -133,7 +130,7 @@ async function tryLoad(src?: string | null, maxPx?: number) {
 }
 
 function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, title: string) {
-  const h = 32;
+  const h = 39;
   doc.setFillColor(...BLACK);
   doc.rect(SIDEBAR_W + 1.4, 0, PAGE_W - SIDEBAR_W, h, 'F');
   doc.setFillColor(...t.gold);
@@ -141,31 +138,64 @@ function drawFullHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: str
 
   let tx = LEFT;
   if (logo) {
-    doc.addImage(logo, 'PNG', LEFT - 1, 4, 24, 24);
-    tx = LEFT + 27;
+    try {
+      // Logo da Personalização: 22 mm (~83 px), proporção preservada
+      const pr = doc.getImageProperties(logo);
+      const ratio = pr.width / pr.height || 1;
+      const lh = 22;
+      const lw = Math.min(34, lh * ratio);
+      doc.addImage(logo, 'PNG', LEFT - 1, 4, lw, lw / ratio);
+      tx = LEFT + lw + 4;
+    } catch (e) {
+      console.error('logo do PDF', e);
+    }
   }
-  // Nome: "MR" em dourado + restante em branco, espaçamento justo
+  // Nome: primeira palavra em dourado + restante em branco
   const name = (profile.name || 'MR SEGURANÇA MÁXIMA').toUpperCase().trim();
   const [firstWord, ...rest] = name.split(/\s+/);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(17);
   doc.setCharSpace(-0.15);
   doc.setTextColor(...t.gold);
-  doc.text(firstWord, tx, 14);
+  doc.text(firstWord, tx, 12.5);
   const fw = doc.getTextWidth(firstWord + ' ');
   doc.setTextColor(...WHITE);
-  doc.text(rest.join(' '), tx + fw, 14);
+  doc.text(rest.join(' '), tx + fw, 12.5);
   doc.setCharSpace(0);
   doc.setFillColor(...t.red);
-  doc.rect(tx, 16.6, 16, 0.7, 'F');
-  doc.setTextColor(...t.gold);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.6);
-  doc.text('CÂMERAS E ALARMES', tx, 22);
-  doc.setTextColor(215, 215, 215);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.8);
-  doc.text('MONITORAMENTO 24H', tx, 26.5);
+  doc.rect(tx, 15, 16, 0.7, 'F');
+  doc.setDrawColor(...t.gold);
+  doc.setLineWidth(0.2);
+  doc.line(tx + 17, 15.35, RIGHT, 15.35);
+  const headline = (profile.pdf_headline ?? '').trim();
+  const subline = (profile.pdf_subline ?? '').trim();
+  const maxW = RIGHT - tx;
+  if (headline) {
+    doc.setTextColor(...t.gold);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.6);
+    doc.text(doc.splitTextToSize(headline, maxW)[0], tx, 21);
+  }
+  if (subline) {
+    doc.setTextColor(200, 200, 200);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.6);
+    doc.text(doc.splitTextToSize(subline, maxW)[0], tx, 25.3);
+  }
+  // Linha fina de contato: CNPJ · telefone · e-mail · cidade
+  const city = [profile.city, profile.state].filter(Boolean).join('/');
+  const contact = [
+    profile.cnpj ? `CNPJ ${fmtCpfCnpj(profile.cnpj)}` : '',
+    fmtPhoneBR(profile.phone || profile.whatsapp),
+    profile.email,
+    city,
+  ].filter((v) => v && String(v).trim()).join('  ·  ');
+  if (contact) {
+    doc.setTextColor(185, 185, 185);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(doc.splitTextToSize(contact, RIGHT - LEFT + 1)[0], LEFT - 1, 34);
+  }
 
   // título do documento
   let y = h + 11;
@@ -186,7 +216,7 @@ function drawCompactHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: 
   doc.rect(SIDEBAR_W + 1.4, 0, PAGE_W - SIDEBAR_W, 18, 'F');
   doc.setFillColor(...t.gold);
   doc.rect(SIDEBAR_W + 1.4, 18, PAGE_W - SIDEBAR_W, 0.8, 'F');
-  if (logo) doc.addImage(logo, 'PNG', LEFT - 2, 2, 14, 14);
+  if (logo) { try { doc.addImage(logo, 'PNG', LEFT - 2, 2, 14, 14); } catch { /* sem logo */ } }
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
@@ -196,13 +226,13 @@ function drawCompactHeader(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: 
   doc.text(`${title}  •  Nº ${number}`, LEFT + 15, 14);
 }
 
-function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, page: number, total: number) {
+function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string | null, page: number, total: number, ref: string) {
   const y = PAGE_H - FOOTER_H;
   doc.setFillColor(...BLACK);
   doc.rect(SIDEBAR_W + 1.4, y, PAGE_W - SIDEBAR_W, FOOTER_H, 'F');
   doc.setFillColor(...t.gold);
   doc.rect(SIDEBAR_W + 1.4, y, PAGE_W - SIDEBAR_W, 0.8, 'F');
-  if (logo) doc.addImage(logo, 'PNG', LEFT - 1, y + 2.5, 13, 13);
+  if (logo) { try { doc.addImage(logo, 'PNG', LEFT - 1, y + 2.5, 13, 13); } catch { /* sem logo */ } }
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.3);
@@ -210,7 +240,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   const wa = profile.phone || profile.whatsapp;
-  if (wa) doc.text(`WhatsApp: ${wa}`, LEFT + 15, y + 12.5);
+  if (wa) doc.text(`WhatsApp: ${fmtPhoneBR(wa)}`, LEFT + 15, y + 12.5);
   const slogan = (profile.footer_slogan || '').trim();
   if (slogan) {
     doc.setTextColor(...t.gold);
@@ -221,8 +251,8 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
   }
   doc.setTextColor(200, 200, 200);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  if (total > 1) doc.text(`Página ${page}`, RIGHT, y + 17, { align: 'right' });
+  doc.setFontSize(6.6);
+  doc.text([ref, `Página ${page} de ${total}`, (profile.name || '').trim()].filter(Boolean).join('  ·  '), RIGHT, y + 16.6, { align: 'right' });
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number) {
@@ -285,30 +315,36 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const ids: Array<[string, string]> = [
     [`${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº`, data.number],
     ['DATA', data.date.toLocaleDateString('pt-BR')],
-    ...(validity ? ([['VALIDADE', validity]] as Array<[string, string]>) : []),
-    ['STATUS', DOC_TYPE_LABELS[data.docType].toUpperCase()],
+    ...(data.docType === 'contrato'
+      ? ([['PRAZO DE EXECUÇÃO', (data.customer.executionTerm || '').trim() || 'CONFORME CLÁUSULAS']] as Array<[string, string]>)
+      : validity ? ([['VALIDADE', validity]] as Array<[string, string]>) : []),
+    ['STATUS', docStatusLabel(data)],
   ];
   const cellW = CONTENT_W / ids.length;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.4);
+  const idLines = ids.map(([, v]) => (doc.splitTextToSize(v, cellW - 6) as string[]).slice(0, 2));
+  const idH = 10 + (Math.max(...idLines.map((l) => l.length)) - 1) * 3.8;
   doc.setFillColor(...SURFACE);
-  doc.rect(LEFT, y, CONTENT_W, 10, 'F');
+  doc.rect(LEFT, y, CONTENT_W, idH, 'F');
   doc.setFillColor(...t.gold);
-  doc.rect(LEFT, y, 1.2, 10, 'F');
-  ids.forEach(([label, value], i) => {
+  doc.rect(LEFT, y, 1.2, idH, 'F');
+  ids.forEach(([label], i) => {
     const x = LEFT + i * cellW;
     if (i > 0) {
       doc.setDrawColor(215, 210, 195);
       doc.setLineWidth(0.2);
-      doc.line(x, y + 2, x, y + 8);
+      doc.line(x, y + 2, x, y + idH - 2);
     }
     doc.setTextColor(...MUTED);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.2);
     doc.text(label, x + 4, y + 4);
     doc.setTextColor(...BLACK);
-    doc.setFontSize(8.8);
-    doc.text(value, x + 4, y + 8.2);
+    doc.setFontSize(8.4);
+    doc.text(idLines[i], x + 4, y + 8.2, { lineHeightFactor: 1.3 });
   });
-  y += 10 + G(5);
+  y += idH + G(5);
 
   /* ---- Cliente + Empresa ---- */
   const c = data.customer;
@@ -316,11 +352,12 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     [
       ['Nome', c.name],
       ['Fantasia', c.fantasy],
-      ['CPF/CNPJ', [c.cpf, c.cnpj].filter((v) => v && v.trim()).join(' • ')],
-      ['Telefone', c.phone],
-      ['WhatsApp', c.whatsapp],
+      ['CPF/CNPJ', [c.cpf, c.cnpj].filter((v) => v && v.trim()).map(fmtCpfCnpj).join(' • ')],
+      ['Telefone', fmtPhoneBR(c.phone)],
+      ['WhatsApp', fmtPhoneBR(c.whatsapp) === fmtPhoneBR(c.phone) ? '' : fmtPhoneBR(c.whatsapp)],
       ['E-mail', c.email],
       ['Endereço', formatAddress(c)],
+      ['Instalação', !c.installSame && c.installAddress?.trim() ? c.installAddress.trim() : data.docType === 'contrato' || data.docType === 'os' ? 'No mesmo endereço do cliente' : ''],
       ['Obs.', c.note],
     ] as Array<[string, string | undefined]>
   )
@@ -330,8 +367,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const companyRows: Array<[string, string]> = (
     [
       ['', (profile.name || '').toUpperCase()],
-      ['CNPJ', profile.cnpj],
-      ['Telefone', profile.phone],
+      ['CNPJ', fmtCpfCnpj(profile.cnpj)],
+      ['Telefone', fmtPhoneBR(profile.phone)],
       ['Responsável', profile.responsible_name],
       ['E-mail', profile.email],
       ['Instagram', profile.instagram],
@@ -411,10 +448,10 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     alternateRowStyles: { fillColor: [250, 249, 245] },
     columnStyles: {
       0: { cellWidth: hasImages ? 22 : 14, halign: 'center', fontStyle: 'bold', textColor: MUTED },
-      1: { cellWidth: 'auto', halign: 'left' },
+      1: { cellWidth: 'auto', halign: 'left', overflow: 'linebreak' },
       2: { cellWidth: allPricesHidden ? 24 : 20, halign: 'center', textColor: INK },
-      3: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: BLUE_2 },
-      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLUE, fontSize: 9.8 },
+      3: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: BLACK },
+      4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLACK, fontSize: 9.8 },
     },
     margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 },
     rowPageBreak: 'avoid',
@@ -488,7 +525,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   y = ensureSpace(doc, y, sumH + totalBoxH + 4);
   const boxW = 92;
   const boxX = RIGHT - boxW;
-  doc.setFillColor(...BLUE_LIGHT);
+  doc.setFillColor(...PAPER);
   doc.setDrawColor(...t.gold);
   doc.setLineWidth(0.35);
   if (sumH) doc.rect(boxX, y, boxW, sumH, 'FD');
@@ -498,7 +535,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     doc.setTextColor(...(isDiscount ? RED_SOFT : MUTED));
     doc.setFont('helvetica', 'normal');
     doc.text(l, boxX + 4, y + 6 + i * 6);
-    doc.setTextColor(...(isDiscount ? RED_SOFT : BLUE));
+    doc.setTextColor(...(isDiscount ? RED_SOFT : BLACK));
     doc.setFont('helvetica', 'bold');
     doc.text(v, RIGHT - 4, y + 6 + i * 6, { align: 'right' });
   });
@@ -516,12 +553,12 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   doc.setFontSize(10.5);
   const totalLabel = data.docType === 'recibo' ? 'VALOR RECEBIDO' : `VALOR TOTAL DO ${DOC_TYPE_LABELS[data.docType].toUpperCase()}`;
   doc.text(totalLabel, LEFT + 9, y + 13);
-  doc.setTextColor(...WHITE);
+  doc.setTextColor(...t.gold);
   doc.setFontSize(22);
   const totalStr = formatBRL(totals.total);
   doc.text(totalStr, RIGHT - 6, y + 14.5, { align: 'right' });
   const tw = doc.getTextWidth(totalStr);
-  doc.setFillColor(...BLUE_2);
+  doc.setFillColor(...t.red);
   doc.rect(RIGHT - 6 - tw, y + 16.8, tw, 0.9, 'F');
   y += totalBoxH + G(7);
 
@@ -832,7 +869,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     doc.setPage(p);
     drawSidebar(doc, t);
     if (p > 1) drawCompactHeader(doc, profile, t, logo, DOC_TYPE_LABELS[data.docType].toUpperCase(), data.number);
-    drawFooter(doc, profile, t, logo, p, total);
+    drawFooter(doc, profile, t, logo, p, total, `${DOC_TYPE_LABELS[data.docType]} Nº ${data.number}`);
   }
 
   return { doc, pages: total, free: PAGE_H - FOOTER_H - 6 - y };

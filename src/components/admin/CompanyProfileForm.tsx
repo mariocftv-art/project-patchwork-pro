@@ -260,6 +260,16 @@ export default function CompanyProfileForm() {
               onChange={(e) => set('pdf_notes_text', e.target.value)}
             />
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Linha de destaque do cabeçalho (PDF, em dourado)</Label>
+              <Input value={profile.pdf_headline} onChange={(e) => set('pdf_headline', e.target.value)} placeholder="SEGURANÇA ELETRÔNICA PROFISSIONAL DESDE 2011" />
+            </div>
+            <div>
+              <Label>Linha de apoio do cabeçalho (PDF, em cinza)</Label>
+              <Input value={profile.pdf_subline} onChange={(e) => set('pdf_subline', e.target.value)} placeholder="CFTV · Alarmes · Cerca Elétrica · Automação · Interfonia" />
+            </div>
+          </div>
           <div>
             <Label>Frase do rodapé (PDF premium)</Label>
             <Input value={profile.footer_slogan} onChange={(e) => set('footer_slogan', e.target.value)} />

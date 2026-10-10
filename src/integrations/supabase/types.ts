@@ -239,8 +239,10 @@ export type Database = {
           name: string
           pdf_footer_text: string | null
           pdf_gold_color: string | null
+          pdf_headline: string
           pdf_notes_text: string | null
           pdf_red_color: string | null
+          pdf_subline: string
           phone: string | null
           primary_color: string | null
           quote_validity_days: number
@@ -281,8 +283,10 @@ export type Database = {
           name?: string
           pdf_footer_text?: string | null
           pdf_gold_color?: string | null
+          pdf_headline?: string
           pdf_notes_text?: string | null
           pdf_red_color?: string | null
+          pdf_subline?: string
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number
@@ -323,8 +327,10 @@ export type Database = {
           name?: string
           pdf_footer_text?: string | null
           pdf_gold_color?: string | null
+          pdf_headline?: string
           pdf_notes_text?: string | null
           pdf_red_color?: string | null
+          pdf_subline?: string
           phone?: string | null
           primary_color?: string | null
           quote_validity_days?: number

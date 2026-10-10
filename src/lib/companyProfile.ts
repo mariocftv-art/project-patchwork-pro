@@ -25,6 +25,8 @@ export interface CompanyProfile {
   responsible_name: string;
   responsible_role: string;
   footer_slogan: string;
+  pdf_headline: string;
+  pdf_subline: string;
   default_warranty: string;
   default_warranty_text: string;
   pdf_gold_color: string;
@@ -120,6 +122,8 @@ export const defaultCompanyProfile: CompanyProfile = {
   responsible_name: '',
   responsible_role: '',
   footer_slogan: '',
+  pdf_headline: 'SEGURANÇA ELETRÔNICA PROFISSIONAL DESDE 2011',
+  pdf_subline: 'CFTV · Alarmes · Cerca Elétrica · Automação · Interfonia',
   default_warranty: '',
   default_warranty_text:
     'Todos os equipamentos instalados e configurados possuem garantia conforme as condições estabelecidas neste orçamento.',
@@ -193,6 +197,8 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     responsible_name: profile.responsible_name,
     responsible_role: profile.responsible_role,
     footer_slogan: profile.footer_slogan,
+    pdf_headline: profile.pdf_headline,
+    pdf_subline: profile.pdf_subline,
     default_warranty: profile.default_warranty,
     default_warranty_text: profile.default_warranty_text,
     pdf_gold_color: profile.pdf_gold_color,

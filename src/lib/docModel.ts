@@ -25,6 +25,11 @@ export interface DocCustomer {
   state?: string;
   cep?: string;
   note?: string;
+  /** Endereço onde o serviço será feito (vazio/installSame = o mesmo do cliente) */
+  installAddress?: string;
+  installSame?: boolean;
+  /** Prazo de execução do contrato (ex.: 5 dias úteis após o pagamento) */
+  executionTerm?: string;
 }
 
 export interface DocItem {
@@ -56,6 +61,8 @@ export interface DocWarranty {
 export interface PremiumDocData {
   docType: DocType;
   number: string;
+  /** Situação real do documento (rascunho, aguardando_assinatura, assinado…) */
+  status?: string;
   date: Date;
   validityDays?: number;
   serviceTitle?: string;
@@ -315,4 +322,43 @@ function isValidCPFDigits(d: string): boolean {
     return r === 10 ? 0 : r;
   };
   return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
+}
+
+/* ============ Formatação para o documento ============ */
+
+export function fmtCpfCnpj(v?: string | null): string {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return String(v || '').trim();
+}
+
+export function fmtPhoneBR(v?: string | null): string {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  return String(v || '').trim();
+}
+
+const STATUS_TEXT: Record<string, string> = {
+  rascunho: 'RASCUNHO',
+  enviado: 'ENVIADO',
+  aprovado: 'APROVADO',
+  recusado: 'RECUSADO',
+  aguardando_assinatura: 'AGUARDANDO ASSINATURA',
+  assinado: 'ASSINADO',
+  em_execucao: 'EM EXECUÇÃO',
+  concluido: 'CONCLUÍDO',
+  cancelado: 'CANCELADO',
+};
+
+/** Situação real mostrada no quadro do topo (nunca o tipo do documento). */
+export function docStatusLabel(d: Pick<PremiumDocData, 'status' | 'docType' | 'signatures'>): string {
+  const st = (d.status || '').trim();
+  const signed = !!(d.signatures?.contratante && d.signatures?.contratada);
+  if (d.docType === 'contrato' && signed && !['em_execucao', 'concluido'].includes(st)) return 'ASSINADO';
+  if (STATUS_TEXT[st]) return STATUS_TEXT[st];
+  if (st) return st.replace(/_/g, ' ').toUpperCase();
+  return 'RASCUNHO';
 }
