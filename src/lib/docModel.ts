@@ -1,5 +1,6 @@
 // Dados e regras dos documentos (sem jsPDF) — usado pela loja sem baixar o gerador de PDF.
 import { buildScopeLines } from '@/lib/docScope';
+import { formatBRL } from '@/lib/formatCurrency';
 
 /* ============ Tipos do documento ============ */
 
