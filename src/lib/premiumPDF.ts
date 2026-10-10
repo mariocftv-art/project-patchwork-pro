@@ -321,26 +321,30 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     ['STATUS', docStatusLabel(data)],
   ];
   const cellW = CONTENT_W / ids.length;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.4);
+  const idLines = ids.map(([, v]) => (doc.splitTextToSize(v, cellW - 6) as string[]).slice(0, 2));
+  const idH = 10 + (Math.max(...idLines.map((l) => l.length)) - 1) * 3.8;
   doc.setFillColor(...SURFACE);
-  doc.rect(LEFT, y, CONTENT_W, 10, 'F');
+  doc.rect(LEFT, y, CONTENT_W, idH, 'F');
   doc.setFillColor(...t.gold);
-  doc.rect(LEFT, y, 1.2, 10, 'F');
-  ids.forEach(([label, value], i) => {
+  doc.rect(LEFT, y, 1.2, idH, 'F');
+  ids.forEach(([label], i) => {
     const x = LEFT + i * cellW;
     if (i > 0) {
       doc.setDrawColor(215, 210, 195);
       doc.setLineWidth(0.2);
-      doc.line(x, y + 2, x, y + 8);
+      doc.line(x, y + 2, x, y + idH - 2);
     }
     doc.setTextColor(...MUTED);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.2);
     doc.text(label, x + 4, y + 4);
     doc.setTextColor(...BLACK);
-    doc.setFontSize(8.8);
-    doc.text(doc.splitTextToSize(value, cellW - 6)[0], x + 4, y + 8.2);
+    doc.setFontSize(8.4);
+    doc.text(idLines[i], x + 4, y + 8.2, { lineHeightFactor: 1.3 });
   });
-  y += 10 + G(5);
+  y += idH + G(5);
 
   /* ---- Cliente + Empresa ---- */
   const c = data.customer;
