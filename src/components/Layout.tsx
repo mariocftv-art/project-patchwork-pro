@@ -515,7 +515,7 @@ export default function Layout({ children }: LayoutProps) {
       <ServicesOverlay open={servicesOpen} onClose={() => setServicesOpen(false)} />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-4">
+      <main className="container mx-auto px-4 py-4 min-h-[100dvh]">
         {children}
       </main>
 

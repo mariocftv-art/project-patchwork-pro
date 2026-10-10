@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png", "pwa-maskable-512x512.png"],
       manifest: {
         name: "MR Segurança Máxima",
@@ -53,6 +54,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
+        globIgnores: ["**/pdf.worker*", "**/b*-tall-*.jpg", "**/b*-wide-*.jpg"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
