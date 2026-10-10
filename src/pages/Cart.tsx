@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { generateQuotePDF, generateWhatsAppMessage } from '@/lib/generateQuotePDF';
+import { generateWhatsAppMessage } from '@/lib/cartWhatsApp';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { formatBRL } from '@/lib/formatCurrency';
 import { useSiteContent } from '@/components/admin/SiteContentForm';
@@ -91,6 +91,7 @@ export default function Cart() {
       }));
 
       // Generate PDF and upload to storage
+      const { generateQuotePDF } = await import('@/lib/generateQuotePDF');
       const result = await generateQuotePDF(
         {
           items,
