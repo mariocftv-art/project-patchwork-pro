@@ -224,6 +224,8 @@ export type Database = {
           address: string | null
           city: string | null
           cnpj: string | null
+          contract_clauses: Json | null
+          contract_clauses_version: string | null
           created_at: string
           default_warranty: string | null
           default_warranty_text: string | null
@@ -264,6 +266,8 @@ export type Database = {
           address?: string | null
           city?: string | null
           cnpj?: string | null
+          contract_clauses?: Json | null
+          contract_clauses_version?: string | null
           created_at?: string
           default_warranty?: string | null
           default_warranty_text?: string | null
@@ -304,6 +308,8 @@ export type Database = {
           address?: string | null
           city?: string | null
           cnpj?: string | null
+          contract_clauses?: Json | null
+          contract_clauses_version?: string | null
           created_at?: string
           default_warranty?: string | null
           default_warranty_text?: string | null
@@ -1008,6 +1014,7 @@ export type Database = {
         Row: {
           adjustment_label: string | null
           charged_total: number | null
+          contract_clauses: Json | null
           contract_text: string | null
           created_at: string
           created_by: string | null
@@ -1046,6 +1053,7 @@ export type Database = {
         Insert: {
           adjustment_label?: string | null
           charged_total?: number | null
+          contract_clauses?: Json | null
           contract_text?: string | null
           created_at?: string
           created_by?: string | null
@@ -1084,6 +1092,7 @@ export type Database = {
         Update: {
           adjustment_label?: string | null
           charged_total?: number | null
+          contract_clauses?: Json | null
           contract_text?: string | null
           created_at?: string
           created_by?: string | null

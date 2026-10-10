@@ -15,4 +15,4 @@
 - [x] Medição antes/depois, fotos WebP 3 tamanhos, gerador de PDF fora da loja, índices, banner/logo leves
 - [ ] Celular acima de 80: exige diminuir o pacote principal (aguarda OK do dono)
 - [ ] Partes 3, 4 e 5 (varredura, experiência, segurança)
-- [ ] Pedido 32 (cláusulas; chavinhas no modelo e por contrato)
+- [x] Pedido 32 (cláusulas; chavinhas no modelo e por contrato)

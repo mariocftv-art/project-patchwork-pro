@@ -1,3 +1,5 @@
+import ClauseListEditor from './ClauseListEditor';
+import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate } from '@/lib/contractClauses';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +25,6 @@ import { maskCPF, maskCNPJ, maskPhone, maskCEP } from '@/lib/masks';
 import PdfPagesPreview, { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import {
   buildPremiumPDF,
-  buildDefaultContractText,
   computeTotals,
   docFileName,
   DocCustomer,
@@ -105,6 +106,10 @@ export function recordToDoc(r: QuoteRecord): PremiumDocData {
     warranty: r.warranty || { option: '' },
     notes: r.notes || '',
     contractText: r.contract_text || '',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contractClauses: Array.isArray((r as any).contract_clauses?.clauses) ? (r as any).contract_clauses.clauses : undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contractVersion: (r as any).contract_clauses?.version,
     showSignatures: !!r.show_signatures,
   };
 }
@@ -195,6 +200,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
   })();
 
+  useEffect(() => { loadContractTemplate().catch(() => undefined); }, []);
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -226,7 +232,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         if (duplicate && convertToContract) {
           const origin = record.quote_number;
           Object.assign(d, { docType: 'contrato', showSignatures: true, notes: [`Contrato originado do orçamento ${origin}.`, d.notes].filter(Boolean).join('\n') });
-          d.contractText = buildDefaultContractText(d);
+          Object.assign(d, defaultContractFields());
         }
         setData(d);
         setRecordId(duplicate ? null : record.id);
@@ -360,7 +366,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
   const convertTo = (d: PremiumDocData, t: DocType): PremiumDocData =>
     t === 'contrato'
-      ? { ...d, docType: t, showSignatures: true, contractText: d.contractText?.trim() ? d.contractText : buildDefaultContractText(d) }
+      ? { ...d, docType: t, showSignatures: true, ...(d.contractText?.trim() ? {} : defaultContractFields()) }
       : { ...d, docType: t, showSignatures: false };
   /** Rascunho → orçamento ou contrato: nada se perde; número só nasce aqui. */
   const handleGenerate = (asType?: DocType | unknown) => {
@@ -438,6 +444,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         warranty: final.warranty || {},
         notes: final.notes || null,
         contract_text: final.contractText?.trim() ? final.contractText : null,
+        contract_clauses: final.contractClauses ? { clauses: final.contractClauses, version: final.contractVersion } : null,
         validity_days: final.validityDays || null,
         show_signatures: !!final.showSignatures,
         pdf_url: url,
@@ -674,7 +681,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <select className={selectCls} value={data.docType} onChange={(e) => {
                   const docType = e.target.value as DocType;
                   if (docType === 'contrato' && !data.contractText?.trim()) {
-                    setData({ ...data, docType, showSignatures: true, contractText: buildDefaultContractText(data) });
+                    setData({ ...data, docType, showSignatures: true, ...defaultContractFields() });
                   } else set('docType', docType);
                 }}>
                   {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -900,16 +907,26 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
               <Textarea rows={4} placeholder="Uma observação por linha" value={data.notes || ''} onChange={(e) => set('notes', e.target.value)} />
               <div className="flex items-center justify-between gap-2 pt-2">
                 <h3 className="font-semibold">Cláusulas do contrato (aparecem abaixo das observações)</h3>
-                <Button size="sm" variant="outline" type="button" onClick={() => set('contractText', buildDefaultContractText(data))}>
-                  Preencher modelo padrão
+                <Button size="sm" variant="outline" type="button" onClick={() => setData({ ...data, ...defaultContractFields() })}>
+                  Restaurar modelo padrão
                 </Button>
               </div>
+              {data.contractClauses ? (
+                <>
+                  <p className="text-xs text-muted-foreground">Modelo usado: versão de {formatVersion(data.contractVersion || '')}. Ligue ou desligue as cláusulas só deste contrato.</p>
+                  <ClauseListEditor
+                    clauses={data.contractClauses}
+                    onChange={(c) => setData({ ...data, contractClauses: c, contractText: composeClauses(c, data.contractVersion || '') })}
+                  />
+                </>
+              ) : (
               <Textarea
                 rows={10}
-                placeholder={'Deixe vazio para não mostrar.\nTítulos: "1. OBJETO DO CONTRATO". Itens: comece com "•". Use {VALOR_TOTAL} para o valor automático.'}
+                placeholder={'Deixe vazio para não mostrar.'}
                 value={data.contractText || ''}
                 onChange={(e) => set('contractText', e.target.value)}
               />
+              )}
               <p className="text-xs text-muted-foreground">
                 Automático no PDF: {'{ESCOPO}'} vira a lista real dos itens (ex.: "Instalação de 5 câmeras"), {'{VALOR_TOTAL}'} o total,
                 {' {PAGAMENTO}'} a forma de pagamento e {'{GARANTIA_PERIODO}'} a garantia escolhida (sem garantia, a cláusula sai sozinha).

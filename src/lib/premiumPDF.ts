@@ -1,3 +1,4 @@
+import { CLAUSE_HEAD, VERSION_LINE } from './contractClauses';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoMRTransparent from '@/assets/logo-generic.png';
@@ -566,13 +567,41 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     y = ensureSpace(doc, y, 30);
     y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
     y += 5;
-    clauses.forEach((raw) => {
+    const headOf = (l: string) => /^\d+\.\s/.test(l) || CLAUSE_HEAD.test(l) || (l === l.toUpperCase() && l.length < 60 && /[A-Z]/.test(l));
+    // Altura de um bloco (título + texto até o próximo título), para nunca cortar cláusula entre páginas
+    const blockHeight = (from: number) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      let h = 6.4;
+      for (let k = from + 1; k < clauses.length; k++) {
+        const l = clauses[k].trim();
+        if (headOf(l)) break;
+        if (!l) { h += 1.5; continue; }
+        const ind = /^[•\-✓]/.test(l) ? 8.5 : 3.5;
+        h += (doc.splitTextToSize(l.replace(/^[•\-✓]\s*/, ''), CONTENT_W - ind - 2) as string[]).length * 4.4 + 0.5;
+      }
+      return h;
+    };
+    const usable = PAGE_H - FOOTER_H - 3 - 26;
+    clauses.forEach((raw, idx) => {
       const line = raw.trim();
       if (!line) {
         y += 1.5;
         return;
       }
-      const isHead = /^\d+\.\s/.test(line) || (line === line.toUpperCase() && line.length < 60 && /[A-Z]/.test(line));
+      if (VERSION_LINE.test(line)) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(...INK);
+        doc.text(line, LEFT + 3.5, y);
+        y += 5;
+        return;
+      }
+      const isHead = headOf(line);
+      if (isHead && CLAUSE_HEAD.test(line)) {
+        const bh = blockHeight(idx);
+        y = ensureSpace(doc, y, Math.min(bh, usable) + 1.2);
+      }
       const isBullet = /^[•\-✓]/.test(line);
       if (isHead) {
         y = ensureSpace(doc, y, 12);
@@ -631,7 +660,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
   const w = data.warranty;
   const warrantyLines: string[] = [];
-  const warrantyInClauses = /\bGARANTIA\b/.test(resolvedContract.toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim())).join(' '));
+  const warrantyInClauses = /\bGARANTIA\b/.test(resolvedContract.toUpperCase().split('\n').filter((l) => /^\d+\.\s/.test(l.trim()) || CLAUSE_HEAD.test(l.trim())).join(' '));
   if (w?.option && !warrantyInClauses) {
     const period = w.option === 'custom' ? w.customPeriod || '' : WARRANTY_LABELS[w.option];
     warrantyLines.push(w.option === 'none' ? 'SEM GARANTIA' : `${period.toUpperCase()} DE GARANTIA`);

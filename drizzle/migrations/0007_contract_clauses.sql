@@ -1,0 +1,2 @@
+ALTER TABLE public.company_profile ADD COLUMN IF NOT EXISTS contract_clauses jsonb, ADD COLUMN IF NOT EXISTS contract_clauses_version timestamptz;
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS contract_clauses jsonb;
