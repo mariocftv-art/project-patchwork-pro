@@ -9,7 +9,7 @@ import {
   PAYMENT_LABELS,
   PremiumDocData,
   warrantyPeriod,
-} from '@/lib/premiumPDF';
+} from '@/lib/docModel';
 
 const SEP = '━━━━━━━━━━━━━━━━━━';
 
