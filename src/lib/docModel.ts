@@ -1,3 +1,4 @@
+import { CLAUSE_HEAD, defaultContractFields, renumberClauseLines, type ContractClause } from './contractClauses';
 // Dados e regras dos documentos (sem jsPDF) — usado pela loja sem baixar o gerador de PDF.
 import { buildScopeLines } from '@/lib/docScope';
 import { formatBRL } from '@/lib/formatCurrency';
@@ -72,6 +73,10 @@ export interface PremiumDocData {
   warranty?: DocWarranty;
   notes?: string;
   contractText?: string;
+  /** Cláusulas editáveis (ligar/desligar) — o contractText é montado a partir delas */
+  contractClauses?: ContractClause[];
+  /** Data da versão do modelo usado */
+  contractVersion?: string;
   showSignatures?: boolean;
   /** Assinaturas eletrônicas confirmadas (imagem PNG em data URL) */
   signatures?: { contratante?: DocSignature; contratada?: DocSignature };
@@ -178,32 +183,7 @@ export const lineTotal = (it: DocItem) =>
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function buildDefaultContractText(_data?: Pick<PremiumDocData, 'items' | 'warranty'>): string {
-  return [
-    '1. OBJETO DO CONTRATO',
-    'A CONTRATADA realizará o fornecimento, instalação, configuração e testes do sistema de CFTV descrito neste contrato, incluindo organização dos componentes e entrega do sistema em funcionamento.',
-    '',
-    '2. EQUIPAMENTOS E SERVIÇOS',
-    'Os equipamentos, materiais e serviços, com quantidades, valores unitários e totais, são os descritos na tabela de itens deste documento, totalizando {VALOR_TOTAL}.',
-    '',
-    '3. ESCOPO DA INSTALAÇÃO',
-    'O serviço será executado conforme os equipamentos, quantidades e serviços descritos neste contrato. O sistema contratado contempla:',
-    '{ESCOPO}',
-    '',
-    '4. GARANTIA — {GARANTIA_PERIODO}',
-    'A garantia seguirá o período de {GARANTIA_PERIODO_MIN} e as condições registradas neste documento. A garantia não cobre danos decorrentes de mau uso, alterações não autorizadas, intervenção de terceiros, vandalismo, surtos elétricos, descargas atmosféricas ou danos externos.',
-    '',
-    '5. VALOR E CONDIÇÕES',
-    'O valor global do fornecimento, materiais e serviços descritos neste contrato é de {VALOR_TOTAL}. {PAGAMENTO}',
-    '',
-    '6. ALTERAÇÃO DE ESCOPO',
-    'Qualquer alteração ou serviço adicional solicitado posteriormente poderá ser objeto de orçamento complementar e dependerá de aprovação das partes.',
-    '',
-    '7. ACESSO AO LOCAL E INFRAESTRUTURA',
-    'O cliente deverá disponibilizar acesso ao local e as condições necessárias para a execução do serviço. Quando houver infraestrutura elétrica, de rede ou física inadequada, eventuais adequações não previstas neste documento poderão ser cobradas separadamente, mediante aprovação do cliente.',
-    '',
-    '8. DISPOSIÇÕES GERAIS',
-    'A assinatura deste documento representa a concordância das partes com o escopo, o valor e as condições aqui descritos.',
-  ].join('\n');
+  return defaultContractFields().contractText;
 }
 
 function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals>) {
@@ -255,7 +235,17 @@ export function resolveContractText(data: PremiumDocData): string {
       while (end < lines.length && !/^\d+\.\s/.test(lines[end].trim())) end++;
       lines.splice(gi, end - gi);
     }
+    const ci = lines.findIndex((l, k) => CLAUSE_HEAD.test(l.trim()) && (() => {
+      for (let e = k + 1; e < lines.length && !CLAUSE_HEAD.test(lines[e].trim()); e++) if (lines[e].includes('{GARANTIA_PERIODO')) return true;
+      return false;
+    })());
+    if (ci >= 0) {
+      let end = ci + 1;
+      while (end < lines.length && !CLAUSE_HEAD.test(lines[end].trim())) end++;
+      lines.splice(ci, end - ci);
+    }
   }
+  lines = renumberClauseLines(lines);
 
   let n = 0;
   const out = lines
