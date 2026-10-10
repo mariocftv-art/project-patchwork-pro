@@ -74,10 +74,11 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom", "react-router-dom"],
-          supabase: ["@supabase/supabase-js"],
-          query: ["@tanstack/react-query"],
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return "react";
+          if (id.includes("node_modules/@supabase/")) return "supabase";
+          if (id.includes("node_modules/@tanstack/")) return "query";
+          if (/node_modules\/(jspdf|jspdf-autotable|html2canvas|canvg|dompurify|fflate)\//.test(id) || id.includes("/src/lib/premiumPDF")) return "pdf";
         },
       },
     },
