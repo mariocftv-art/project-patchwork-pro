@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { imgAt, imgSrcSet } from '@/lib/imgSizes';
 import { waLink } from '@/lib/brand';
 import { Heart, Bell } from 'lucide-react';
 import { Product } from '@/lib/supabaseApi';
