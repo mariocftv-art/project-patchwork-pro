@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { imgAt, imgSrcSet } from '@/lib/imgSizes';
 import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatBRL } from '@/lib/formatCurrency';
@@ -33,7 +34,7 @@ export default function ServiceCard({ s }: { s: ServiceItem }) {
     <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-lg hover:border-primary/50 transition-all">
       <Link to={href} className="block aspect-square w-full overflow-hidden bg-muted">
         {s.image_url ? (
-          <img src={s.image_url} alt={s.title} className="w-full h-full object-cover" loading="lazy" width={1024} height={1024} />
+          <img src={imgAt(s.image_url, 800)} srcSet={imgSrcSet(s.image_url)} sizes="(min-width: 1024px) 33vw, 100vw" alt={s.title} className="w-full h-full object-cover" loading="lazy" width={1024} height={1024} />
         ) : (
           <div className="w-full h-full flex items-center justify-center"><Camera className="w-16 h-16 text-muted-foreground" /></div>
         )}

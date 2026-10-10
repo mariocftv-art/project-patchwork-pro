@@ -10,3 +10,9 @@
 - [x] 23. Ocultar valores dos itens
 - [x] 24. Seleção em documentos, Lixeira, mensagens WhatsApp
 - [x] 25. Ordem da home, menu de categorias no celular, /servicos-realizados, produto abre no topo
+
+## Pedido 31 (auditoria) — em andamento
+- [x] Medição antes/depois, fotos WebP 3 tamanhos, gerador de PDF fora da loja, índices, banner/logo leves
+- [ ] Celular acima de 80: exige diminuir o pacote principal (aguarda OK do dono)
+- [ ] Partes 3, 4 e 5 (varredura, experiência, segurança)
+- [ ] Pedido 32 (cláusulas; chavinhas no modelo e por contrato)

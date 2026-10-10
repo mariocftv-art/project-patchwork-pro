@@ -2,16 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBrand, brandLogo } from '@/lib/brand';
-import b1w from '@/assets/banners/b1-wide.jpg';
-import b1t from '@/assets/banners/b1-tall.jpg';
-import b2w from '@/assets/banners/b2-wide.jpg';
-import b2t from '@/assets/banners/b2-tall.jpg';
-import b3w from '@/assets/banners/b3-wide.jpg';
-import b3t from '@/assets/banners/b3-tall.jpg';
-import b4w from '@/assets/banners/b4-wide.jpg';
-import b4t from '@/assets/banners/b4-tall.jpg';
-import b5w from '@/assets/banners/b5-wide.jpg';
-import b5t from '@/assets/banners/b5-tall.jpg';
+const b1w = '/banners/b1-wide.webp';
+const b1t = '/banners/b1-tall.webp';
+import b2w from '@/assets/banners/b2-wide.webp';
+import b2t from '@/assets/banners/b2-tall.webp';
+import b3w from '@/assets/banners/b3-wide.webp';
+import b3t from '@/assets/banners/b3-tall.webp';
+import b4w from '@/assets/banners/b4-wide.webp';
+import b4t from '@/assets/banners/b4-tall.webp';
+import b5w from '@/assets/banners/b5-wide.webp';
+import b5t from '@/assets/banners/b5-tall.webp';
 
 /** Artes antigas do carrossel, guardadas (não apagar). */
 export const LEGACY_BANNER_ARTS = [
@@ -66,7 +66,7 @@ export default function PromoBanner() {
             <Link key={b.title} to={b.link} aria-label={`${b.title} — ${b.cta}`} className="relative flex-shrink-0 w-full h-full block">
               <picture>
                 <source media="(min-width: 640px)" srcSet={b.wide} />
-                <img src={b.tall} alt="" loading={i === 0 ? 'eager' : 'lazy'} className="absolute inset-0 w-full h-full object-cover" />
+                <img src={b.tall} alt="" loading={i === 0 ? 'eager' : 'lazy'} {...{ fetchpriority: i === 0 ? 'high' : 'low' }} decoding="async" className="absolute inset-0 w-full h-full object-cover" />
               </picture>
               <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/30 to-transparent sm:bg-gradient-to-r sm:from-black/80 sm:via-black/40 sm:to-transparent" aria-hidden />
               <img src={brandLogo(brand)} alt={brand.name} className="absolute top-3 right-3 sm:top-4 sm:right-5 h-10 sm:h-14 w-auto object-contain drop-shadow" />

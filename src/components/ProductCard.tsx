@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { imgAt, imgSrcSet } from '@/lib/imgSizes';
 import { waLink } from '@/lib/brand';
 import { Heart, Bell } from 'lucide-react';
 import { Product } from '@/lib/supabaseApi';
@@ -39,10 +40,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="relative -mx-2 -mt-2 sm:-mx-4 sm:-mt-4 mb-2 sm:mb-3">
           <div className="product-frame aspect-square w-full overflow-hidden bg-white keep-white rounded-md p-2 sm:p-3 flex items-center justify-center">
             <img 
-              src={product.image_url || '/placeholder.svg'} 
+              src={imgAt(product.image_url, 400) || '/placeholder.svg'} 
+              srcSet={imgSrcSet(product.image_url)}
+              sizes="(min-width: 1024px) 240px, 50vw"
               alt={product.title} 
               loading="lazy"
               decoding="async"
+              width={300}
+              height={300}
               onError={(e) => { const i = e.currentTarget; if (!i.src.endsWith('/placeholder.svg')) i.src = '/placeholder.svg'; }}
               className="block max-w-full max-h-full w-auto h-auto object-contain"
             />

@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useBrand, brandLogo, waLink, waNumber, getBrand, loadBrand } from '@/lib/brand';
+import { imgAt } from '@/lib/imgSizes';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, Menu, Search, MapPin, ChevronDown, User, X, Instagram, LogOut, Shield, Camera, Images } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
@@ -87,7 +88,7 @@ export default function Layout({ children }: LayoutProps) {
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultContent);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const brand = useBrand();
-  const logoMR = brandLogo(brand);
+  const logoMR = imgAt(brandLogo(brand), 400) as string;
   const shortName = brand.name.replace(/^[^\p{L}\d]*(MR\s+)?/u, '');
   useEffect(() => { loadBrand(); }, []);
 
@@ -515,7 +516,7 @@ export default function Layout({ children }: LayoutProps) {
       <ServicesOverlay open={servicesOpen} onClose={() => setServicesOpen(false)} />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-4">
+      <main className="container mx-auto px-4 py-4 min-h-[100dvh]">
         {children}
       </main>
 
