@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { imgAt, imgSrcSet } from '@/lib/imgSizes';
 import { useQuery } from '@tanstack/react-query';
 import { servicePhotosApi } from '@/lib/servicePhotosApi';
 import { Camera, X, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -38,7 +39,7 @@ export function ServiceGalleryGrid() {
         {photos.map((photo, i) => (
           <div key={photo.id} className="bg-card rounded-lg overflow-hidden border border-border shadow-sm flex flex-col">
             <button type="button" onClick={() => setIdx(i)} aria-label={`Ampliar foto: ${photo.title}`} className="aspect-[4/3] w-full overflow-hidden bg-muted group">
-              <img loading="lazy" decoding="async" src={photo.image_url} alt={photo.title}
+              <img loading="lazy" decoding="async" src={imgAt(photo.image_url, 800)} srcSet={imgSrcSet(photo.image_url)} sizes="(min-width: 1024px) 33vw, 50vw" alt={photo.title}
                 className="block w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </button>
             <div className="p-4 flex flex-col gap-2 flex-1">
