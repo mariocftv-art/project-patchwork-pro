@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => ({
           if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return "react";
           if (id.includes("node_modules/@supabase/")) return "supabase";
           if (id.includes("node_modules/@tanstack/")) return "query";
-          if (/node_modules\/(jspdf|jspdf-autotable|html2canvas|canvg|dompurify|fflate)\//.test(id) || id.includes("/src/lib/premiumPDF")) return "pdf";
+          if (/node_modules\/(jspdf|jspdf-autotable|html2canvas|canvg|dompurify|fflate)\//.test(id)) return "pdf";
         },
       },
     },
