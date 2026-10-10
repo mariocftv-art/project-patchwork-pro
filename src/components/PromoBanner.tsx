@@ -66,7 +66,7 @@ export default function PromoBanner() {
             <Link key={b.title} to={b.link} aria-label={`${b.title} — ${b.cta}`} className="relative flex-shrink-0 w-full h-full block">
               <picture>
                 <source media="(min-width: 640px)" srcSet={b.wide} />
-                <img src={b.tall} alt="" loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : 'low'} decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={b.tall} alt="" loading={i === 0 ? 'eager' : 'lazy'} {...{ fetchpriority: i === 0 ? 'high' : 'low' }} decoding="async" className="absolute inset-0 w-full h-full object-cover" />
               </picture>
               <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/30 to-transparent sm:bg-gradient-to-r sm:from-black/80 sm:via-black/40 sm:to-transparent" aria-hidden />
               <img src={brandLogo(brand)} alt={brand.name} className="absolute top-3 right-3 sm:top-4 sm:right-5 h-10 sm:h-14 w-auto object-contain drop-shadow" />
