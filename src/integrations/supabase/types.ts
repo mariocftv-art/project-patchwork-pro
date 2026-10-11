@@ -441,12 +441,15 @@ export type Database = {
       }
       contract_signatures: {
         Row: {
+          awareness_accepted: boolean | null
+          awareness_text: string | null
           consent_text: string
           created_by: string | null
           created_by_email: string | null
           device: string | null
           doc_hash: string
           id: string
+          image_use_authorized: boolean | null
           includes_brand: boolean
           link_id: string | null
           method: string
@@ -464,12 +467,15 @@ export type Database = {
           version: number
         }
         Insert: {
+          awareness_accepted?: boolean | null
+          awareness_text?: string | null
           consent_text: string
           created_by?: string | null
           created_by_email?: string | null
           device?: string | null
           doc_hash: string
           id?: string
+          image_use_authorized?: boolean | null
           includes_brand?: boolean
           link_id?: string | null
           method?: string
@@ -487,12 +493,15 @@ export type Database = {
           version: number
         }
         Update: {
+          awareness_accepted?: boolean | null
+          awareness_text?: string | null
           consent_text?: string
           created_by?: string | null
           created_by_email?: string | null
           device?: string | null
           doc_hash?: string
           id?: string
+          image_use_authorized?: boolean | null
           includes_brand?: boolean
           link_id?: string | null
           method?: string
