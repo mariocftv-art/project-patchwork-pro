@@ -13,6 +13,7 @@ import { recordToDoc, QuoteRecord } from '@/components/admin/QuoteEditor';
 import { toDocSignatures, preloadRatios, SignatureRow } from '@/lib/contractSignatures';
 import { getBrand } from '@/lib/brand';
 import { maskCPF, maskCNPJ, isValidCPF } from '@/lib/masks';
+import { AWARENESS_TEXT } from '@/lib/contractClauses';
 
 /** Junta linhas quebradas do PDF em parágrafos que se ajustam à tela. */
 function toParagraphs(lines: string[]): { text: string; head: boolean }[] {
@@ -32,7 +33,7 @@ type View = {
   kind?: 'sign' | 'download';
   quote_number?: string;
   record?: QuoteRecord;
-  signatures?: (Pick<SignatureRow, 'party' | 'signer_name' | 'signature_image' | 'signed_at' | 'signer_document' | 'doc_hash'> & { signer_ip?: string | null })[];
+  signatures?: (Pick<SignatureRow, 'party' | 'signer_name' | 'signature_image' | 'signed_at' | 'signer_document' | 'doc_hash' | 'awareness_accepted' | 'image_use_authorized'> & { signer_ip?: string | null })[];
   has_pdf?: boolean;
   client_ip?: string | null;
   doc_code?: string;
@@ -69,6 +70,8 @@ export default function ContractLink() {
   const [name, setName] = useState('');
   const [doc, setDoc] = useState('');
   const [ok, setOk] = useState(false);
+  const [aware, setAware] = useState(false);
+  const [imageUse, setImageUse] = useState<boolean | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pad, setPad] = useState(false);
   const [done, setDone] = useState(false);
@@ -118,10 +121,10 @@ export default function ContractLink() {
 
   const confirm = async (png: string) => {
     if (!view) return;
-    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null } as SignatureRow;
+    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
     const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
-    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, accepted: ok, image: png, pdf_base64: b64 });
+    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     if (r?.state === 'expired') return setView({ state: 'expired' });
@@ -184,12 +187,24 @@ export default function ContractLink() {
             <Label htmlFor="sg-doc">CPF ou CNPJ</Label>
             <Input id="sg-doc" className="mt-1 min-h-11" inputMode="numeric" value={doc} placeholder="000.000.000-00" onChange={(e) => { const x = e.target.value.replace(/\D/g, ''); setDoc(x.length > 11 ? maskCNPJ(x) : maskCPF(x)); }} />
           </div>
+          <div className="rounded-md border-2 border-destructive p-3 space-y-2">
+            <p className="text-sm font-bold">⚠️ Cláusulas de atenção</p>
+            <label className="flex items-start gap-2 text-sm font-semibold">
+              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={aware} onChange={(e) => setAware(e.target.checked)} />
+              <span>Declaro que li e compreendi as cláusulas em destaque (quadro “Cláusulas de atenção”), especialmente quanto às exclusões de garantia, às limitações do sistema, à propriedade dos equipamentos até a quitação e à minha responsabilidade pelo posicionamento das câmeras.</span>
+            </label>
+          </div>
+          <fieldset className="space-y-1">
+            <legend className="text-sm font-medium">Fotos do local para divulgação (antes e depois)</legend>
+            <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === true} onChange={() => setImageUse(true)} />Autorizo</label>
+            <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === false} onChange={() => setImageUse(false)} />Não autorizo</label>
+          </fieldset>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1 h-5 w-5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">

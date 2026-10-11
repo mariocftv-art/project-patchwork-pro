@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from '@/hooks/use-toast';
 import { formatBRL } from '@/lib/formatCurrency';
 import { getCompanyProfile } from '@/lib/companyProfile';
-import { buildPremiumPDF, docFileName } from '@/lib/premiumPDF';
+import { buildPremiumPDF, buildAcceptanceTerm, docFileName } from '@/lib/premiumPDF';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from './SignaturePad';
@@ -94,7 +94,7 @@ export default function ContractsManagement() {
 
   const { data: signatures = [] } = useQuery({ queryKey: ['admin-contract-signatures'], queryFn: listSignatures });
   const [signing, setSigning] = useState<QuoteRecord | null>(null);
-  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string } | null>(null);
+  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string; consents?: { awareness: boolean; imageUse: boolean | null } } | null>(null);
   const [redo, setRedo] = useState(false);
   const afterSign = async (q: QuoteRecord, both: boolean, wasRedo: boolean, how: string) => {
     if (wasRedo) {
@@ -137,7 +137,7 @@ export default function ContractsManagement() {
   const confirmSignature = async (png: string) => {
     if (!pad) return;
     try {
-      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures, { method: 'desenhada' });
+      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures, { method: 'desenhada', awareness: pad.consents?.awareness, imageUse: pad.consents?.imageUse ?? null });
       const q = pad.q;
       setPad(null);
       await afterSign(q, r.both, redo && pad.party === 'contratada', 'desenhada');
@@ -156,6 +156,20 @@ export default function ContractsManagement() {
     } catch (e) {
       console.error(e);
       toast({ title: 'Não foi possível abrir a impressão', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const acceptanceTerm = async (q: QuoteRecord) => {
+    setBusyId(q.id);
+    try {
+      const profile = await getCompanyProfile(true);
+      const doc = await buildAcceptanceTerm(recordToDoc(q), profile);
+      doc.save(`Termo-de-Aceite-${q.quote_number}.pdf`);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Não foi possível gerar o Termo de Aceite', variant: 'destructive' });
     } finally {
       setBusyId(null);
     }
@@ -543,7 +557,7 @@ export default function ContractsManagement() {
                           )}
                         </>
                       ) : (
-                        <SignForm defaultName={x.p === 'contratante' ? x.name : ''} btn={x.btn} onStart={(name) => setPad({ q: signing, party: x.p, name, document: x.doc })} />
+                        <SignForm defaultName={x.p === 'contratante' ? x.name : ''} btn={x.btn} client={x.p === 'contratante'} onStart={(name, cs) => setPad({ q: signing, party: x.p, name, document: x.doc, consents: cs })} />
                       )}
                     </div>
                   );
@@ -555,6 +569,7 @@ export default function ContractsManagement() {
                   <Button size="sm" variant="outline" onClick={() => download(signing)}><Download className="h-4 w-4 mr-1" />PDF</Button>
                   <Button size="sm" variant="outline" onClick={() => print(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
                   <Button size="sm" variant="outline" disabled={busyId === signing.id} onClick={() => printForPen(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir para assinar à caneta</Button>
+                  <Button size="sm" variant="outline" disabled={busyId === signing.id} onClick={() => acceptanceTerm(signing)}><FileCheck className="h-4 w-4 mr-1" />Gerar Termo de Aceite</Button>
                 </div>
               </div>
             );
@@ -585,9 +600,11 @@ export default function ContractsManagement() {
   );
 }
 
-function SignForm({ defaultName, btn, onStart }: { defaultName: string; btn: string; onStart: (name: string) => void }) {
+function SignForm({ defaultName, btn, client, onStart }: { defaultName: string; btn: string; client?: boolean; onStart: (name: string, c?: { awareness: boolean; imageUse: boolean | null }) => void }) {
   const [name, setName] = useState(defaultName);
   const [ok, setOk] = useState(false);
+  const [aware, setAware] = useState(false);
+  const [imageUse, setImageUse] = useState<boolean | null>(null);
   return (
     <div className="space-y-2">
       <p className="text-sm flex items-center gap-1 text-destructive"><Clock className="h-4 w-4" />Pendente</p>
@@ -596,7 +613,20 @@ function SignForm({ defaultName, btn, onStart }: { defaultName: string; btn: str
         <input type="checkbox" className="mt-0.5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
         <span>Li integralmente o contrato e concordo em assiná-lo eletronicamente.</span>
       </label>
-      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3} onClick={() => onStart(name.trim())}>{btn}</Button>
+      {client && (
+        <>
+          <label className="flex items-start gap-2 text-xs font-semibold rounded border-2 border-destructive p-2">
+            <input type="checkbox" className="mt-0.5" checked={aware} onChange={(e) => setAware(e.target.checked)} />
+            <span>⚠️ O cliente leu e compreendeu as cláusulas de atenção (garantia, limitações, propriedade até a quitação e posicionamento das câmeras).</span>
+          </label>
+          <div className="flex gap-4 text-xs">
+            <span>Fotos para divulgação:</span>
+            <label className="flex items-center gap-1"><input type="radio" checked={imageUse === true} onChange={() => setImageUse(true)} />Autoriza</label>
+            <label className="flex items-center gap-1"><input type="radio" checked={imageUse === false} onChange={() => setImageUse(false)} />Não autoriza</label>
+          </div>
+        </>
+      )}
+      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3 || (!!client && (!aware || imageUse === null))} onClick={() => onStart(name.trim(), client ? { awareness: aware, imageUse } : undefined)}>{btn}</Button>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 
 - Pedidos: insert sem .select() e leitura pública só via RPC SECURITY DEFINER (get_order_by_number/get_order_statuses) — RLS de orders fica ligada.
-- Documentos (orçamento/contrato/OS): um único gerador jsPDF (premiumPDF.ts) alimenta PDF, prévia e impressão — a prévia/impressão renderizam as páginas desse PDF via pdfjs, porque a CSP (object-src 'none') bloqueia o leitor de PDF do navegador.
+- Documentos (orçamento/contrato/OS): um único gerador jsPDF (premiumPDF.ts) alimenta PDF, prévia e impressão ; prévia/impressão via pdfjs (CSP object-src 'none').
 - Escopo do contrato e WhatsApp saem dos itens do documento (docScope.ts categoriza; placeholders {ESCOPO}/{PAGAMENTO}/{GARANTIA_PERIODO}) — nunca texto fixo de produtos.
 - Fotos de outros sites no PDF passam pela função image-proxy (CORS), só http(s) público e imagens até 5 MB.
 - Versões de documentos ficam em quote_versions (só inserção, admin); contrato assinado nunca é sobrescrito — edição gera aditivo novo. Why: preservar prova jurídica.
 - Assinaturas em contract_signatures (só inserção, admin) + PDF assinado no bucket privado signed-contracts; hash SHA-256 do snapshot da versão. Why: prova e privacidade.
-- White-label: marca (nome, CNPJ, contatos, logo, cores do site) vem só de company_profile via src/lib/brand.ts (useBrand/getBrand/waLink/applyTheme); nunca fixar dados da empresa no código. Why: remixes sem dados do dono.
+- White-label: marca (nome, CNPJ, contatos, logo, cores do site) vem só de company_profile via src/lib/brand.ts ; nunca fixar dados da empresa no código. Why: remixes sem dados do dono.
 - Primeiro admin de um site novo vem da RPC claim_first_admin (só funciona sem nenhum admin), chamada no AdminGuard. Why: remix pertence ao novo dono.
 - Mercado Pago: Access Token fica só na tabela payment_secrets (só service_role) e só as funções do servidor mp-* leem; o webhook sempre consulta o pagamento na API do Mercado Pago. Why: o token nunca chega ao navegador e um aviso falso não muda o pedido.
 - Categorias da loja (menu, barra preta, ícones, subcategorias) vêm só da tabela categories (is_active/show_in_menu/icon/parent_slug); links antigos /categoria/:slug redirecionam no App.tsx. Why: o dono reorganiza pelo painel sem código.
@@ -21,4 +21,5 @@
 - Floating buttons carry class wa-fab and hide while body has overlay-open (set by Layout for category menu/gallery) or Radix scroll lock. Why: a floating button must never cover open content.
 - Store photos are WebP in 400/800/1600 named `-<w>.webp`; components build srcset via src/lib/imgSizes.ts, and uploadImage writes all three. Why: serve the right size per screen.
 - Pure document rules/types live in src/lib/docModel.ts (re-exported by premiumPDF.ts); store pages import docModel, never premiumPDF statically. Why: keep jsPDF out of the store's download.
-- Contract clauses are structured (ContractClause[] in src/lib/contractClauses.ts): template in company_profile.contract_clauses, per-contract copy in quotes.contract_clauses, composed into contract_text with auto-renumbering. Why: toggle/edit clauses while signed contracts keep their own frozen text.
+
+- Contract clauses: ContractClause[] (contractClauses.ts), template in company_profile, frozen copy per contract in quotes; composeClauses renumbers and wraps highlight clauses in [[DESTAQUE]] (bold bordered box + awareness); consents saved on contract_signatures. Why: editable clauses, frozen signed text, CDC art. 54 §4.

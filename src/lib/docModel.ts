@@ -87,6 +87,8 @@ export interface PremiumDocData {
   showSignatures?: boolean;
   /** Assinaturas eletrônicas confirmadas (imagem PNG em data URL) */
   signatures?: { contratante?: DocSignature; contratada?: DocSignature };
+  /** Gera o Termo de Recebimento e Aceite (a partir do contrato) */
+  term?: { completedAt?: string };
 }
 
 export interface DocSignature {
@@ -101,6 +103,10 @@ export interface DocSignature {
   code?: string | null;
   /** A arte já traz o nome e o risco da empresa (não repetir embaixo) */
   includesBrand?: boolean;
+  /** Ciência das cláusulas de atenção confirmada na assinatura */
+  awareness?: boolean | null;
+  /** Autorização de uso das fotos para divulgação (null = não respondeu) */
+  imageUse?: boolean | null;
 }
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
@@ -193,6 +199,9 @@ export function buildDefaultContractText(_data?: Pick<PremiumDocData, 'items' | 
   return defaultContractFields().contractText;
 }
 
+export const imageUseMark = (v?: boolean | null) =>
+  `(${v === true ? 'X' : ' '}) AUTORIZO   (${v === false ? 'X' : ' '}) NÃO AUTORIZO`;
+
 function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals>) {
   const p = data.payment;
   if (!p?.method) return 'A forma e o cronograma de pagamento serão definidos e registrados entre as partes.';
@@ -262,7 +271,8 @@ export function resolveContractText(data: PremiumDocData): string {
     .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
     .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
     .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
-    .replace(/\{GARANTIA_PERIODO_MIN\}/g, period);
+    .replace(/\{GARANTIA_PERIODO_MIN\}/g, period)
+    .replace(/\{AUTORIZACAO_IMAGEM\}/g, imageUseMark(data.signatures?.contratante?.imageUse));
   return out;
 }
 

@@ -6,121 +6,86 @@ export interface ContractClause {
   title: string;
   body: string;
   enabled: boolean;
+  /** Sai no quadro de destaque com declaração de ciência e rubrica */
+  highlight?: boolean;
 }
 
-export const DEFAULT_CLAUSES_VERSION = '2026-10-10';
+export const DEFAULT_CLAUSES_VERSION = '2026-10-11';
 
-const C = (id: string, title: string, body: string[]): ContractClause => ({ id, title, body: body.join('\n'), enabled: true });
+const C = (id: string, title: string, body: string[], highlight = false): ContractClause => ({ id, title, body: body.join('\n'), enabled: true, ...(highlight ? { highlight: true } : {}) });
+
+/** Marcadores do quadro de destaque (art. 54, §4º do CDC) no texto montado. */
+export const HIGHLIGHT_START = '[[DESTAQUE]]';
+export const HIGHLIGHT_END = '[[/DESTAQUE]]';
+export const AWARENESS_TEXT = 'Declaro que li e compreendi as cláusulas {CLAUSULAS_DESTAQUE}, especialmente quanto às exclusões de garantia, às limitações do sistema, à propriedade dos equipamentos até a quitação e à minha responsabilidade pelo posicionamento das câmeras.';
 
 export const DEFAULT_CLAUSES: ContractClause[] = [
-  C('objeto', 'DO OBJETO', [
-    '1.1. O presente contrato tem por objeto o fornecimento de equipamentos e a prestação de Serviço Técnico Especializado de instalação, configuração e testes do sistema de segurança eletrônica descrito neste instrumento, a ser executado no endereço indicado pelo CONTRATANTE.',
-    '1.2. Integram este contrato, como parte indissociável, a relação de equipamentos, materiais e serviços constante da tabela de itens deste documento:',
+  C('objeto', 'OBJETO', [
+    '1.1. Fornecimento dos equipamentos e prestação de Serviço Técnico Especializado de instalação, configuração e testes do sistema de segurança descrito na tabela de itens deste contrato, a ser executado no endereço de instalação indicado:',
     '{ESCOPO}',
-    '1.3. Serviços, equipamentos ou materiais não descritos neste contrato não estão incluídos e dependerão de novo orçamento e aprovação prévia por escrito.',
+    '1.2. O que não estiver descrito neste contrato não está incluído e depende de novo orçamento aprovado por escrito.',
   ]),
-  C('preco', 'DO PREÇO E DA FORMA DE PAGAMENTO', [
-    '2.1. Pelo objeto deste contrato, o CONTRATANTE pagará à CONTRATADA o valor total de {VALOR_TOTAL}. {PAGAMENTO}',
-    '2.2. O valor contratado compreende os equipamentos, os materiais, o Serviço Técnico Especializado e os testes de funcionamento descritos na Cláusula 1ª.',
-    '2.3. O atraso no pagamento de qualquer parcela sujeitará o CONTRATANTE a multa de 2% (dois por cento) sobre o valor em atraso, juros de mora de 1% (um por cento) ao mês e correção monetária pelo IPCA, sem prejuízo da cobrança judicial do débito.',
-    '2.4. O inadimplemento por prazo superior a 30 (trinta) dias faculta à CONTRATADA a suspensão de qualquer serviço de suporte ou garantia contratual até a regularização, bem como a adoção das medidas previstas na Cláusula 10ª.',
+  C('preco', 'PREÇO E PAGAMENTO', [
+    '2.1. Valor total de {VALOR_TOTAL}, compreendendo equipamentos, materiais, serviço e testes. {PAGAMENTO}',
+    '2.2. O atraso sujeita o CONTRATANTE a multa de 2%, juros de 1% ao mês e correção pelo IPCA.',
+    '2.3. Atraso superior a 30 dias autoriza a CONTRATADA a suspender a garantia contratual e o suporte, cobrar por meios próprios, protestar o título, incluir o débito nos órgãos de proteção ao crédito e exercer os direitos da Cláusula 8ª. Despesas de cobrança e honorários correm por conta do inadimplente, nos limites legais.',
   ]),
-  C('prazo', 'DO PRAZO E DA EXECUÇÃO', [
-    '3.1. A execução dos serviços terá início na data acordada entre as partes e será concluída no prazo estimado informado neste contrato, salvo ocorrência das hipóteses previstas nos itens 3.3 e 3.4.',
-    '3.2. A data e o horário da instalação serão previamente combinados com o CONTRATANTE, que deverá garantir o acesso ao local e a presença de pessoa maior de idade e autorizada durante toda a execução.',
-    '3.3. Não serão computados no prazo os períodos decorrentes de: indisponibilidade do local, ausência de energia elétrica ou de infraestrutura adequada, impedimento de acesso, condições climáticas que inviabilizem o trabalho em altura ou em área externa, atraso de fornecedores, ou qualquer fato não imputável à CONTRATADA.',
-    '3.4. Caso a equipe compareça na data e horário agendados e não consiga executar os serviços por motivo atribuível ao CONTRATANTE, será devida à CONTRATADA taxa de visita improdutiva no valor correspondente ao deslocamento da equipe, e nova data será agendada.',
+  C('prazo', 'PRAZO E EXECUÇÃO', [
+    '3.1. Execução na data acordada, no prazo estimado informado neste contrato.',
+    '3.2. O CONTRATANTE garante o acesso ao local e a presença de pessoa maior e autorizada durante toda a execução.',
+    '3.3. Não contam no prazo: indisponibilidade do local, falta de energia ou de infraestrutura, impedimento de acesso, clima que inviabilize trabalho em altura ou área externa, atraso de fornecedores e qualquer fato não imputável à CONTRATADA.',
+    '3.4. Comparecendo a equipe na data agendada e não sendo possível executar por motivo atribuível ao CONTRATANTE, será devida taxa de visita improdutiva, e nova data será agendada.',
   ]),
-  C('obrig-contratada', 'DAS OBRIGAÇÕES DA CONTRATADA', [
-    '4.1. Executar os serviços com zelo, técnica e observância das normas aplicáveis, empregando profissionais qualificados.',
-    '4.2. Fornecer os equipamentos e materiais descritos neste contrato, novos e em perfeito estado de funcionamento.',
-    '4.3. Realizar os testes de funcionamento do sistema e demonstrar sua operação ao CONTRATANTE antes da conclusão do serviço.',
-    '4.4. Orientar o CONTRATANTE quanto ao uso do sistema, incluindo o acesso remoto por aplicativo, quando aplicável.',
-    '4.5. Responder pelos danos que comprovadamente causar ao imóvel ou aos bens do CONTRATANTE por culpa de seus profissionais durante a execução, excluídos os desgastes e as intervenções inerentes e necessárias à instalação, previamente informados.',
-    '4.6. Manter sigilo sobre as informações, imagens e dados a que tiver acesso em razão deste contrato.',
-    '4.7. Deixar o local de trabalho limpo e organizado ao final da execução.',
+  C('obrig-contratada', 'OBRIGAÇÕES DA CONTRATADA', [
+    '4.1. Executar com técnica e profissionais qualificados; fornecer equipamentos novos e em perfeito funcionamento; testar e demonstrar o sistema; orientar quanto ao uso e ao acesso remoto; manter sigilo; deixar o local limpo.',
+    '4.2. Responder pelos danos que comprovadamente causar ao imóvel por culpa de seus profissionais, excluídas as intervenções inerentes à instalação, previamente informadas.',
   ]),
-  C('obrig-contratante', 'DAS OBRIGAÇÕES DO CONTRATANTE', [
-    '5.1. Fornecer acesso ao local nas datas e horários agendados.',
-    '5.2. Disponibilizar, às suas expensas, a infraestrutura necessária à instalação, incluindo ponto de energia elétrica adequado e dentro das normas, rede de internet quando o sistema previr acesso remoto, e condições seguras de trabalho.',
-    '5.3. Informar previamente a existência de tubulações, fiação elétrica, hidráulica ou de gás embutidas nos locais de perfuração. A CONTRATADA não responderá por danos decorrentes da ausência ou da incorreção dessa informação.',
-    '5.4. Obter, quando necessário, as autorizações de condomínio, de locador, de órgão público ou de terceiros para a instalação.',
-    '5.5. Efetuar os pagamentos nas datas acordadas.',
-    '5.6. Conservar os equipamentos, observando as instruções de uso recebidas.',
-    '5.7. Comunicar à CONTRATADA qualquer falha ou anormalidade no prazo mais breve possível.',
+  C('obrig-contratante', 'OBRIGAÇÕES DO CONTRATANTE', [
+    '5.1. Fornecer acesso ao local nas datas agendadas e, às suas expensas, a infraestrutura necessária: ponto de energia dentro das normas, internet quando houver acesso remoto, e condições seguras de trabalho.',
+    '5.2. Informar previamente a existência de tubulação elétrica, hidráulica ou de gás nos locais de perfuração. A CONTRATADA não responde por danos decorrentes da ausência ou incorreção dessa informação.',
+    '5.3. Obter as autorizações de condomínio, locador ou órgão público quando necessárias.',
+    '5.4. Efetuar os pagamentos nas datas acordadas e conservar os equipamentos conforme as orientações recebidas.',
+    '5.5. Guardar o gravador (DVR/NVR) e a fonte em local protegido, ventilado, seco e de acesso restrito, declarando ter sido orientado quanto a isso.',
+    '5.6. Alterar imediatamente as senhas recebidas e guardá-las em local seguro. A CONTRATADA não mantém cópia das credenciais após a entrega.',
+    '5.7. Comunicar qualquer falha no prazo mais breve possível.',
   ]),
-  C('garantia', 'DA GARANTIA', [
-    '6.1. A CONTRATADA concede garantia de {GARANTIA_PERIODO} sobre o Serviço Técnico Especializado de instalação, contada da data de conclusão, sem prejuízo da garantia legal prevista no Código de Defesa do Consumidor.',
-    '6.2. Os equipamentos fornecidos têm a garantia concedida por seus respectivos fabricantes, nos prazos e condições por eles estabelecidos, cabendo à CONTRATADA o encaminhamento ao fabricante quando acionada dentro do prazo.',
-    '6.3. Durante a vigência da garantia do serviço, a CONTRATADA realizará, sem custo adicional, os ajustes e correções decorrentes de falha de instalação ou de configuração.',
-    '6.4. O acionamento da garantia deverá ser feito pelos canais oficiais de atendimento da CONTRATADA, com descrição da ocorrência.',
+  C('garantia', 'GARANTIA E SUAS EXCLUSÕES', [
+    '6.1. A CONTRATADA concede garantia de {GARANTIA_PERIODO} sobre o Serviço Técnico Especializado, contada da conclusão, sem prejuízo da garantia legal do Código de Defesa do Consumidor. Os equipamentos têm a garantia de seus fabricantes, cabendo à CONTRATADA o encaminhamento quando acionada no prazo.',
+    '6.2. A GARANTIA NÃO COBRE falhas ou danos decorrentes de: descargas atmosféricas, surtos, oscilações ou interrupção de energia; uso inadequado, negligência ou inobservância das instruções; intervenção, reparo ou mudança de posicionamento por terceiros não autorizados; vandalismo, furto, roubo, incêndio, alagamento, infiltração, maresia, animais ou insetos; caso fortuito e força maior; instabilidade ou alteração da internet, do provedor ou do roteador do CONTRATANTE; alteração de senhas, configurações ou aplicativos pelo CONTRATANTE ou por terceiros; desgaste natural.',
+    '6.3. Chamado decorrente de hipótese excluída será orçado previamente e cobrado, mediante concordância do CONTRATANTE.',
+  ], true),
+  C('limitacoes', 'LIMITAÇÕES DO SISTEMA', [
+    '7.1. O sistema de segurança eletrônica é ferramenta de monitoramento, registro e dissuasão. NÃO CONSTITUI SERVIÇO DE VIGILÂNCIA ARMADA, NEM MONITORAMENTO 24 HORAS POR CENTRAL, NEM GARANTE A PREVENÇÃO DE FURTOS, ROUBOS, INVASÕES OU QUAISQUER SINISTROS, salvo contratação específica e expressa.',
+    '7.2. A CONTRATADA não responde por eventos ocorridos no imóvel nem por perdas patrimoniais do CONTRATANTE ou de terceiros, tampouco por furto, avaria ou desligamento dos equipamentos após a entrega.',
+    '7.3. O período de retenção das gravações depende da capacidade do armazenamento, da quantidade de câmeras, da resolução e da configuração. A estimativa informada não constitui garantia de prazo fixo.',
+    '7.4. O acesso remoto depende de internet ativa e estável no imóvel e no aparelho do CONTRATANTE e da disponibilidade dos serviços do fabricante. A continuidade do funcionamento depende do fornecimento regular de energia elétrica.',
+  ], true),
+  C('propriedade', 'PROPRIEDADE DOS EQUIPAMENTOS', [
+    '8.1. Os equipamentos permanecem de propriedade da CONTRATADA até a quitação integral, nos termos dos artigos 521 e seguintes do Código Civil, transferindo-se automaticamente ao CONTRATANTE com o pagamento final.',
+    '8.2. Enquanto não quitado, fica vedada a remoção, alienação, oneração ou deslocamento dos equipamentos sem anuência escrita da CONTRATADA.',
+  ], true),
+  C('cameras', 'POSICIONAMENTO DAS CÂMERAS E PROTEÇÃO DE DADOS', [
+    '9.1. O posicionamento e o ângulo das câmeras são definidos pelo CONTRATANTE, que responde EXCLUSIVAMENTE pelo enquadramento escolhido, inclusive por reclamações ou demandas de terceiros decorrentes da captação de áreas de imóveis vizinhos, vias ou espaços de uso comum. A CONTRATADA orienta tecnicamente, mas não responde pela decisão final.',
+    '9.2. As imagens são de titularidade e responsabilidade exclusiva do CONTRATANTE, que figura como controlador dos dados nos termos da Lei nº 13.709/2018. A CONTRATADA atua apenas como prestadora do serviço de instalação, não realizando armazenamento, acesso ou monitoramento das imagens, salvo quando expressamente solicitada para suporte.',
+  ], true),
+  C('aceite', 'ENTREGA E ACEITE', [
+    '10.1. Concluída a instalação, a CONTRATADA demonstrará o funcionamento do sistema ao CONTRATANTE, que firmará Termo de Recebimento e Aceite declarando o recebimento em pleno funcionamento, com as orientações de uso e as credenciais.',
+    '10.2. A ausência do CONTRATANTE após agendamento prévio, ou a recusa injustificada em firmar o Termo, não impede a conclusão: o serviço será considerado aceito decorridos 5 dias úteis sem manifestação por escrito.',
+    '10.3. Divergências quanto a quantidade, posicionamento ou funcionamento devem ser apontadas na entrega ou em até 5 dias úteis, por escrito, para correção sem custo.',
+    '10.4. A CONTRATADA poderá fazer registro fotográfico do local antes e depois, para comprovação técnica da execução. O uso dessas imagens para divulgação depende de autorização: {AUTORIZACAO_IMAGEM}',
   ]),
-  C('exclusoes', 'DAS EXCLUSÕES DA GARANTIA', [
-    '7.1. A garantia não cobre falhas ou danos decorrentes de:',
-    'a) descargas atmosféricas, surtos, oscilações ou interrupção no fornecimento de energia elétrica;',
-    'b) uso inadequado, negligência, imperícia ou inobservância das instruções de uso;',
-    'c) intervenção, reparo, alteração de posicionamento ou manutenção realizada por terceiros não autorizados pela CONTRATADA;',
-    'd) vandalismo, furto, roubo, incêndio, alagamento, infiltração, maresia, animais, insetos ou caso fortuito e força maior;',
-    'e) indisponibilidade, instabilidade ou alteração da internet, do provedor, do roteador ou da rede do CONTRATANTE;',
-    'f) alteração de senhas, de configurações ou de aplicativos realizada pelo CONTRATANTE ou por terceiros;',
-    'g) desgaste natural decorrente do uso e do tempo.',
-    '7.2. Constatado que o chamado decorre de hipótese excluída da garantia, o atendimento será cobrado conforme a tabela vigente, mediante prévia informação e concordância do CONTRATANTE.',
+  C('rescisao', 'ALTERAÇÕES E RESCISÃO', [
+    '11.1. Qualquer inclusão, exclusão ou alteração de itens, valores ou prazos só vale por termo aditivo assinado por ambas as partes, permanecendo íntegros o contrato original e suas assinaturas.',
+    '11.2. O contrato poderá ser rescindido por acordo; pela CONTRATADA em caso de inadimplemento superior a 30 dias; pelo CONTRATANTE mediante comunicação; ou por descumprimento de obrigação essencial, após notificação com 10 dias para correção.',
+    '11.3. Rescindido antes do início, restituem-se os valores pagos, deduzidos os custos comprovadamente incorridos. Rescindido após o início por iniciativa imotivada do CONTRATANTE, serão devidos os equipamentos já adquiridos ou instalados, os serviços executados e cláusula penal de 20% sobre o saldo remanescente.',
+    '11.4. A retirada de equipamentos instalados, quando cabível, será agendada pela CONTRATADA, correndo por conta do CONTRATANTE os custos de desinstalação e reparo das fixações.',
   ]),
-  C('limitacoes', 'DO FUNCIONAMENTO DO SISTEMA E DAS LIMITAÇÕES', [
-    '8.1. O sistema de segurança eletrônica é ferramenta de monitoramento, registro e dissuasão. Não constitui serviço de vigilância armada, de monitoramento 24 horas por central, nem garante a prevenção de furtos, roubos, invasões ou quaisquer sinistros, salvo contratação específica e expressa desses serviços.',
-    '8.2. A CONTRATADA não responde por eventos ocorridos no imóvel, por perdas patrimoniais ou por danos de qualquer natureza sofridos pelo CONTRATANTE ou por terceiros.',
-    '8.3. O período de retenção das gravações depende da capacidade do dispositivo de armazenamento instalado, da quantidade de câmeras, da resolução e da configuração escolhidas, podendo variar. A CONTRATADA informará a estimativa, que não constitui garantia de prazo fixo.',
-    '8.4. O acesso remoto por aplicativo depende de internet ativa e estável no imóvel e no dispositivo do CONTRATANTE, bem como da disponibilidade dos serviços do fabricante, estando fora da ingerência da CONTRATADA.',
-    '8.5. A continuidade do funcionamento depende do fornecimento regular de energia elétrica no imóvel.',
-  ]),
-  C('propriedade', 'DA PROPRIEDADE DOS EQUIPAMENTOS', [
-    '9.1. Os equipamentos fornecidos permanecem de propriedade da CONTRATADA até a quitação integral do valor contratado, nos termos dos artigos 521 e seguintes do Código Civil.',
-    '9.2. Quitado o contrato, a propriedade transfere-se automaticamente ao CONTRATANTE, independentemente de novo instrumento.',
-    '9.3. Enquanto não quitado, fica vedada a remoção, a alienação, a oneração ou o deslocamento dos equipamentos sem prévia anuência escrita da CONTRATADA.',
-  ]),
-  C('rescisao', 'DA RESCISÃO', [
-    '10.1. Este contrato poderá ser rescindido:',
-    'a) por acordo entre as partes, a qualquer tempo;',
-    'b) pela CONTRATADA, em caso de inadimplemento superior a 30 (trinta) dias;',
-    'c) pelo CONTRATANTE, mediante comunicação, respondendo pelos equipamentos já adquiridos e pelos serviços já executados;',
-    'd) por descumprimento de obrigação essencial por qualquer das partes, após notificação com prazo de 10 (dez) dias para correção.',
-    '10.2. Rescindido o contrato antes do início da execução, serão restituídos os valores pagos, deduzidos os custos comprovadamente incorridos pela CONTRATADA.',
-    '10.3. Rescindido após o início da execução, serão devidos os equipamentos entregues e os serviços efetivamente prestados até a data da rescisão.',
-  ]),
-  C('aditivo', 'DA ALTERAÇÃO DO ESCOPO', [
-    '11.1. Qualquer inclusão, exclusão ou alteração de equipamentos, serviços, quantidades, valores ou prazos somente terá validade mediante termo aditivo, assinado por ambas as partes.',
-    '11.2. O contrato original e suas assinaturas permanecerão íntegros e válidos, sendo o aditivo documento complementar e autônomo.',
-  ]),
-  C('cameras', 'DO POSICIONAMENTO DAS CÂMERAS E DA PRIVACIDADE', [
-    '12.1. O posicionamento e o ângulo das câmeras são definidos pelo CONTRATANTE, cabendo a ele a responsabilidade pelo enquadramento escolhido.',
-    '12.2. O CONTRATANTE declara estar ciente de que a captação de imagens de áreas internas de imóveis vizinhos, de vias e de espaços de uso comum pode configurar violação de privacidade, respondendo exclusivamente por eventuais reclamações, notificações ou demandas de terceiros decorrentes do enquadramento adotado.',
-    '12.3. A CONTRATADA orientará tecnicamente quanto ao melhor posicionamento, mas não responde pela decisão final do CONTRATANTE.',
-  ]),
-  C('lgpd', 'DA PROTEÇÃO DE DADOS', [
-    '13.1. As imagens captadas pelo sistema são de titularidade e responsabilidade exclusiva do CONTRATANTE, que figura como controlador dos dados, nos termos da Lei nº 13.709/2018 (LGPD).',
-    '13.2. A CONTRATADA atua exclusivamente como prestadora do serviço de instalação e configuração, não realizando armazenamento, acesso, tratamento ou monitoramento das imagens, salvo quando expressamente solicitado pelo CONTRATANTE para fins de suporte técnico.',
-    '13.3. As senhas de acesso ao sistema serão entregues ao CONTRATANTE, recomendando-se sua alteração imediata. A CONTRATADA não se responsabiliza por acessos indevidos decorrentes da guarda inadequada das credenciais.',
-    '13.4. Os dados pessoais fornecidos para a execução deste contrato serão tratados exclusivamente para essa finalidade e para o cumprimento de obrigações legais.',
-  ]),
-  C('suporte', 'DO SUPORTE TÉCNICO', [
-    '14.1. O suporte técnico será prestado pelos canais oficiais de atendimento da CONTRATADA, em dias úteis e dentro do horário comercial.',
-    '14.2. Chamados cobertos pela garantia não terão custo. Os demais serão orçados previamente e executados mediante aprovação do CONTRATANTE.',
-    '14.3. Este contrato não inclui manutenção preventiva periódica, limpeza de equipamentos nem monitoramento ativo, salvo contratação específica.',
-  ]),
-  C('assinatura', 'DA ASSINATURA ELETRÔNICA', [
-    '15.1. As partes reconhecem a validade da assinatura eletrônica aposta neste documento, nos termos do artigo 10, § 2º, da Medida Provisória nº 2.200-2/2001 e do artigo 107 do Código Civil, declarando aceitá-la como manifestação inequívoca de vontade.',
-    '15.2. Cada assinatura é registrada com nome, documento de identificação, data, hora e código de integridade do conteúdo assinado, o que assegura que o documento não foi alterado após a assinatura.',
-    '15.3. Trata-se de assinatura eletrônica simples, não equivalente a certificado digital ICP-Brasil, o que não lhe retira a validade entre as partes signatárias.',
-  ]),
-  C('gerais', 'DAS DISPOSIÇÕES GERAIS', [
-    '16.1. A tolerância de qualquer das partes quanto ao descumprimento de obrigação não implica renúncia, novação ou alteração do contrato.',
-    '16.2. A eventual nulidade de uma cláusula não afeta a validade das demais.',
-    '16.3. Este contrato obriga as partes, seus herdeiros e sucessores.',
-    '16.4. As comunicações entre as partes poderão ser feitas por escrito, por mensagem eletrônica ou por aplicativo de mensagens, nos contatos informados neste instrumento.',
-    '16.5. Nas relações de consumo, nenhuma disposição deste contrato afasta ou limita os direitos assegurados ao CONTRATANTE pelo Código de Defesa do Consumidor.',
-  ]),
-  C('foro', 'DO FORO', [
-    '17.1. Fica eleito o foro da comarca de São Paulo/SP para dirimir as questões oriundas deste contrato, ressalvado, nas relações de consumo, o direito do CONTRATANTE de demandar no foro de seu domicílio.',
+  C('finais', 'DISPOSIÇÕES FINAIS', [
+    '12.1. O suporte técnico é prestado pelos canais oficiais, em dias úteis e horário comercial. Chamados em garantia não têm custo; os demais são orçados previamente. Este contrato não inclui manutenção preventiva periódica nem monitoramento ativo, salvo contratação específica.',
+    '12.2. As partes reconhecem a validade da assinatura eletrônica aposta neste documento, nos termos do art. 10, §2º da MP 2.200-2/2001 e do art. 107 do Código Civil. Cada assinatura é registrada com nome, documento, data, hora e código de integridade do conteúdo. Trata-se de assinatura eletrônica simples, não equivalente a certificado ICP-Brasil, o que não lhe retira validade entre as partes.',
+    '12.3. A tolerância quanto ao descumprimento não implica renúncia. A nulidade de uma cláusula não afeta as demais. O contrato obriga herdeiros e sucessores. As comunicações podem ser feitas por escrito, e-mail ou aplicativo de mensagens, nos contatos deste instrumento.',
+    '12.4. Nas relações de consumo, nenhuma disposição deste contrato afasta os direitos assegurados pelo Código de Defesa do Consumidor.',
+    '12.5. Fica eleito o foro da comarca de São Paulo/SP, ressalvado, nas relações de consumo, o direito do CONTRATANTE de demandar no foro de seu domicílio.',
   ]),
 ];
 
@@ -166,14 +131,19 @@ export function renumberClauseLines(lines: string[]): string[] {
 /** Monta o texto do contrato com as cláusulas ligadas, já numeradas, e a linha da versão do modelo. */
 export function composeClauses(clauses: ContractClause[], version: string): string {
   const lines: string[] = [`Modelo de cláusulas — versão de ${formatVersion(version)}`, ''];
+  let inBox = false;
+  const close = () => { if (inBox) { lines.push(HIGHLIGHT_END, ''); inBox = false; } };
   clauses.forEach((c, i) => {
     if (!c.enabled || !c.title.trim()) return;
+    if (c.highlight && !inBox) { lines.push(HIGHLIGHT_START); inBox = true; }
+    if (!c.highlight) close();
     // número de origem: o do primeiro item "N.M." do corpo, senão a posição
     const orig = c.body.match(/^\s*(\d+)\.\d+\./m)?.[1] ?? String(i + 1);
     lines.push(`CLÁUSULA ${orig}ª — ${c.title.trim().toUpperCase()}`);
     c.body.split('\n').forEach((b) => lines.push(b.replace(/\*\*/g, '')));
     lines.push('');
   });
+  close();
   return renumberClauseLines(lines).join('\n').trim();
 }
 
