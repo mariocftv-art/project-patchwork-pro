@@ -845,7 +845,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       {
         sig: sc,
         title: data.docType === 'contrato' || data.term ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
-        lines: [`Nome: ${sc?.name || c.name || ''}`, ...(data.term ? [`CPF/CNPJ: ${c.document || '______________________'}`] : []), sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
+        lines: [`Nome: ${sc?.name || c.name || ''}`, ...(data.term ? [`CPF/CNPJ: ${c.cnpj || c.cpf ? fmtCpfCnpj(c.cnpj || c.cpf || '') : '______________________'}`] : []), sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
       },
       {
         sig: sm,
@@ -970,7 +970,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     drawSidebar(doc, t);
     const lbl = data.term ? 'Termo de Aceite' : DOC_TYPE_LABELS[data.docType];
     if (p > 1) drawCompactHeader(doc, profile, t, logo, lbl.toUpperCase(), data.number);
-    drawFooter(doc, profile, t, logo, p, total, `${lbl} — Contrato Nº ${data.number}`.replace(`${DOC_TYPE_LABELS.contrato} — Contrato`, 'Contrato'));
+    drawFooter(doc, profile, t, logo, p, total, data.term ? `Termo de Aceite — Contrato Nº ${data.number}` : `${lbl} Nº ${data.number}`);
   }
 
   return { doc, pages: total, free: PAGE_H - FOOTER_H - 6 - y };
