@@ -302,7 +302,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   (doc as any).text = (txt: any, ...args: any[]) =>
     origText(Array.isArray(txt) ? txt.map(clean) : clean(txt), ...args);
   const logo = (await tryLoad(profile.logo_url)) || (await tryLoad(logoMRTransparent));
-  const title = DOC_TITLES[data.docType] || 'ORÇAMENTO';
+  const title = data.term ? 'TERMO DE RECEBIMENTO E ACEITE' : DOC_TITLES[data.docType] || 'ORÇAMENTO';
   const totals = computeTotals(data);
 
   let y = drawFullHeader(doc, profile, t, logo, title);
@@ -312,7 +312,11 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     data.validityDays && data.docType !== 'recibo'
       ? new Date(data.date.getTime() + data.validityDays * 86400000).toLocaleDateString('pt-BR')
       : '';
-  const ids: Array<[string, string]> = [
+  const ids: Array<[string, string]> = data.term ? [
+    ['CONTRATO Nº', data.number],
+    ['DATA DO CONTRATO', data.date.toLocaleDateString('pt-BR')],
+    ['DATA DA CONCLUSÃO', data.term.completedAt ? new Date(data.term.completedAt).toLocaleDateString('pt-BR') : '____/____/________'],
+  ] : [
     [`${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº`, data.number],
     ['DATA', data.date.toLocaleDateString('pt-BR')],
     ...(data.docType === 'contrato'
@@ -502,6 +506,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + G(6);
 
+  if (!data.term) {
   /* ---- Resumo + Total ---- */
   const summary: Array<[string, string]> = [];
   if (anyPriceHidden) {
@@ -561,6 +566,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   doc.setFillColor(...t.red);
   doc.rect(RIGHT - 6 - tw, y + 16.8, tw, 0.9, 'F');
   y += totalBoxH + G(7);
+
+  }
 
   /* ---- Observações ---- */
   const notes = (data.notes || '')
@@ -801,7 +808,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   if (payLines.length) blocks.push({ title: 'Condições de pagamento', lines: payLines });
   if (warrantyLines.length) blocks.push({ title: 'Garantia', lines: warrantyLines });
 
-  if (blocks.length) {
+  if (blocks.length && !data.term) {
     const bw = blocks.length === 2 ? (CONTENT_W - gap) / 2 : CONTENT_W;
     doc.setFontSize(9);
     const wrapped = blocks.map((b) => b.lines.flatMap((l) => doc.splitTextToSize(l, bw - 8) as string[]));
@@ -837,13 +844,13 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     const sigs = [
       {
         sig: sc,
-        title: data.docType === 'contrato' ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
-        lines: [`Nome: ${sc?.name || c.name || ''}`, sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
+        title: data.docType === 'contrato' || data.term ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
+        lines: [`Nome: ${sc?.name || c.name || ''}`, ...(data.term ? [`CPF/CNPJ: ${c.document || '______________________'}`] : []), sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
       },
       {
         sig: sm,
-        title: data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
-        lines: [
+        title: data.term ? 'TÉCNICO RESPONSÁVEL' : data.docType === 'contrato' ? 'CONTRATADA' : 'ASSINATURA DA CONTRATADA',
+        lines: data.term ? ['Nome: ______________________________', 'Data: ____/____/________'] : [
           profile.name,
           sm ? `Responsável: ${sm.name}` : profile.responsible_name ? `Responsável: ${profile.responsible_name}` : '',
           sm ? `Assinado eletronicamente em ${fmt(sm.signedAt)}` : 'Data: ____/____/________',
@@ -874,7 +881,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     let extra = 0;
     sigs.forEach((s, i) => {
       const x = LEFT + i * (sw + 16);
-      const isCompany = i === 1 && data.docType === 'contrato';
+      const isCompany = i === 1 && data.docType === 'contrato' && !data.term;
       const embedded = isCompany && !!s.sig?.includesBrand;
       if (s.sig?.image) {
         try {
@@ -961,8 +968,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
     drawSidebar(doc, t);
-    if (p > 1) drawCompactHeader(doc, profile, t, logo, DOC_TYPE_LABELS[data.docType].toUpperCase(), data.number);
-    drawFooter(doc, profile, t, logo, p, total, `${DOC_TYPE_LABELS[data.docType]} Nº ${data.number}`);
+    const lbl = data.term ? 'Termo de Aceite' : DOC_TYPE_LABELS[data.docType];
+    if (p > 1) drawCompactHeader(doc, profile, t, logo, lbl.toUpperCase(), data.number);
+    drawFooter(doc, profile, t, logo, p, total, `${lbl} — Contrato Nº ${data.number}`.replace(`${DOC_TYPE_LABELS.contrato} — Contrato`, 'Contrato'));
   }
 
   return { doc, pages: total, free: PAGE_H - FOOTER_H - 6 - y };
@@ -997,3 +1005,21 @@ export async function uploadPDF(doc: jsPDF, number: string): Promise<string | nu
   }
 }
 
+/** Termo de Recebimento e Aceite, gerado a partir do contrato (sem valores). */
+export function buildAcceptanceTerm(data: PremiumDocData, profile: CompanyProfile, completedAt?: string) {
+  const c = data.customer;
+  const addr = !c.installSame && c.installAddress?.trim() ? c.installAddress.trim() : 'no endereço do CONTRATANTE indicado acima';
+  const text = [
+    `1. O CONTRATANTE declara ter recebido, em pleno funcionamento, os equipamentos e serviços listados na tabela acima, referentes ao Contrato Nº ${data.number}, instalados ${addr.startsWith('no ') ? addr : `em ${addr}`}.`,
+    '2. Declara que o funcionamento do sistema foi demonstrado, que recebeu as orientações de uso e de acesso remoto e as credenciais de acesso, comprometendo-se a alterá-las imediatamente.',
+    '3. Declara ter sido orientado a guardar o gravador (DVR/NVR) e a fonte em local protegido, ventilado, seco e de acesso restrito.',
+    '4. A partir desta data passa a contar o prazo de garantia previsto no contrato.',
+    'Observações / divergências apontadas na entrega:',
+    '______________________________________________________________________________________',
+    '______________________________________________________________________________________',
+  ].join('\n');
+  return buildPremiumPDF({
+    ...data, docType: 'contrato', showItemPrices: false, contractText: text, contractClauses: undefined,
+    notes: '', payment: undefined, warranty: undefined, showSignatures: true, signatures: undefined, term: { completedAt },
+  }, profile);
+}
