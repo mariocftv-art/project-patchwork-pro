@@ -1012,10 +1012,10 @@ export function buildAcceptanceTerm(data: PremiumDocData, profile: CompanyProfil
   const c = data.customer;
   const addr = !c.installSame && c.installAddress?.trim() ? c.installAddress.trim() : 'no endereço do CONTRATANTE indicado acima';
   const text = [
-    `1. O CONTRATANTE declara ter recebido, em pleno funcionamento, os equipamentos e serviços listados na tabela acima, referentes ao Contrato Nº ${data.number}, instalados ${addr.startsWith('no ') ? addr : `em ${addr}`}.`,
-    '2. Declara que o funcionamento do sistema foi demonstrado, que recebeu as orientações de uso e de acesso remoto e as credenciais de acesso, comprometendo-se a alterá-las imediatamente.',
-    '3. Declara ter sido orientado a guardar o gravador (DVR/NVR) e a fonte em local protegido, ventilado, seco e de acesso restrito.',
-    '4. A partir desta data passa a contar o prazo de garantia previsto no contrato.',
+    `O CONTRATANTE declara ter recebido, em pleno funcionamento, os equipamentos e serviços listados na tabela acima, referentes ao Contrato Nº ${data.number}, instalados ${addr.startsWith('no ') ? addr : `em ${addr}`}.`,
+    'Declara também que o funcionamento do sistema foi demonstrado, que recebeu as orientações de uso e de acesso remoto e as credenciais de acesso, comprometendo-se a alterá-las imediatamente.',
+    'Declara ter sido orientado a guardar o gravador (DVR/NVR) e a fonte em local protegido, ventilado, seco e de acesso restrito.',
+    'A partir desta data passa a contar o prazo de garantia previsto no contrato.',
     'Observações / divergências apontadas na entrega:',
     '______________________________________________________________________________________',
     '______________________________________________________________________________________',
