@@ -1018,7 +1018,6 @@ export function buildAcceptanceTerm(data: PremiumDocData, profile: CompanyProfil
     'A partir desta data passa a contar o prazo de garantia previsto no contrato.',
     'Observações / divergências apontadas na entrega:',
     '______________________________________________________________________________________',
-    '______________________________________________________________________________________',
   ].join('\n');
   return buildPremiumPDF({
     ...data, docType: 'contrato', showItemPrices: false, contractText: text, contractClauses: undefined,
