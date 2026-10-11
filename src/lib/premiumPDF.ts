@@ -1,4 +1,4 @@
-import { CLAUSE_HEAD, VERSION_LINE } from './contractClauses';
+import { AWARENESS_TEXT, CLAUSE_HEAD, HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from './contractClauses';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoMRTransparent from '@/assets/logo-generic.png';
@@ -600,28 +600,121 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   /* ---- Cláusulas do contrato ---- */
   const resolvedContract = resolveContractText(data);
   const clauses = resolvedContract.split('\n');
-  if (clauses.some((l) => l.trim())) {
+  if (clauses.some((l) => l.trim() && l.trim() !== HIGHLIGHT_START && l.trim() !== HIGHLIGHT_END)) {
     y = ensureSpace(doc, y, 30);
-    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
+    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.term ? 'Declaração de recebimento' : data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
     y += 5;
     const headOf = (l: string) => /^\d+\.\s/.test(l) || CLAUSE_HEAD.test(l) || (l === l.toUpperCase() && l.length < 60 && /[A-Z]/.test(l));
+    const pageNo = () => (doc as unknown as { getCurrentPageInfo: () => { pageNumber: number } }).getCurrentPageInfo().pageNumber;
+    // Quadro de destaque (CDC art. 54, §4º): borda, título e texto em negrito
+    let box: { page: number; top: number } | null = null;
+    const BX = LEFT + 0.5;
+    const BW = CONTENT_W - 1;
+    const drawBoxPart = (page: number, top: number, bottom: number) => {
+      const cur = pageNo();
+      doc.setPage(page);
+      doc.setDrawColor(...t.red);
+      doc.setLineWidth(0.7);
+      doc.rect(BX, top, BW, bottom - top);
+      doc.setPage(cur);
+    };
+    const space = (needed: number) => {
+      const before = pageNo();
+      const ny = ensureSpace(doc, y, needed);
+      if (box && pageNo() !== before) {
+        drawBoxPart(box.page, box.top, PAGE_H - FOOTER_H - 4);
+        box = { page: pageNo(), top: ny - 6 };
+        return ny + 1;
+      }
+      return ny;
+    };
+    const inBoxAt = (k: number) => {
+      let open = false;
+      for (let i = 0; i <= k; i++) {
+        const l = clauses[i].trim();
+        if (l === HIGHLIGHT_START) open = true;
+        else if (l === HIGHLIGHT_END) open = false;
+      }
+      return open;
+    };
+    // Números das cláusulas em destaque (para a declaração de ciência)
+    const boxNums = (from: number) => {
+      const n: string[] = [];
+      for (let k = from + 1; k < clauses.length && clauses[k].trim() !== HIGHLIGHT_END; k++) {
+        const m = clauses[k].trim().match(CLAUSE_HEAD);
+        if (m) n.push(`${m[1]}ª`);
+      }
+      return n.length > 1 ? `${n[0]} a ${n[n.length - 1]}` : n[0] || '';
+    };
     // Altura de um bloco (título + texto até o próximo título), para nunca cortar cláusula entre páginas
     const blockHeight = (from: number) => {
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('helvetica', inBoxAt(from) ? 'bold' : 'normal');
       doc.setFontSize(9);
       let h = 6.4;
       for (let k = from + 1; k < clauses.length; k++) {
         const l = clauses[k].trim();
-        if (headOf(l)) break;
+        if (headOf(l) || l === HIGHLIGHT_START || l === HIGHLIGHT_END) break;
         if (!l) { h += 1.5; continue; }
         const ind = /^[•\-✓]/.test(l) ? 8.5 : 3.5;
-        h += (doc.splitTextToSize(l.replace(/^[•\-✓]\s*/, ''), CONTENT_W - ind - 2) as string[]).length * 4.4 + 0.5;
+        h += (doc.splitTextToSize(l.replace(/^[•\-✓]\s*/, ''), CONTENT_W - ind - 4) as string[]).length * 4.4 + 0.5;
       }
       return h;
     };
     const usable = PAGE_H - FOOTER_H - 3 - 26;
+    const sc0 = data.signatures?.contratante;
+    let boxNumbers = '';
     clauses.forEach((raw, idx) => {
       const line = raw.trim();
+      if (line === HIGHLIGHT_START) {
+        boxNumbers = boxNums(idx);
+        y = ensureSpace(doc, y, 40);
+        y += 1;
+        box = { page: pageNo(), top: y };
+        y += 5;
+        // triângulo de aviso + título
+        doc.setFillColor(...t.red);
+        doc.triangle(BX + 4, y + 0.8, BX + 7.4, y + 0.8, BX + 5.7, y - 2.9, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text('!', BX + 5.7, y + 0.3, { align: 'center' });
+        doc.setTextColor(...t.red);
+        doc.setFontSize(10);
+        doc.text('CLÁUSULAS DE ATENÇÃO — LEIA COM CUIDADO', BX + 9.5, y);
+        y += 6;
+        return;
+      }
+      if (line === HIGHLIGHT_END) {
+        if (!box) return;
+        // Declaração de ciência + rubrica, dentro do quadro
+        const decl = `DECLARAÇÃO DE CIÊNCIA: ${AWARENESS_TEXT.replace('{CLAUSULAS_DESTAQUE}', boxNumbers || 'acima')}`;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.8);
+        const dl = doc.splitTextToSize(decl, BW - 8) as string[];
+        y = space(dl.length * 4.3 + 16);
+        doc.setDrawColor(...t.gold);
+        doc.setLineWidth(0.3);
+        doc.line(BX + 3, y - 2.5, BX + BW - 3, y - 2.5);
+        doc.setTextColor(...BLACK);
+        dl.forEach((l) => { doc.text(l, BX + 3.5, y + 1.5); y += 4.3; });
+        y += 4;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.6);
+        if (sc0?.awareness) {
+          doc.text(`Ciência confirmada eletronicamente por ${sc0.name} em ${new Date(sc0.signedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.`, BX + 3.5, y);
+          y += 4.5;
+        }
+        doc.text('Rubrica do CONTRATANTE:', BX + 3.5, y + 1);
+        doc.setDrawColor(...BLACK);
+        doc.setLineWidth(0.3);
+        doc.line(BX + 42, y + 1.5, BX + 100, y + 1.5);
+        y += 5;
+        drawBoxPart(box.page, box.top, y);
+        box = null;
+        y += 4;
+        return;
+      }
+      const bold = !!box;
       if (!line) {
         y += 1.5;
         return;
@@ -637,39 +730,39 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       const isHead = headOf(line);
       if (isHead && CLAUSE_HEAD.test(line)) {
         const bh = blockHeight(idx);
-        y = ensureSpace(doc, y, Math.min(bh, usable) + 1.2);
+        y = space(Math.min(bh, usable) + 1.2);
       }
       const isBullet = /^[•\-✓]/.test(line);
       if (isHead) {
-        y = ensureSpace(doc, y, 12);
+        y = space(12);
         y += 1.2;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.6);
         doc.setTextColor(...BLACK);
         doc.setFillColor(...t.red);
-        doc.rect(LEFT, y - 3.2, 1.2, 4.2, 'F');
-        doc.text(line, LEFT + 3.5, y);
+        doc.rect(LEFT + (bold ? 1.8 : 0), y - 3.2, 1.2, 4.2, 'F');
+        doc.text(line, LEFT + 3.5 + (bold ? 1 : 0), y);
         doc.setDrawColor(...t.gold);
         doc.setLineWidth(0.3);
-        doc.line(LEFT + 3.5, y + 1.6, LEFT + 3.5 + Math.min(doc.getTextWidth(line), CONTENT_W - 4), y + 1.6);
+        doc.line(LEFT + 3.5, y + 1.6, LEFT + 3.5 + Math.min(doc.getTextWidth(line), CONTENT_W - 6), y + 1.6);
         y += 5.2;
         return;
       }
-      doc.setFont('helvetica', 'normal');
+      const font = bold ? 'bold' : 'normal';
+      doc.setFont('helvetica', font);
       doc.setFontSize(9);
-      doc.setTextColor(...INK);
       const text = isBullet ? line.replace(/^[•\-✓]\s*/, '') : line;
-      const indent = isBullet ? 8.5 : 3.5;
-      const wrapped = doc.splitTextToSize(text, CONTENT_W - indent - 2) as string[];
+      const indent = (isBullet ? 8.5 : 3.5) + (bold ? 1 : 0);
+      const wrapped = doc.splitTextToSize(text, CONTENT_W - indent - (bold ? 4 : 2)) as string[];
       wrapped.forEach((l, k) => {
-        y = ensureSpace(doc, y, 6);
+        y = space(6);
         if (isBullet && k === 0) {
           doc.setFillColor(...t.gold);
           doc.rect(LEFT + 4.5, y - 2.2, 1.5, 1.5, 'F');
         }
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('helvetica', font);
         doc.setFontSize(9);
-        doc.setTextColor(...INK);
+        doc.setTextColor(...(bold ? BLACK : INK));
         doc.text(l, LEFT + indent, y);
         y += 4.4;
       });
