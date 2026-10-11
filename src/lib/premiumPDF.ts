@@ -674,7 +674,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       const line = raw.trim();
       if (line === HIGHLIGHT_START) {
         boxNumbers = boxNums(idx);
-        y = ensureSpace(doc, y, 40);
+        // título do quadro nunca sozinho: leva junto a primeira cláusula
+        const nh = clauses.findIndex((l, k) => k > idx && CLAUSE_HEAD.test(l.trim()));
+        y = ensureSpace(doc, y, 14 + (nh > 0 ? Math.min(blockHeight(nh), usable - 14) : 30));
         y += 1;
         box = { page: pageNo(), top: y };
         y += 5;
