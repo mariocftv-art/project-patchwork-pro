@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       .order('version', { ascending: false }).limit(1).maybeSingle();
     const version = ver?.version ?? 1;
     const snapshot = ver?.snapshot ?? q;
-    const { data: sigs } = await admin.from('contract_signatures').select('party, signer_name, signer_document, signer_ip, doc_hash, signature_image, signed_at, signed_pdf_path, version')
+    const { data: sigs } = await admin.from('contract_signatures').select('party, signer_name, signer_document, signer_ip, doc_hash, signature_image, signed_at, signed_pdf_path, version, awareness_accepted, image_use_authorized')
       .eq('quote_id', q.id).eq('version', version);
     const signedByClient = (sigs || []).some((s) => s.party === 'contratante');
     const latestPdf = (sigs || []).filter((s) => s.signed_pdf_path).sort((a, b) => b.signed_at.localeCompare(a.signed_at))[0]?.signed_pdf_path;
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         expires_at: link.expires_at,
         quote_number: q.quote_number,
         record: { ...q, ...(snapshot as Record<string, unknown>), id: q.id },
-        signatures: (sigs || []).map((s) => ({ party: s.party, signer_name: s.signer_name, signer_document: s.signer_document, signer_ip: s.signer_ip, doc_hash: s.doc_hash, signature_image: s.signature_image, signed_at: s.signed_at })),
+        signatures: (sigs || []).map((s) => ({ party: s.party, signer_name: s.signer_name, signer_document: s.signer_document, signer_ip: s.signer_ip, doc_hash: s.doc_hash, signature_image: s.signature_image, signed_at: s.signed_at, awareness_accepted: s.awareness_accepted, image_use_authorized: s.image_use_authorized })),
         client_ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || null,
         doc_code: await sha256(JSON.stringify(snapshot)),
         has_pdf: !!latestPdf,
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       const doc = digits(body.document);
       const image = String(body.image || '');
       const pdf = String(body.pdf_base64 || '');
-      if (name.length < 3 || !body.accepted) return json({ error: 'Dados incompletos' }, 400);
+      if (name.length < 3 || !body.accepted || body.awareness !== true || typeof body.image_use !== 'boolean') return json({ error: 'Dados incompletos' }, 400);
       if (!image.startsWith('data:image/png;base64,') || image.length > 1_500_000) return json({ error: 'Assinatura inválida' }, 400);
       const cust = (q.customer || {}) as Record<string, unknown>;
       const expected = [digits(cust.cpf), digits(cust.cnpj), digits(q.customer_cpf), digits(q.customer_cnpj)].filter(Boolean);
@@ -135,6 +135,7 @@ Deno.serve(async (req) => {
         quote_id: q.id, version, party: 'contratante', signer_name: name, signer_document: doc,
         signature_image: image, doc_hash: docHash, user_agent: ua, consent_text: CONSENT, signed_at: signedAt,
         signed_pdf_path: path, signer_ip: ip, device: device(ua), remote: true, link_id: link.id,
+        awareness_accepted: true, awareness_text: String(body.awareness_text || '').slice(0, 1000) || null, image_use_authorized: body.image_use,
       });
       if (ins.error) throw ins.error;
       await admin.from('contract_links').update({ signed_at: signedAt }).eq('id', link.id);
