@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from '@/hooks/use-toast';
 import { formatBRL } from '@/lib/formatCurrency';
 import { getCompanyProfile } from '@/lib/companyProfile';
-import { buildPremiumPDF, docFileName } from '@/lib/premiumPDF';
+import { buildPremiumPDF, buildAcceptanceTerm, docFileName } from '@/lib/premiumPDF';
 import { buildQuoteWhatsAppMessage, whatsappUrl } from '@/lib/quoteWhatsApp';
 import { printPages, renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from './SignaturePad';
@@ -94,7 +94,7 @@ export default function ContractsManagement() {
 
   const { data: signatures = [] } = useQuery({ queryKey: ['admin-contract-signatures'], queryFn: listSignatures });
   const [signing, setSigning] = useState<QuoteRecord | null>(null);
-  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string } | null>(null);
+  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string; consents?: { awareness: boolean; imageUse: boolean | null } } | null>(null);
   const [redo, setRedo] = useState(false);
   const afterSign = async (q: QuoteRecord, both: boolean, wasRedo: boolean, how: string) => {
     if (wasRedo) {
@@ -156,6 +156,20 @@ export default function ContractsManagement() {
     } catch (e) {
       console.error(e);
       toast({ title: 'Não foi possível abrir a impressão', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const acceptanceTerm = async (q: QuoteRecord) => {
+    setBusyId(q.id);
+    try {
+      const profile = await getCompanyProfile(true);
+      const doc = await buildAcceptanceTerm(recordToDoc(q), profile);
+      doc.save(`Termo-de-Aceite-${q.quote_number}.pdf`);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Não foi possível gerar o Termo de Aceite', variant: 'destructive' });
     } finally {
       setBusyId(null);
     }
@@ -555,6 +569,7 @@ export default function ContractsManagement() {
                   <Button size="sm" variant="outline" onClick={() => download(signing)}><Download className="h-4 w-4 mr-1" />PDF</Button>
                   <Button size="sm" variant="outline" onClick={() => print(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
                   <Button size="sm" variant="outline" disabled={busyId === signing.id} onClick={() => printForPen(signing)}><Printer className="h-4 w-4 mr-1" />Imprimir para assinar à caneta</Button>
+                  <Button size="sm" variant="outline" disabled={busyId === signing.id} onClick={() => acceptanceTerm(signing)}><FileCheck className="h-4 w-4 mr-1" />Gerar Termo de Aceite</Button>
                 </div>
               </div>
             );
