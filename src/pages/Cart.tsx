@@ -39,6 +39,7 @@ export default function Cart() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [quoteSent, setQuoteSent] = useState(false);
+  const [quoteFailed, setQuoteFailed] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['cart-catalog'],
@@ -81,6 +82,7 @@ export default function Cart() {
     }
 
     setIsGenerating(true);
+    setQuoteFailed(false);
     
     try {
       const items = cartWithProducts.map(item => ({
@@ -115,7 +117,9 @@ export default function Cart() {
 
       // Template exclusivo de ORÇAMENTO (mesmos dados do PDF profissional)
       const message = buildQuoteWhatsAppMessage(result.docData, result.profile, { pdfUrl: result.pdfUrl });
-      window.open(whatsappUrl(customerPhone, message), '_blank', 'noopener,noreferrer');
+      const url = whatsappUrl(customerPhone, message);
+      const w = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!w) window.location.href = url;
       
       // Show success state
       setQuoteSent(true);
@@ -136,11 +140,7 @@ export default function Cart() {
       }, 2000);
     } catch (error) {
       console.error('Erro ao gerar orçamento:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível gerar o orçamento. Verifique a internet e tente de novo.',
-        variant: 'destructive',
-      });
+      setQuoteFailed(true);
     } finally {
       setIsGenerating(false);
     }
@@ -155,7 +155,9 @@ export default function Cart() {
 
     const message = generateWhatsAppMessage(items, total, customerName);
     const whatsappNumber = siteContent.contact.whatsapp || waNumber();
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank', 'noopener,noreferrer');
+    const url = `https://wa.me/${whatsappNumber}?text=${message}`;
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!w) window.location.href = url;
   };
 
   if (cartLoading) {
@@ -320,7 +322,7 @@ export default function Cart() {
           <div className="space-y-3 mt-4">
             <button 
               onClick={() => navigate('/checkout')}
-              className="w-full ml-btn-primary"
+              className="w-full ml-btn-primary h-auto whitespace-normal text-center leading-snug py-3"
             >
               {payOnline ? 'Finalizar Compra' : 'Solicitar pedido pelo WhatsApp'}
             </button>
@@ -336,7 +338,7 @@ export default function Cart() {
 
             <Button
               variant="outline"
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2 h-auto min-h-10 py-2 whitespace-normal text-center leading-snug"
               onClick={() => setQuoteDialogOpen(true)}
             >
               <FileText className="w-4 h-4" />
@@ -434,9 +436,19 @@ export default function Cart() {
                 <span>R$ {total.toFixed(2)}</span>
               </div>
             </div>
+            {quoteFailed && (
+              <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm space-y-2">
+                <p className="text-foreground">
+                  <strong>Não conseguimos gerar o PDF agora.</strong> Sem problema: envie seu pedido pelo WhatsApp e nossa equipe responde com o orçamento.
+                </p>
+                <Button type="button" onClick={handleWhatsAppPurchase} className="w-full h-auto min-h-11 py-2 whitespace-normal text-center leading-snug">
+                  Continuar pelo WhatsApp
+                </Button>
+              </div>
+            )}
             <Button 
               onClick={handleGenerateQuote} 
-              className={`w-full btn-security transition-all duration-300 ${
+              className={`w-full h-auto min-h-10 py-2 whitespace-normal text-center leading-snug btn-security transition-all duration-300 ${
                 quoteSent 
                   ? 'bg-green-500 hover:bg-green-600 animate-pulse' 
                   : isGenerating 

@@ -493,7 +493,7 @@ export default function Checkout() {
 
               <Button
                 type="submit"
-                className={`w-full mt-6 h-12 text-lg transition-all duration-300 ${
+                className={`w-full mt-6 min-h-12 h-auto py-3 whitespace-normal text-center leading-snug text-lg transition-all duration-300 ${
                   orderCompleted 
                     ? 'bg-green-500 hover:bg-green-600 animate-pulse' 
                     : 'ml-btn-primary'

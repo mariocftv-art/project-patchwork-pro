@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home, Search, Check, Send } from "lucide-react";
+import { CheckCircle, MessageCircle, Package, Home, Search, Check } from "lucide-react";
 import { ordersApi } from "@/lib/supabaseApi";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
 import { getCompanyProfile, CompanyProfile, defaultCompanyProfile } from "@/lib/companyProfile";
-import { buildAdminOrderMessage, buildCustomerOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
+import { buildAdminOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
 import { formatBRL } from "@/lib/formatCurrency";
 import OrderStatusTimeline from "@/components/OrderStatusTimeline";
 import { getOrderStatusInfo } from "@/lib/orderStatus";
@@ -115,13 +115,6 @@ export default function OrderConfirmation() {
     window.open(whatsappLink(profile.whatsapp, buildAdminOrderMessage(messageData, profile)), '_blank', 'noopener,noreferrer');
   };
 
-  const handleSendCopyToMe = () => {
-    if (!orderData?.customerPhone) return;
-    window.open(
-      whatsappLink(orderData.customerPhone, buildCustomerOrderMessage(messageData, profile)),
-      '_blank', 'noopener,noreferrer'
-    );
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -212,7 +205,7 @@ export default function OrderConfirmation() {
 
           <Button
             onClick={handleWhatsAppClick}
-            className={`w-full h-12 text-base transition-all ${
+            className={`w-full min-h-14 h-auto py-3 whitespace-normal text-center leading-snug text-base transition-all ${
               whatsappConfirmed
                 ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-default'
                 : 'bg-[#25D366] hover:bg-[#128C7E] text-white'
@@ -221,16 +214,10 @@ export default function OrderConfirmation() {
             {whatsappConfirmed ? (
               <><Check className="mr-2 h-5 w-5" /> Mensagem enviada</>
             ) : (
-              <><MessageCircle className="mr-2 h-5 w-5" /> Confirmar pelo WhatsApp</>
+              <><MessageCircle className="mr-2 h-5 w-5" /> Enviar confirmação pelo WhatsApp</>
             )}
           </Button>
 
-          {orderData?.customerPhone && (
-            <Button variant="outline" className="w-full" onClick={handleSendCopyToMe}>
-              <Send className="mr-2 h-4 w-4" />
-              Receber resumo no meu WhatsApp
-            </Button>
-          )}
 
           <div className="grid sm:grid-cols-2 gap-3 pt-2">
             <Button asChild variant="secondary" className="w-full">

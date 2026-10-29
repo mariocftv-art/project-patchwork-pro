@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
 /** Baixa em segundo plano as páginas mais visitadas, para a troca de página ser instantânea. */
 function PrefetchCommon() {
   useEffect(() => {
-    const run = () => { import("./pages/Product"); import("./pages/Cart"); import("./pages/Services"); };
+    const run = () => { import("./pages/Product"); import("./pages/Cart"); import("./pages/Services"); import("./pages/Checkout"); import("./pages/OrderConfirmation"); import("./pages/TrackOrder"); };
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
     if (w.requestIdleCallback) w.requestIdleCallback(run); else setTimeout(run, 2000);
   }, []);
@@ -43,7 +43,10 @@ function PrefetchCommon() {
 
 const PageFallback = () => (
   <div className="min-h-[60dvh] flex items-center justify-center" role="status" aria-label="Carregando">
-    <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+      <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      <span className="text-sm">Carregando…</span>
+    </div>
   </div>
 );
 

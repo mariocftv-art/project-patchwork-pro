@@ -98,7 +98,8 @@ export async function generateQuotePDF(
   };
   const doc = await buildPremiumPDF(docData, profile);
 
-  doc.save(docFileName("orcamento", quoteNumber));
+  // Alguns celulares bloqueiam o download direto; o link do PDF segue pelo WhatsApp
+  try { doc.save(docFileName("orcamento", quoteNumber)); } catch (e) { console.warn('Download do PDF bloqueado:', e); }
   const pdfUrl = await uploadPDF(doc, quoteNumber);
   if (pdfUrl) await supabase.rpc('attach_cart_quote_pdf', { _quote_number: quoteNumber, _pdf_url: pdfUrl });
   return { pdfUrl, quoteNumber, docData, profile };
