@@ -88,6 +88,7 @@ export default function Cart() {
         quantity: item.quantity,
         price: item.product?.price || 0,
         imageUrl: item.product?.image_url || undefined,
+        kind: (isServiceCartId(item.product_id) ? 'service' : 'product') as 'product' | 'service',
       }));
 
       // Generate PDF and upload to storage
@@ -111,25 +112,6 @@ export default function Cart() {
           email: siteContent.contact.email || getBrand().email,
         }
       );
-
-      // Save quote to database
-      const { error: dbError } = await supabase
-        .from('quotes')
-        .insert({
-          quote_number: result.quoteNumber,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone || null,
-          items: items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
-          subtotal,
-          shipping_fee: shippingFee,
-          total,
-          pdf_url: result.pdfUrl,
-        });
-
-      if (dbError) {
-        console.error('Erro ao salvar orçamento:', dbError);
-      }
 
       // Template exclusivo de ORÇAMENTO (mesmos dados do PDF profissional)
       const message = buildQuoteWhatsAppMessage(result.docData, result.profile, { pdfUrl: result.pdfUrl });
@@ -156,7 +138,7 @@ export default function Cart() {
       console.error('Erro ao gerar orçamento:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível gerar o orçamento.',
+        description: 'Não foi possível gerar o orçamento. Verifique a internet e tente de novo.',
         variant: 'destructive',
       });
     } finally {
