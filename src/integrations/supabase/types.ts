@@ -1373,7 +1373,24 @@ export type Database = {
     }
     Functions: {
       admin_list_products: { Args: never; Returns: Json }
+      attach_cart_quote_pdf: {
+        Args: { _pdf_url: string; _quote_number: string }
+        Returns: boolean
+      }
       claim_first_admin: { Args: never; Returns: boolean }
+      create_cart_quote: {
+        Args: {
+          _customer_address: string
+          _customer_email: string
+          _customer_name: string
+          _customer_phone: string
+          _items: Json
+          _shipping: number
+          _subtotal: number
+          _total: number
+        }
+        Returns: string
+      }
       get_order_by_number: { Args: { _order_number: string }; Returns: Json }
       get_order_statuses: {
         Args: { _order_numbers: string[] }
