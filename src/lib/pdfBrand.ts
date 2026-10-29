@@ -61,6 +61,26 @@ export function buildTheme(profile: CompanyProfile): BrandTheme {
 
 export const PAGE_MARGIN = 16;
 
+/** jsPDF (Helvetica) só aceita Latin-1: remove emojis/símbolos que viram "Ø=Þ". */
+export function pdfSafe(text: string | null | undefined): string {
+  return (text || '')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\u2022/g, '\u00B7')
+    .replace(/[^\u0000-\u00FF]/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** Corta o texto com reticências para caber na largura. */
+function fitText(doc: jsPDF, text: string, maxW: number): string {
+  let t = text;
+  if (doc.getTextWidth(t) <= maxW) return t;
+  while (t.length > 1 && doc.getTextWidth(t + '...') > maxW) t = t.slice(0, -1);
+  return t.trimEnd() + '...';
+}
+
 /**
  * Cabeçalho institucional moderno (faixa colorida + logo + dados da empresa).
  * Retorna o Y onde o conteúdo pode começar.
@@ -91,41 +111,43 @@ export async function drawDocumentHeader(
     textX = PAGE_MARGIN;
   }
 
+  // Bloco de identificação do documento (direita) — largura reservada
+  const rightW = 62;
+  const leftMax = pageWidth - PAGE_MARGIN - rightW - 4 - textX;
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(profile.name, textX, 17);
+  doc.setFontSize(14);
+  doc.text(fitText(doc, pdfSafe(profile.name), leftMax), textX, 17);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  if (profile.tagline) doc.text(profile.tagline, textX, 24);
+  if (profile.tagline) doc.text(fitText(doc, pdfSafe(profile.tagline), leftMax), textX, 23);
 
   const contactLines = [
     profile.cnpj ? `CNPJ ${profile.cnpj}` : '',
     [profile.phone, profile.whatsapp ? `WhatsApp ${formatWhatsApp(profile.whatsapp)}` : '']
       .filter(Boolean)
-      .join('  •  '),
-    [profile.email, profile.website].filter(Boolean).join('  •  '),
-    [profile.address, [profile.city, profile.state].filter(Boolean).join('/')]
-      .filter(Boolean)
-      .join(' - '),
-  ].filter(Boolean);
+      .join('  ·  '),
+    [profile.email, profile.website].filter(Boolean).join('  ·  '),
+  ].map(pdfSafe).filter(Boolean);
 
   doc.setFontSize(7.6);
   contactLines.slice(0, 3).forEach((line, i) => {
-    doc.text(line, textX, 30 + i * 4.6);
+    doc.text(fitText(doc, line, leftMax), textX, 29.5 + i * 4.4);
   });
 
-  // Bloco de identificação do documento (direita)
+  const rx = pageWidth - PAGE_MARGIN;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(documentTitle.toUpperCase(), pageWidth - PAGE_MARGIN, 15, { align: 'right' });
+  doc.setFontSize(11);
+  const titleLines = (doc.splitTextToSize(pdfSafe(documentTitle).toUpperCase(), rightW) as string[]).slice(0, 2);
+  titleLines.forEach((l, i) => doc.text(l, rx, 13 + i * 5, { align: 'right' }));
+  let my = 13 + titleLines.length * 5 + 2;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  meta.forEach((item, i) => {
-    doc.text(`${item.label}: ${item.value}`, pageWidth - PAGE_MARGIN, 23 + i * 5.5, {
-      align: 'right',
-    });
+  meta.forEach((item) => {
+    doc.text(fitText(doc, pdfSafe(`${item.label}: ${item.value}`), rightW), rx, my, { align: 'right' });
+    my += 5;
   });
 
   return bandHeight + 12;
@@ -195,6 +217,7 @@ export function drawFooters(doc: jsPDF, profile: CompanyProfile, theme: BrandThe
     ]
       .filter(Boolean)
       .join('  |  ');
+  const safeFooter = pdfSafe(footerLine);
 
   for (let page = 1; page <= total; page++) {
     doc.setPage(page);
@@ -203,7 +226,8 @@ export function drawFooters(doc: jsPDF, profile: CompanyProfile, theme: BrandThe
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.text(footerLine, PAGE_MARGIN, pageHeight - 5.5);
+    const reserve = total > 1 ? 30 : 0;
+    doc.text(fitText(doc, safeFooter, pageWidth - PAGE_MARGIN * 2 - reserve), PAGE_MARGIN, pageHeight - 5.5);
     if (total > 1) {
       doc.text(`Página ${page} de ${total}`, pageWidth - PAGE_MARGIN, pageHeight - 5.5, {
         align: 'right',

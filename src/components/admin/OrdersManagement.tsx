@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Package, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2, Printer, MessageCircle } from 'lucide-react';
+import { Package, ChevronDown, ChevronUp, MapPin, User, Phone, Mail, Trash2, Printer, MessageCircle, FileText } from 'lucide-react';
+import { sendToQuoteEditor } from '@/lib/docHandoff';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ORDER_STATUSES, getOrderStatusInfo } from '@/lib/orderStatus';
@@ -61,6 +62,29 @@ interface Order {
   created_at: string;
 }
 
+function orderToQuote(order: Order) {
+  const a = order.shipping_address;
+  sendToQuoteEditor({
+    origin: `Pedido #${order.order_number}`,
+    customer: {
+      name: order.customer_name,
+      email: order.customer_email || undefined,
+      phone: order.customer_phone || undefined,
+      whatsapp: order.customer_phone || undefined,
+      cpf: order.customer_cpf || undefined,
+      ...(a ? { cep: a.cep, street: a.street, number: a.number, complement: a.complement, district: a.neighborhood, city: a.city, state: a.state } : {}),
+    },
+    items: (order.items || []).map((i) => ({
+      description: i.name,
+      quantity: Number(i.quantity) || 1,
+      unitPrice: Number(i.price) || 0,
+      kind: /instala|servi[cç]o|m[aã]o de obra|configura/i.test(i.name) ? 'service' : 'product',
+      imageUrl: i.imageUrl,
+    })),
+    shipping: Number(order.shipping_fee) || 0,
+  });
+}
+
 const statusOptions = ORDER_STATUSES.map((s) => ({ value: s.value, label: s.label }));
 
 async function openOrderWhatsApp(order: Order) {
@@ -111,29 +135,35 @@ export default function OrdersManagement() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ orderId, orderNumber, newStatus }: { orderId: string; orderNumber: string; newStatus: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
-        .eq('id', orderId);
-      
+        .eq('id', orderId)
+        .select('id,status');
       if (error) throw error;
-      
-      await adminLogsApi.log('update_order_status', 'order', orderId, { newStatus });
+      if (!data || data.length === 0) throw new Error('Nenhum pedido foi alterado (sessão expirada?)');
 
-      // Send push notification for status change
-      try {
-        await supabase.functions.invoke('send-push-notification', {
-          body: { orderNumber, status: newStatus },
-        });
-      } catch (pushError) {
-        console.error('Error sending push notification:', pushError);
-      }
+      adminLogsApi.log('update_order_status', 'order', orderId, { newStatus }).catch(() => undefined);
+      // Aviso ao cliente em segundo plano: não segura a tela
+      supabase.functions
+        .invoke('send-push-notification', { body: { orderNumber, status: newStatus } })
+        .catch((pushError) => console.error('Error sending push notification:', pushError));
+    },
+    onMutate: async ({ orderId, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-orders'] });
+      const prev = queryClient.getQueryData<Order[]>(['admin-orders']);
+      queryClient.setQueryData<Order[]>(['admin-orders'], (old) => (old || []).map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
+      return { prev };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       toast({ title: 'Status atualizado com sucesso!' });
     },
-    onError: () => {
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-orders'] });
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['admin-orders'], ctx.prev);
       toast({
         title: 'Erro ao atualizar status',
         description: 'Tente novamente.',
@@ -328,6 +358,16 @@ export default function OrdersManagement() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => orderToQuote(order)}
+                      title="Transformar em orçamento"
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      <span className="hidden sm:inline">Transformar em orçamento</span>
+                    </Button>
 
                     <Button
                       variant="ghost"

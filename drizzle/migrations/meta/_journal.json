@@ -71,6 +71,13 @@
       "when": 1791677780123,
       "tag": "0009_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793262106985,
+      "tag": "0010_cart_quote_rpc",
+      "breakpoints": true
     }
   ]
 }

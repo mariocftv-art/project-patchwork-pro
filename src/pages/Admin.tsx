@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
+import { ADMIN_TAB_EVENT } from '@/lib/docHandoff';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -62,6 +63,11 @@ export default function Admin() {
     return () => { window.history.scrollRestoration = prev; };
   }, []);
   const changeTab = (v: string) => { setTab(v); scrollAdminTop(); };
+  useEffect(() => {
+    const go = (e: Event) => { const v = (e as CustomEvent<string>).detail; if (v) { setTab(v); scrollAdminTop(); } };
+    window.addEventListener(ADMIN_TAB_EVENT, go);
+    return () => window.removeEventListener(ADMIN_TAB_EVENT, go);
+  }, []);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [onlyPromo, setOnlyPromo] = useState(false);

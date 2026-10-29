@@ -1,6 +1,7 @@
 import { getCompanyProfile, CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
-import { buildPremiumPDF, docFileName, nextDocNumber, PremiumDocData, uploadPDF } from '@/lib/premiumPDF';
+import { buildPremiumPDF, docFileName, PremiumDocData, uploadPDF } from '@/lib/premiumPDF';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuoteItem {
   name: string;
@@ -8,6 +9,7 @@ interface QuoteItem {
   quantity: number;
   price: number;
   imageUrl?: string;
+  kind?: 'product' | 'service';
 }
 
 /** Mantido para compatibilidade com chamadas existentes */
@@ -50,7 +52,28 @@ export async function generateQuotePDF(
     logo_url: companyInfo?.logoUrl || stored.logo_url,
   };
 
-  const quoteNumber = await nextDocNumber();
+  // O banco cria o orçamento e devolve o número (visitante não usa o contador direto)
+  const dbItems = data.items.map((i) => ({
+    description: i.description ? `${i.name} — ${i.description}` : i.name,
+    name: i.name,
+    quantity: i.quantity,
+    unitPrice: i.price,
+    price: i.price,
+    kind: i.kind || 'product',
+    imageUrl: i.imageUrl || null,
+  }));
+  const { data: num, error: rpcError } = await supabase.rpc('create_cart_quote', {
+    _customer_name: data.customerName || '',
+    _customer_email: data.customerEmail || '',
+    _customer_phone: data.customerPhone || '',
+    _customer_address: data.customerAddress || '',
+    _items: dbItems,
+    _subtotal: data.subtotal,
+    _shipping: data.shipping,
+    _total: data.total,
+  });
+  if (rpcError || typeof num !== 'string') throw rpcError || new Error('Sem número do orçamento');
+  const quoteNumber = num;
   const docData: PremiumDocData = {
     docType: 'orcamento',
     number: quoteNumber,
@@ -66,7 +89,7 @@ export async function generateQuotePDF(
       description: i.description ? `${i.name} — ${i.description}` : i.name,
       quantity: i.quantity,
       unitPrice: i.price,
-      kind: 'product',
+      kind: i.kind || 'product',
       imageUrl: i.imageUrl,
     })),
     discount: data.discount,
@@ -77,6 +100,7 @@ export async function generateQuotePDF(
 
   doc.save(docFileName("orcamento", quoteNumber));
   const pdfUrl = await uploadPDF(doc, quoteNumber);
+  if (pdfUrl) await supabase.rpc('attach_cart_quote_pdf', { _quote_number: quoteNumber, _pdf_url: pdfUrl });
   return { pdfUrl, quoteNumber, docData, profile };
 }
 

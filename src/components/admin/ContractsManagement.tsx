@@ -281,8 +281,13 @@ export default function ContractsManagement() {
 
   const changeStatus = async (q: QuoteRecord, status: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('quotes') as any).update({ status, updated_at: new Date().toISOString() }).eq('id', q.id);
-    if (error) return toast({ title: 'Erro ao alterar status', variant: 'destructive' });
+    const prev = qc.getQueryData<QuoteRecord[]>(['admin-contracts']);
+    qc.setQueryData<QuoteRecord[]>(['admin-contracts'], (old) => (old || []).map((x) => (x.id === q.id ? { ...x, status } : x)));
+    const { data: changed, error } = await (supabase.from('quotes') as any).update({ status, updated_at: new Date().toISOString() }).eq('id', q.id).select('id');
+    if (error || !changed?.length) {
+      if (prev) qc.setQueryData(['admin-contracts'], prev);
+      return toast({ title: 'Erro ao alterar status', description: 'Nada foi salvo. Entre de novo e tente.', variant: 'destructive' });
+    }
     const { data: auth } = await supabase.auth.getUser();
     const last = versionsOf(q.id)[0];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -299,6 +304,7 @@ export default function ContractsManagement() {
     });
     toast({ title: 'Status atualizado', description: statusLabel(status) });
     refresh();
+    qc.invalidateQueries({ queryKey: ['admin-quotes'] });
   };
 
   const fetchPdf = async (q: QuoteRecord, url?: string | null): Promise<Blob> => {
