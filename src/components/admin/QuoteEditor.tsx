@@ -146,6 +146,10 @@ interface Props {
   defaultDocType?: DocType;
   /** Dados do cliente para preencher um documento novo (ex.: vindo de um agendamento) */
   prefillCustomer?: Partial<DocCustomer>;
+  /** Itens já preenchidos (ex.: vindos de um pedido) */
+  prefillItems?: DocItem[];
+  prefillShipping?: number;
+  prefillNote?: string;
   onSaved: () => void;
   /** Rascunho a continuar (volta exatamente como estava) */
   draft?: QuoteDraft | null;
@@ -153,7 +157,7 @@ interface Props {
   convertToContract?: boolean;
 }
 
-export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, draft, convertToContract }: Props) {
+export default function QuoteEditor({ open, onOpenChange, record: recordProp, mode = 'edit', duplicate, onSaved, defaultDocType, prefillCustomer, prefillItems, prefillShipping, prefillNote, draft, convertToContract }: Props) {
   const record = recordProp ?? (draft?.record as QuoteRecord | null) ?? null;
   const draftIdRef = useRef<string>(newDraftId());
   const draftCreatedRef = useRef<string>(new Date().toISOString());
@@ -247,15 +251,15 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
           validityDays: profile.quote_validity_days || 15,
           serviceTitle: '',
           customer: { name: '', ...(prefillCustomer || {}) },
-          items: [{ description: '', quantity: 1, unitPrice: 0, kind: 'product' }],
+          items: prefillItems?.length ? prefillItems.map((i) => ({ ...i })) : [{ description: '', quantity: 1, unitPrice: 0, kind: 'product' }],
           discount: 0,
-          shipping: 0,
+          shipping: prefillShipping || 0,
           payment: { method: '' },
           warranty: {
             option: (profile.default_warranty as WarrantyOption) || '',
             text: profile.default_warranty_text,
           },
-          notes: '',
+          notes: prefillNote || '',
           showSignatures: false,
         });
         setRecordId(null);
@@ -277,7 +281,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, record, duplicate, mode, draft, convertToContract]);
+  }, [open, record, duplicate, mode, draft, convertToContract, prefillItems]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -680,10 +684,10 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
               <div>
                 <Label>Tipo de documento</Label>
                 <select className={selectCls} value={data.docType} onChange={(e) => {
-                  const docType = e.target.value as DocType;
-                  if (docType === 'contrato' && !data.contractText?.trim()) {
-                    setData({ ...data, docType, showSignatures: true, ...defaultContractFields() });
-                  } else set('docType', docType);
+                  // Troca o tipo de verdade: título, assinaturas e PDF seguem o novo tipo
+                  setData(convertTo(data, e.target.value as DocType));
+                  setPreviewBlob(null);
+                  setPreviewPages([]);
                 }}>
                   {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
