@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, MessageCircle, Package, Home, Search, Check, Send } from "lucide-react";
+import { CheckCircle, MessageCircle, Package, Home, Search, Check } from "lucide-react";
 import { ordersApi } from "@/lib/supabaseApi";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
 import { getCompanyProfile, CompanyProfile, defaultCompanyProfile } from "@/lib/companyProfile";
@@ -115,13 +115,6 @@ export default function OrderConfirmation() {
     window.open(whatsappLink(profile.whatsapp, buildAdminOrderMessage(messageData, profile)), '_blank', 'noopener,noreferrer');
   };
 
-  const handleSendCopyToMe = () => {
-    if (!orderData?.customerPhone) return;
-    window.open(
-      whatsappLink(orderData.customerPhone, buildCustomerOrderMessage(messageData, profile)),
-      '_blank', 'noopener,noreferrer'
-    );
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
