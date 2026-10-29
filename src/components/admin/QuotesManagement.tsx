@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { HANDOFF_EVENT, QuoteHandoff, takeQuoteHandoff } from '@/lib/docHandoff';
 import DraftsBanner from './DraftsBanner';
 import { BulkBar, SelectAllRow, SelectBox, TrashSection, useSelection } from './DocBulkActions';
 import { moveToTrash } from '@/lib/docTrash';
@@ -42,6 +43,19 @@ export default function QuotesManagement() {
     duplicate: false,
   });
 
+  const [handoff, setHandoff] = useState<QuoteHandoff | null>(null);
+  useEffect(() => {
+    const pick = () => {
+      const h = takeQuoteHandoff();
+      if (!h) return;
+      setHandoff(h);
+      setEditor({ open: true, record: null, mode: 'edit', duplicate: false, draft: null, toContract: false });
+    };
+    pick();
+    window.addEventListener(HANDOFF_EVENT, pick);
+    return () => window.removeEventListener(HANDOFF_EVENT, pick);
+  }, []);
+
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['admin-quotes'],
     queryFn: async () => {
@@ -67,10 +81,18 @@ export default function QuotesManagement() {
   });
 
   const changeStatus = async (id: string, status: string) => {
+    const prev = queryClient.getQueryData<QuoteRecord[]>(['admin-quotes']);
+    queryClient.setQueryData<QuoteRecord[]>(['admin-quotes'], (old) => (old || []).map((q) => (q.id === id ? { ...q, status } : q)));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('quotes') as any).update({ status, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) toast({ title: 'Erro ao alterar status', variant: 'destructive' });
-    else refresh();
+    const { data, error } = await (supabase.from('quotes') as any).update({ status, updated_at: new Date().toISOString() }).eq('id', id).select('id');
+    if (error || !data?.length) {
+      if (prev) queryClient.setQueryData(['admin-quotes'], prev);
+      toast({ title: 'Erro ao alterar status', description: 'Nada foi salvo. Entre de novo e tente.', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Status atualizado' });
+    refresh();
+    queryClient.invalidateQueries({ queryKey: ['admin-contracts'] });
   };
 
   const download = async (q: QuoteRecord) => {
@@ -196,13 +218,17 @@ export default function QuotesManagement() {
 
       <QuoteEditor
         open={editor.open}
-        onOpenChange={(v) => setEditor((e) => ({ ...e, open: v }))}
+        onOpenChange={(v) => { setEditor((e) => ({ ...e, open: v })); if (!v) setHandoff(null); }}
         record={editor.record}
+        prefillCustomer={handoff?.customer}
+        prefillItems={handoff?.items}
+        prefillShipping={handoff?.shipping}
+        prefillNote={handoff ? `Orçamento originado do ${handoff.origin}.` : undefined}
         mode={editor.mode}
         duplicate={editor.duplicate}
         draft={editor.draft}
         convertToContract={editor.toContract}
-        onSaved={refresh}
+        onSaved={() => { refresh(); queryClient.invalidateQueries({ queryKey: ['admin-contracts'] }); }}
       />
     </div>
   );

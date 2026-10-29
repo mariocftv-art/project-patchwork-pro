@@ -372,7 +372,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
   const convertTo = (d: PremiumDocData, t: DocType): PremiumDocData =>
     t === 'contrato'
       ? { ...d, docType: t, showSignatures: true, ...(d.contractText?.trim() ? {} : defaultContractFields()) }
-      : { ...d, docType: t, showSignatures: false };
+      : { ...d, docType: t, showSignatures: t === 'orcamento' ? false : d.showSignatures };
   /** Rascunho → orçamento ou contrato: nada se perde; número só nasce aqui. */
   const handleGenerate = (asType?: DocType | unknown) => {
     const t = asType === 'orcamento' || asType === 'contrato' ? asType : null;
