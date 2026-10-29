@@ -212,7 +212,7 @@ export default function OrderConfirmation() {
 
           <Button
             onClick={handleWhatsAppClick}
-            className={`w-full h-12 text-base transition-all ${
+            className={`w-full min-h-14 h-auto py-3 whitespace-normal text-center leading-snug text-base transition-all ${
               whatsappConfirmed
                 ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-default'
                 : 'bg-[#25D366] hover:bg-[#128C7E] text-white'
@@ -221,16 +221,10 @@ export default function OrderConfirmation() {
             {whatsappConfirmed ? (
               <><Check className="mr-2 h-5 w-5" /> Mensagem enviada</>
             ) : (
-              <><MessageCircle className="mr-2 h-5 w-5" /> Confirmar pelo WhatsApp</>
+              <><MessageCircle className="mr-2 h-5 w-5" /> Enviar confirmação pelo WhatsApp</>
             )}
           </Button>
 
-          {orderData?.customerPhone && (
-            <Button variant="outline" className="w-full" onClick={handleSendCopyToMe}>
-              <Send className="mr-2 h-4 w-4" />
-              Receber resumo no meu WhatsApp
-            </Button>
-          )}
 
           <div className="grid sm:grid-cols-2 gap-3 pt-2">
             <Button asChild variant="secondary" className="w-full">
