@@ -5,7 +5,7 @@ import { CheckCircle, MessageCircle, Package, Home, Search, Check } from "lucide
 import { ordersApi } from "@/lib/supabaseApi";
 import { useCustomerNotifications } from "@/hooks/useCustomerNotifications";
 import { getCompanyProfile, CompanyProfile, defaultCompanyProfile } from "@/lib/companyProfile";
-import { buildAdminOrderMessage, buildCustomerOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
+import { buildAdminOrderMessage, whatsappLink } from "@/lib/whatsappTemplates";
 import { formatBRL } from "@/lib/formatCurrency";
 import OrderStatusTimeline from "@/components/OrderStatusTimeline";
 import { getOrderStatusInfo } from "@/lib/orderStatus";
