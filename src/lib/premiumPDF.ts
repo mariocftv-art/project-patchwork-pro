@@ -5,11 +5,11 @@ import logoMRTransparent from '@/assets/logo-generic.png';
 import { CompanyProfile } from '@/lib/companyProfile';
 import { formatBRL } from '@/lib/formatCurrency';
 import { hexToRgb, RGB } from '@/lib/pdfBrand';
-import { buildScopeLines, categorize, CATEGORY_BADGE } from '@/lib/docScope';
+import { buildScopeLines, categorize, CATEGORY_BADGE, cleanItemName } from '@/lib/docScope';
 import { loadDocImage } from '@/lib/docImages';
 
 export * from '@/lib/docModel';
-import { fmtCpfCnpj, fmtPhoneBR, docStatusLabel, DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
+import { partyDoc, partiesText, paymentSentence, installmentSchedule, fmtCpfCnpj, fmtPhoneBR, docStatusLabel, DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
 import type { DocType, DocItem, DocCustomer, DocPayment, DocWarranty, PremiumDocData, DocSignature, PaymentMethod, WarrantyOption } from '@/lib/docModel';
 
 
@@ -24,6 +24,8 @@ const PAPER: RGB = [251, 249, 243];
 const SURFACE: RGB = [244, 242, 236];
 const RED_SOFT: RGB = [198, 40, 40]; // #C62828
 let EXTRA = 0;
+/** Espaço guardado no pé de cada página para o carimbo da assinatura digital */
+let STAMP_H = 0;
 const G = (base: number) => base + EXTRA;
 
 const PAGE_W = 210;
@@ -121,6 +123,24 @@ function drawSidebar(doc: jsPDF, t: Theme) {
     const tw = doc.getTextWidth(w);
     doc.text(w, SIDEBAR_W / 2 + 1.2, y + tw, { angle: 90 });
     y += tw + 8;
+  });
+}
+
+/** Carimbo da assinatura digital no pé da página: nome, documento, data, hora e código de integridade. */
+function drawStamp(doc: jsPDF, sigs: Array<DocSignature | undefined>) {
+  const list = sigs.filter(Boolean) as DocSignature[];
+  if (!list.length) return;
+  const code = (list.find((a) => a.code)?.code || '').slice(0, 16).toUpperCase();
+  let y = PAGE_H - FOOTER_H - 2 - list.length * 3.2;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.6);
+  doc.setTextColor(...MUTED);
+  list.forEach((a) => {
+    const d = String(a.document || '').replace(/\D/g, '');
+    const dl = d ? `, ${d.length > 11 ? 'CNPJ' : 'CPF'} ${fmtCpfCnpj(d)}` : '';
+    const when = new Date(a.signedAt);
+    doc.text(`Assinado digitalmente por ${a.name}${dl}, em ${when.toLocaleDateString('pt-BR')} às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${code ? ` — Código de integridade ${code}` : ''}`, LEFT, y);
+    y += 3.2;
   });
 }
 
@@ -256,6 +276,7 @@ function drawFooter(doc: jsPDF, profile: CompanyProfile, t: Theme, logo: string 
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number) {
+  needed += STAMP_H;
   if (y + needed > PAGE_H - FOOTER_H - 3) {
     doc.addPage();
     return 26;
@@ -289,6 +310,8 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
 }
 
 async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise<{ doc: jsPDF; pages: number; free: number }> {
+  const stampAll = data.payment?.stamp === 'all' && !!(data.signatures?.contratante || data.signatures?.contratada);
+  STAMP_H = stampAll ? 4 + [data.signatures?.contratante, data.signatures?.contratada].filter(Boolean).length * 3.2 : 0;
   const t: Theme = {
     gold: hexToRgb(profile.pdf_gold_color, [201, 162, 39]),
     red: hexToRgb(profile.pdf_red_color, [200, 16, 46]),
@@ -320,8 +343,11 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     [`${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº`, data.number],
     ['DATA', data.date.toLocaleDateString('pt-BR')],
     ...(data.docType === 'contrato'
-      ? ([['PRAZO DE EXECUÇÃO', (data.customer.executionTerm || '').trim() || 'CONFORME CLÁUSULAS']] as Array<[string, string]>)
-      : validity ? ([['VALIDADE', validity]] as Array<[string, string]>) : []),
+      ? ([['PRAZO DE EXECUÇÃO', (data.customer.executionTerm || '').trim() || 'A PREENCHER']] as Array<[string, string]>)
+      : [
+          ...(validity ? ([['VALIDADE', validity]] as Array<[string, string]>) : []),
+          ...((data.customer.executionTerm || '').trim() && data.docType === 'orcamento' ? ([['PRAZO DE EXECUÇÃO', data.customer.executionTerm!.trim()]] as Array<[string, string]>) : []),
+        ]),
     ['STATUS', docStatusLabel(data)],
   ];
   const cellW = CONTENT_W / ids.length;
@@ -356,7 +382,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     [
       ['Nome', c.name],
       ['Fantasia', c.fantasy],
-      ['CPF/CNPJ', [c.cpf, c.cnpj].filter((v) => v && v.trim()).map(fmtCpfCnpj).join(' • ')],
+      [partyDoc(c).label, partyDoc(c).value],
       ['Telefone', fmtPhoneBR(c.phone)],
       ['WhatsApp', fmtPhoneBR(c.whatsapp) === fmtPhoneBR(c.phone) ? '' : fmtPhoneBR(c.whatsapp)],
       ['E-mail', c.email],
@@ -370,7 +396,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
 
   const companyRows: Array<[string, string]> = (
     [
-      ['', (profile.name || '').toUpperCase()],
+      ['Razão social', (profile.name || '').toUpperCase()],
       ['CNPJ', fmtCpfCnpj(profile.cnpj)],
       ['Telefone', fmtPhoneBR(profile.phone)],
       ['Responsável', profile.responsible_name],
@@ -386,8 +412,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const leftW = CONTENT_W * 0.58;
   const rightW = CONTENT_W - leftW - gap;
   const blockH = Math.max(measureInfoBlock(doc, leftW, clientRows), measureInfoBlock(doc, rightW, companyRows));
-  drawInfoBlock(doc, t, LEFT, y, leftW, blockH, 'Dados do cliente', clientRows);
-  drawInfoBlock(doc, t, LEFT + leftW + gap, y, rightW, blockH, 'Dados da empresa', companyRows);
+  drawInfoBlock(doc, t, LEFT, y, leftW, blockH, 'Dados do cliente / contratante', clientRows);
+  drawInfoBlock(doc, t, LEFT + leftW + gap, y, rightW, blockH, `Dados da ${(profile.name || 'empresa').toUpperCase()}`, companyRows);
   y += blockH + G(6);
 
   /* ---- Descrição do serviço ---- */
@@ -421,7 +447,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     body: data.items.map((it, i) => {
       const row = [
         String(i + 1).padStart(2, '0'),
-        it.description + (it.kind === 'service' ? '\n(Serviço Técnico Especializado)' : ''),
+        cleanItemName(it.description) + (it.kind === 'service' ? '\n(Serviço Técnico Especializado)' : ''),
         String(it.quantity),
       ];
       if (allPricesHidden) return row;
@@ -457,7 +483,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       3: { cellWidth: 28, halign: 'right', fontStyle: 'bold', textColor: BLACK },
       4: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: BLACK, fontSize: 9.8 },
     },
-    margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 },
+    margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 + STAMP_H },
     rowPageBreak: 'avoid',
     showHead: 'everyPage',
     didParseCell: (h) => {
@@ -611,6 +637,14 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     y = ensureSpace(doc, y, 30);
     y = sectionTitle(doc, t, LEFT, y, CONTENT_W, data.term ? 'Declaração de recebimento' : data.docType === 'contrato' ? 'Cláusulas do contrato' : 'Condições do serviço');
     y += 5;
+    if (data.docType === 'contrato' && !data.term) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...INK);
+      const pl = doc.splitTextToSize(partiesText(data, profile), CONTENT_W - 6) as string[];
+      pl.forEach((l) => { y = ensureSpace(doc, y, 6); doc.text(l, LEFT + 3.5, y); y += 4.4; });
+      y += 3;
+    }
     const headOf = (l: string) => /^\d+\.\s/.test(l) || CLAUSE_HEAD.test(l) || (l === l.toUpperCase() && l.length < 60 && /[A-Z]/.test(l));
     const pageNo = () => (doc as unknown as { getCurrentPageInfo: () => { pageNumber: number } }).getCurrentPageInfo().pageNumber;
     // Quadro de destaque (CDC art. 54, §4º): borda, título e texto em negrito
@@ -784,16 +818,8 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const pay = data.payment;
   const payLines: string[] = [];
   if (pay?.method) {
-    if (pay.method === 'parcelado') {
-      payLines.push(`À VISTA: ${formatBRL(totals.total)}`);
-      payLines.push(`OU ${totals.installments}x de ${formatBRL(totals.installmentValue)}`);
-      payLines.push(`TOTAL PARCELADO: ${formatBRL(totals.installmentTotal)}`);
-    } else if (pay.method === 'personalizado') {
-      payLines.push(...(pay.customText || '').split('\n').filter(Boolean));
-    } else {
-      payLines.push(`FORMA DE PAGAMENTO: ${PAYMENT_LABELS[pay.method].toUpperCase()}`);
-    }
-    if (data.docType !== 'recibo') payLines.push('STATUS: A COMBINAR COM A MR SEGURANÇA MÁXIMA');
+    // mesmo texto da Cláusula 2ª
+    payLines.push(paymentSentence(data, totals));
   } else if (data.docType === 'orcamento') {
     payLines.push('PAGAMENTO: A COMBINAR COM A MR SEGURANÇA MÁXIMA');
   }
@@ -813,7 +839,9 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   if (blocks.length && !data.term) {
     const bw = blocks.length === 2 ? (CONTENT_W - gap) / 2 : CONTENT_W;
     doc.setFontSize(9);
-    const wrapped = blocks.map((b) => b.lines.flatMap((l) => doc.splitTextToSize(l, bw - 8) as string[]));
+    // mede em negrito (mais largo) para o texto nunca passar da borda
+    doc.setFont('helvetica', 'bold');
+    const wrapped = blocks.map((b) => b.lines.flatMap((l) => doc.splitTextToSize(l, bw - 10) as string[]));
     const bh = 7 + 4 + Math.max(...wrapped.map((l) => l.length)) * 4.6 + 1;
     y = ensureSpace(doc, y, bh + 4);
     blocks.forEach((b, i) => {
@@ -824,7 +852,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       doc.rect(x, y, bw, bh, 'FD');
       sectionTitle(doc, t, x, y, bw, b.title);
       wrapped[i].forEach((l, j) => {
-        const strong = j === 0 || (b.title.startsWith('Condi') && /^(OU|TOTAL)/.test(l));
+        const strong = !b.title.startsWith('Condi') && j === 0;
         doc.setFont('helvetica', strong ? 'bold' : 'normal');
         doc.setTextColor(...(strong ? BLACK : INK));
         doc.setFontSize(9);
@@ -832,6 +860,29 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       });
     });
     y += bh + G(6);
+  }
+
+  /* ---- Quadro de parcelas (parcelado com juros) ---- */
+  const sched = pay?.method === 'parcelado' && Number(pay.interestRate) > 0 ? installmentSchedule(data) : [];
+  if (sched.length && !data.term) {
+    y = ensureSpace(doc, y, 20);
+    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, `Quadro de parcelas — juros de ${String(pay!.interestRate).replace('.', ',')}% ao mês`);
+    autoTable(doc, {
+      startY: y,
+      head: [['PARCELA', 'VENCIMENTO', 'VALOR']],
+      body: [
+        ...sched.map((p) => [`${p.n}/${sched.length}`, p.due.toLocaleDateString('pt-BR'), formatBRL(p.value)]),
+        ['TOTAL A PAGAR', '', formatBRL(totals.installmentTotal)],
+      ],
+      theme: 'plain',
+      styles: { font: 'helvetica', fontSize: 8.8, textColor: INK, cellPadding: 1.8, lineColor: [226, 222, 210], lineWidth: { top: 0, right: 0, left: 0, bottom: 0.2 } },
+      headStyles: { fillColor: SURFACE, textColor: BLACK, fontStyle: 'bold' },
+      columnStyles: { 0: { halign: 'left' }, 1: { halign: 'center' }, 2: { halign: 'right', fontStyle: 'bold' } },
+      didParseCell: (h) => { if (h.section === 'body' && h.row.index === sched.length) h.cell.styles.fontStyle = 'bold'; },
+      margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 + STAMP_H },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).lastAutoTable.finalY + G(6);
   }
 
   /* ---- Assinaturas ---- */
@@ -847,7 +898,11 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       {
         sig: sc,
         title: data.docType === 'contrato' || data.term ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
-        lines: [`Nome: ${sc?.name || c.name || ''}`, ...(data.term ? [`CPF/CNPJ: ${c.cnpj || c.cpf ? fmtCpfCnpj(c.cnpj || c.cpf || '') : '______________________'}`] : []), sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________'],
+        lines: [
+          `Nome: ${sc?.name || c.name || ''}`,
+          ...(data.docType === 'contrato' || data.term ? [`${partyDoc(c).label}: ${partyDoc(c).value || '______________________'}`] : []),
+          sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________',
+        ],
       },
       {
         sig: sm,
@@ -922,7 +977,13 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setTextColor(...BLACK);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.6);
-        doc.text(String(profile.name || '').toUpperCase(), x + sw / 2, y + 6.5, { align: 'center', charSpace: 0.8 });
+        // nome inteiro numa linha só (diminui a letra se precisar, nunca quebra)
+        const nm = String(profile.name || '').toUpperCase();
+        let fs = 8.6;
+        doc.setFontSize(fs);
+        while (doc.getTextWidth(nm) > sw - 2 && fs > 6) { fs -= 0.2; doc.setFontSize(fs); }
+        doc.text(nm, x + sw / 2, y + 6.5, { align: 'center' });
+        doc.setFontSize(8.6);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...MUTED);
         const resp = sm?.name || profile.responsible_name;
@@ -972,6 +1033,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     drawSidebar(doc, t);
     const lbl = data.term ? 'Termo de Aceite' : DOC_TYPE_LABELS[data.docType];
     if (p > 1) drawCompactHeader(doc, profile, t, logo, lbl.toUpperCase(), data.number);
+    if (stampAll && p < total) drawStamp(doc, [data.signatures?.contratante, data.signatures?.contratada]);
     drawFooter(doc, profile, t, logo, p, total, data.term ? `Termo de Aceite — Contrato Nº ${data.number}` : `${lbl} Nº ${data.number}`);
   }
 
