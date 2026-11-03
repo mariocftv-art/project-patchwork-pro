@@ -978,6 +978,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...MUTED);
         s.lines.forEach((l, j) => doc.text(l, x + sw / 2, y + 10 + j * 4.6, { align: 'center' }));
+        extra = Math.max(extra, (s.lines.length - 3) * 4.6 + 6);
         return;
       }
       const when = sm ? `Assinado em ${new Date(sm.signedAt).toLocaleDateString('pt-BR')} às ${new Date(sm.signedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Data: ____/____/________';
