@@ -94,7 +94,7 @@ export default function ContractsManagement() {
 
   const { data: signatures = [] } = useQuery({ queryKey: ['admin-contract-signatures'], queryFn: listSignatures });
   const [signing, setSigning] = useState<QuoteRecord | null>(null);
-  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string; consents?: { awareness: boolean; imageUse: boolean | null } } | null>(null);
+  const [pad, setPad] = useState<{ q: QuoteRecord; party: Party; name: string; document: string; role?: string; consents?: { awareness: boolean; imageUse: boolean | null } } | null>(null);
   const [redo, setRedo] = useState(false);
   const afterSign = async (q: QuoteRecord, both: boolean, wasRedo: boolean, how: string) => {
     if (wasRedo) {
@@ -137,7 +137,7 @@ export default function ContractsManagement() {
   const confirmSignature = async (png: string) => {
     if (!pad) return;
     try {
-      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document }, png, signatures, { method: 'desenhada', awareness: pad.consents?.awareness, imageUse: pad.consents?.imageUse ?? null });
+      const r = await signContract(pad.q, pad.party, { name: pad.name, document: pad.document, role: pad.role }, png, signatures, { method: 'desenhada', awareness: pad.consents?.awareness, imageUse: pad.consents?.imageUse ?? null });
       const q = pad.q;
       setPad(null);
       await afterSign(q, r.both, redo && pad.party === 'contratada', 'desenhada');
@@ -564,7 +564,7 @@ export default function ContractsManagement() {
                           )}
                         </>
                       ) : (
-                        <SignForm defaultName={x.p === 'contratante' ? x.name : ''} btn={x.btn} client={x.p === 'contratante'} onStart={(name, cs) => setPad({ q: signing, party: x.p, name, document: x.doc, consents: cs })} />
+                        <SignForm defaultName={x.p === 'contratante' ? (x.doc.replace(/\D/g, '').length > 11 ? String(signing.customer?.representative || '') : x.name) : ''} defaultRole={String(signing.customer?.representativeRole || '')} pj={x.p === 'contratante' && x.doc.replace(/\D/g, '').length > 11} btn={x.btn} client={x.p === 'contratante'} onStart={(name, cs, role) => setPad({ q: signing, party: x.p, name, document: x.doc, role, consents: cs })} />
                       )}
                     </div>
                   );
@@ -607,15 +607,17 @@ export default function ContractsManagement() {
   );
 }
 
-function SignForm({ defaultName, btn, client, onStart }: { defaultName: string; btn: string; client?: boolean; onStart: (name: string, c?: { awareness: boolean; imageUse: boolean | null }) => void }) {
+function SignForm({ defaultName, defaultRole = '', pj, btn, client, onStart }: { defaultName: string; defaultRole?: string; pj?: boolean; btn: string; client?: boolean; onStart: (name: string, c?: { awareness: boolean; imageUse: boolean | null }, role?: string) => void }) {
   const [name, setName] = useState(defaultName);
+  const [role, setRole] = useState(defaultRole);
   const [ok, setOk] = useState(false);
   const [aware, setAware] = useState(false);
   const [imageUse, setImageUse] = useState<boolean | null>(null);
   return (
     <div className="space-y-2">
       <p className="text-sm flex items-center gap-1 text-destructive"><Clock className="h-4 w-4" />Pendente</p>
-      <Input placeholder="Nome completo de quem assina" value={name} onChange={(e) => setName(e.target.value)} />
+      <Input placeholder={pj ? 'Nome do representante' : 'Nome completo de quem assina'} value={name} onChange={(e) => setName(e.target.value)} />
+      {pj && <Input placeholder="Cargo do representante (ex.: Sócio-administrador)" value={role} onChange={(e) => setRole(e.target.value)} />}
       <label className="flex items-start gap-2 text-xs">
         <input type="checkbox" className="mt-0.5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
         <span>Li integralmente o contrato e concordo em assiná-lo eletronicamente.</span>
@@ -633,7 +635,7 @@ function SignForm({ defaultName, btn, client, onStart }: { defaultName: string; 
           </div>
         </>
       )}
-      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3 || (!!client && (!aware || imageUse === null))} onClick={() => onStart(name.trim(), client ? { awareness: aware, imageUse } : undefined)}>{btn}</Button>
+      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3 || (!!pj && role.trim().length < 2) || (!!client && (!aware || imageUse === null))} onClick={() => onStart(name.trim(), client ? { awareness: aware, imageUse } : undefined, pj ? role.trim() : undefined)}>{btn}</Button>
     </div>
   );
 }

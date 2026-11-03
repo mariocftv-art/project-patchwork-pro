@@ -137,6 +137,7 @@ export default function ContractLink() {
   const [readToEnd, setReadToEnd] = useState(false);
   const [name, setName] = useState('');
   const [doc, setDoc] = useState('');
+  const [role, setRole] = useState('');
   const [ok, setOk] = useState(false);
   const [aware, setAware] = useState(false);
   const [imageUse, setImageUse] = useState<boolean | null>(null);
@@ -145,17 +146,21 @@ export default function ContractLink() {
   const [done, setDone] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const brand = getBrand().name;
+  const isPJ = doc.replace(/\D/g, '').length > 11;
 
   const load = async () => {
     const v: View = await call({ action: 'view', token }).catch(() => ({ state: 'invalid' }));
     setView(v);
     if (v.record) {
-      setName((n) => n || v.record!.customer_name || '');
       // CPF/CNPJ já vem do cadastro do cliente
       const cu = (v.record.customer || {}) as unknown as Record<string, unknown>;
       const r = v.record as unknown as Record<string, unknown>;
       const known = String(cu.cnpj || r.customer_cnpj || cu.cpf || r.customer_cpf || '').replace(/\D/g, '');
       if (known) setDoc((x) => x || (known.length > 11 ? maskCNPJ(known) : maskCPF(known)));
+      // Pessoa jurídica: quem assina é o representante, com o cargo dele
+      const pj = known.length > 11;
+      setName((n) => n || (pj ? String(cu.representative || '') : v.record!.customer_name || ''));
+      if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       setProfile(await getCompanyProfile(true));
       const pdf = await buildPdf(v);
       const blob = pdf.output('blob');
@@ -194,10 +199,10 @@ export default function ContractLink() {
 
   const confirm = async (png: string) => {
     if (!view) return;
-    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
+    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
     const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
-    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
+    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     if (r?.state === 'expired') return setView({ state: 'expired' });
@@ -249,9 +254,15 @@ export default function ContractLink() {
       {canSign && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div>
-            <Label htmlFor="sg-name">Nome completo</Label>
+            <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+          {isPJ && (
+            <div>
+              <Label htmlFor="sg-role">Cargo</Label>
+              <Input id="sg-role" className="mt-1 min-h-11" value={role} placeholder="Ex.: Sócio-administrador" onChange={(e) => setRole(e.target.value)} />
+            </div>
+          )}
           <div>
             <Label htmlFor="sg-doc">CPF ou CNPJ</Label>
             {!doc && <p className="text-sm text-destructive mt-1">O cadastro não tem CPF/CNPJ. Preencha com o documento do contrato.</p>}
@@ -274,7 +285,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">
