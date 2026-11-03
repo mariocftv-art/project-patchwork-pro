@@ -548,6 +548,7 @@ export default function ContractsManagement() {
                   return (
                     <div key={x.p} className="rounded border border-border p-3 space-y-2">
                       <p className="text-xs font-bold tracking-wide">{x.label}</p>
+                      {x.p === 'contratante' && !x.doc.replace(/\D/g, '') && <p className="text-xs text-destructive">O cadastro do cliente não tem CPF/CNPJ. Preencha no documento antes de assinar.</p>}
                       {x.p === 'contratada' && (!done || redo) ? (
                         <CompanySignChooser
                           companyName={getBrand().name}
@@ -623,7 +624,7 @@ function SignForm({ defaultName, btn, client, onStart }: { defaultName: string; 
         <>
           <label className="flex items-start gap-2 text-xs font-semibold rounded border-2 border-destructive p-2">
             <input type="checkbox" className="mt-0.5" checked={aware} onChange={(e) => setAware(e.target.checked)} />
-            <span>⚠️ O cliente leu e compreendeu as cláusulas de atenção (garantia, limitações, propriedade até a quitação e posicionamento das câmeras).</span>
+            <span>⚠️ O cliente leu e compreendeu as cláusulas 6ª a 9ª — cláusulas de atenção (garantia, limitações, propriedade até a quitação e posicionamento das câmeras).</span>
           </label>
           <div className="flex gap-4 text-xs">
             <span>Fotos para divulgação:</span>

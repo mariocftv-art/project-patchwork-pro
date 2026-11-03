@@ -736,9 +736,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <Field label="Endereço da instalação (rua, nº, bairro, cidade/UF, CEP)" v={data.customer.installAddress} on={(v) => setC('installAddress', v)} />
                   )}
                 </div>
-                {data.docType === 'contrato' && (
-                  <Field className="sm:col-span-6" label="Prazo de execução" v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: até 5 dias úteis após o pagamento" />
-                )}
+                <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: até 5 dias úteis após o pagamento" />
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>
@@ -887,17 +885,45 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs">Parcelas</Label>
-                      <Input type="number" min={2} value={data.payment.installments || ''} onChange={(e) => set('payment', { ...data.payment!, installments: Number(e.target.value) })} />
+                      <Input type="number" min={2} max={10} value={data.payment.installments || ''} onChange={(e) => set('payment', { ...data.payment!, installments: Number(e.target.value) })} />
                     </div>
                     <div>
                       <Label className="text-xs">Valor da parcela (vazio = automático)</Label>
                       <Input type="number" min={0} step="0.01" value={data.payment.installmentValue || ''} onChange={(e) => set('payment', { ...data.payment!, installmentValue: Number(e.target.value) || undefined })} />
                     </div>
+                    <div className="col-span-2 flex flex-wrap gap-4 text-sm">
+                      <label className="flex items-center gap-2"><input type="radio" checked={!(Number(data.payment.interestRate) > 0)} onChange={() => set('payment', { ...data.payment!, interestRate: 0 })} />Sem juros</label>
+                      <label className="flex items-center gap-2"><input type="radio" checked={Number(data.payment.interestRate) > 0} onChange={() => set('payment', { ...data.payment!, interestRate: Number(data.payment!.interestRate) > 0 ? data.payment!.interestRate : 1.99, installmentValue: undefined })} />Com juros</label>
+                    </div>
+                    {Number(data.payment.interestRate) > 0 && (
+                      <>
+                        <div>
+                          <Label className="text-xs">Juros ao mês (%)</Label>
+                          <Input type="number" min={0.01} step="0.01" value={data.payment.interestRate || ''} onChange={(e) => set('payment', { ...data.payment!, interestRate: Number(e.target.value) || 0 })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">1º vencimento</Label>
+                          <Input type="date" value={data.payment.firstDue || ''} onChange={(e) => set('payment', { ...data.payment!, firstDue: e.target.value || undefined })} />
+                        </div>
+                      </>
+                    )}
                     {totals.installments > 0 && (
                       <p className="col-span-2 text-sm text-muted-foreground">
-                        {totals.installments}x de {formatBRL(totals.installmentValue)} — total parcelado {formatBRL(totals.installmentTotal)}
+                        {totals.installments}x de {formatBRL(totals.installmentValue)} — total {formatBRL(totals.installmentTotal)}{Number(data.payment.interestRate) > 0 ? ' (quadro de parcelas no PDF)' : ' sem juros'}
                       </p>
                     )}
+                  </div>
+                )}
+                {data.payment?.method === 'entrada50' && totals.total > 0 && (
+                  <p className="text-sm text-muted-foreground">Fechamento: {formatBRL(Math.round(totals.total * 50) / 100)} · Conclusão: {formatBRL(totals.total - Math.round(totals.total * 50) / 100)}</p>
+                )}
+                {data.docType === 'contrato' && (
+                  <div className="space-y-1 pt-2">
+                    <Label className="text-xs">Carimbo da assinatura digital</Label>
+                    <select className={selectCls} value={data.payment?.stamp || 'last'} onChange={(e) => set('payment', { ...(data.payment || { method: '' }), stamp: e.target.value as 'last' | 'all' })}>
+                      <option value="last">Somente na última página</option>
+                      <option value="all">Em todas as páginas</option>
+                    </select>
                   </div>
                 )}
                 {data.payment?.method === 'personalizado' && (
