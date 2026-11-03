@@ -403,7 +403,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
-      if (!data.number && (data.docType === 'contrato' || data.docType === 'orcamento') && !/originad[oa] d[oa]/i.test(data.notes || '')
+      if (!data.number && (data.docType === 'contrato' || data.docType === 'orcamento') && !/originad[oa] d[oa]|gerado a partir d[oa]/i.test(data.notes || '')
         && !window.confirm('Este documento não veio de um pedido ou orçamento. Os itens e quantidades foram conferidos com o cliente? Toque em OK para gerar.')) {
         return;
       }

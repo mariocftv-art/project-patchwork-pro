@@ -870,10 +870,10 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Quadro de parcelas (parcelado com juros) ---- */
-  const sched = pay?.method === 'parcelado' && Number(pay.interestRate) > 0 ? installmentSchedule(data) : [];
+  const sched = pay?.method === 'parcelado' && (pay.installments || 0) > 1 ? installmentSchedule(data) : [];
   if (sched.length && !data.term) {
     y = ensureSpace(doc, y, 20);
-    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, `Quadro de parcelas — Cálculo: tabela Price, taxa de ${String(pay!.interestRate).replace('.', ',')}% ao mês`);
+    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, Number(pay!.interestRate) > 0 ? `Quadro de parcelas — Cálculo: tabela Price, taxa de ${String(pay!.interestRate).replace('.', ',')}% ao mês` : 'Quadro de parcelas — sem juros');
     autoTable(doc, {
       startY: y,
       head: [['PARCELA', 'VENCIMENTO', 'VALOR']],
