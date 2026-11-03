@@ -33,6 +33,10 @@ export interface DocCustomer {
   /** Pessoa jurídica: representante legal e cargo (bloco de assinatura) */
   representative?: string;
   representativeRole?: string;
+  representativeCpf?: string;
+  /** Razão social oficial consultada pelo CNPJ e data da consulta (ISO) */
+  cnpjOfficialName?: string;
+  cnpjCheckedAt?: string;
 }
 
 export interface DocItem {
@@ -399,7 +403,12 @@ export function validateDoc(data: PremiumDocData): string[] {
     else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
     if (!c.executionTerm?.trim()) errors.push('Contrato: preencha o prazo de execução.');
     if (!customerAddress(c)) errors.push('Contrato: informe o endereço do cliente.');
-    if (cnpj && !c.representative?.trim()) errors.push('Contrato de empresa: informe o nome do representante legal.');
+    if (cnpj) {
+      if (!c.representative?.trim()) errors.push('Contrato de empresa: informe o nome de quem assina.');
+      if (!c.representativeRole?.trim()) errors.push('Contrato de empresa: informe o cargo de quem assina.');
+      const rc = (c.representativeCpf || '').replace(/\D/g, '');
+      if (rc.length !== 11 || !isValidCPFDigits(rc)) errors.push('Contrato de empresa: informe um CPF válido de quem assina.');
+    }
   }
   if (c.cep && c.cep.replace(/\D/g, '').length !== 8) errors.push('CEP deve ter 8 números.');
   if (!data.items.length) errors.push('Adicione pelo menos um item.');

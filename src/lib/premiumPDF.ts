@@ -912,6 +912,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
                 `CNPJ: ${partyDoc(c).value}`,
                 `Representante: ${(c.representative || '').trim() || sc?.name || '______________________'}`,
                 `Cargo: ${(c.representativeRole || '').trim() || '______________________'}`,
+                ...(c.representativeCpf ? [`CPF: ${fmtCpfCnpj(c.representativeCpf)}`] : []),
               ]
             : [
                 `Nome: ${c.name || sc?.name || ''}`,

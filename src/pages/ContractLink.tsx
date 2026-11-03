@@ -44,6 +44,7 @@ function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: Comp
             <Row l="CNPJ" v={pd.value} />
             <Row l="Representante" v={c.representative} />
             <Row l="Cargo" v={c.representativeRole} />
+            <Row l="CPF do representante" v={c.representativeCpf ? fmtCpfCnpj(c.representativeCpf) : ""} />
           </>
         ) : (
           <>
