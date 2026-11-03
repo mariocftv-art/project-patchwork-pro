@@ -407,9 +407,11 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         && !window.confirm('Este documento não veio de um pedido ou orçamento. Os itens e quantidades foram conferidos com o cliente? Toque em OK para gerar.')) {
         return;
       }
+      let cnpjInfo: Partial<DocCustomer> = {};
       if (data.customer.cnpj && (data.docType === 'contrato' || data.docType === 'orcamento')) {
         const { checkCnpjName } = await import('@/lib/cnpjCheck');
         const chk = await checkCnpjName(data.customer.cnpj, data.customer.name, data.customer.fantasy);
+        if (chk) cnpjInfo = { cnpjOfficialName: chk.official, cnpjCheckedAt: new Date().toISOString() };
         if (chk) setData((d) => ({ ...d, customer: { ...d.customer, cnpjOfficialName: chk.official, cnpjCheckedAt: new Date().toISOString() } }));
         if (chk && !chk.ok) {
           setErrors([`A razão social não confere com o CNPJ. Consulta à Receita em ${new Date().toLocaleString('pt-BR')}: "${chk.official}". Corrija o nome ou o CNPJ.`]);
@@ -425,7 +427,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         revision = (lv?.version || 0) + 1;
       }
       let number = data.number || (await nextDocNumber());
-      const final = { ...data, number, status, revision };
+      const final = { ...data, customer: { ...data.customer, ...cnpjInfo }, number, status, revision };
       const profile = await getCompanyProfile(true);
       let doc = await buildPremiumPDF(final, profile);
       let url = await uploadPDF(doc, number);
