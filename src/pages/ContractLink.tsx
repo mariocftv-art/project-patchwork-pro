@@ -5,9 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getCompanyProfile } from '@/lib/companyProfile';
+import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
+import { partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
+import { cleanItemName } from '@/lib/docScope';
+import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
 import { buildPremiumPDF } from '@/lib/premiumPDF';
-import { renderPdfPages, extractPdfLines } from '@/components/admin/PdfPagesPreview';
+import { renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from '@/components/admin/SignaturePad';
 import { recordToDoc, QuoteRecord } from '@/components/admin/QuoteEditor';
 import { toDocSignatures, preloadRatios, SignatureRow } from '@/lib/contractSignatures';
@@ -15,17 +18,70 @@ import { getBrand } from '@/lib/brand';
 import { maskCPF, maskCNPJ, isValidCPF } from '@/lib/masks';
 import { AWARENESS_TEXT } from '@/lib/contractClauses';
 
-/** Junta linhas quebradas do PDF em parágrafos que se ajustam à tela. */
-function toParagraphs(lines: string[]): { text: string; head: boolean }[] {
-  const out: { text: string; head: boolean }[] = [];
-  const isHead = (l: string) => /^(CL[ÁA]USULA|CONTRATO|ADITIVO|CONTRATANTE|CONTRATADA|PAR[ÁA]GRAFO)/i.test(l) || (l.length < 70 && l === l.toUpperCase() && /[A-ZÀ-Ú]/.test(l));
-  for (const l of lines) {
-    const prev = out[out.length - 1];
-    const head = isHead(l);
-    if (prev && !prev.head && !head && !/[.:;!?]$/.test(prev.text) && /^[a-zà-ú0-9(,]/.test(l)) prev.text += ' ' + l;
-    else out.push({ text: l, head });
-  }
-  return out;
+/** Contrato para leitura no celular, montado direto dos dados (não do texto do PDF). */
+function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: CompanyProfile; font: number }) {
+  const c = d.customer;
+  const pd = partyDoc(c);
+  const Row = ({ l, v }: { l: string; v?: string | null }) => (v && String(v).trim() ? <p><strong>{l}:</strong> {v}</p> : null);
+  const lines = resolveContractText(d).split('\n');
+  let inBox = false;
+  const blocks: { box: boolean; lines: string[] }[] = [];
+  lines.forEach((raw) => {
+    const l = raw.trim();
+    if (l === HIGHLIGHT_START) { inBox = true; blocks.push({ box: true, lines: [] }); return; }
+    if (l === HIGHLIGHT_END) { inBox = false; blocks.push({ box: false, lines: [] }); return; }
+    if (!blocks.length) blocks.push({ box: inBox, lines: [] });
+    if (l && !VERSION_LINE.test(l)) blocks[blocks.length - 1].lines.push(l);
+  });
+  const isHead = (l: string) => /^CL[ÁA]USULA\s/i.test(l);
+  return (
+    <article className="space-y-4 break-words text-foreground" style={{ fontSize: font, lineHeight: 1.6 }}>
+      <section className="rounded-md border border-border p-3 space-y-0.5">
+        <h2 className="font-bold">DADOS DO CLIENTE / CONTRATANTE</h2>
+        <Row l="Nome" v={c.name} />
+        <Row l={pd.label} v={pd.value} />
+        <Row l="Telefone" v={fmtPhoneBR(c.phone || c.whatsapp)} />
+        <Row l="E-mail" v={c.email} />
+        <Row l="Endereço" v={customerAddress(c)} />
+        <Row l="Instalação" v={!c.installSame && c.installAddress?.trim() ? c.installAddress : 'No mesmo endereço do cliente'} />
+      </section>
+      <section className="rounded-md border border-border p-3 space-y-0.5">
+        <h2 className="font-bold">DADOS DA {(profile.name || '').toUpperCase()}</h2>
+        <Row l="CNPJ" v={fmtCpfCnpj(profile.cnpj)} />
+        <Row l="Telefone" v={fmtPhoneBR(profile.phone)} />
+        <Row l="E-mail" v={profile.email} />
+        <Row l="Responsável" v={profile.responsible_name} />
+      </section>
+      {(c.executionTerm || '').trim() && <p><strong>Prazo de execução:</strong> {c.executionTerm}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left" style={{ fontSize: Math.max(13, font - 2) }}>
+          <thead><tr className="border-b-2 border-border"><th className="p-1.5">Item</th><th className="p-1.5">Descrição</th><th className="p-1.5 text-center">Quant.</th></tr></thead>
+          <tbody>
+            {d.items.map((it, i) => (
+              <tr key={i} className="border-b border-border align-top">
+                <td className="p-1.5">{String(i + 1).padStart(2, '0')}</td>
+                <td className="p-1.5">{cleanItemName(it.description)}{it.kind === 'service' ? ' (Serviço Técnico Especializado)' : ''}</td>
+                <td className="p-1.5 text-center">{it.quantity}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p>{partiesText(d, profile)}</p>
+      {blocks.filter((b) => b.lines.length).map((b, i) => (
+        <div key={i} className={b.box ? 'rounded-md border-2 border-destructive p-3 space-y-2 font-semibold' : 'space-y-2'}>
+          {b.box && <p className="font-bold text-destructive">⚠️ CLÁUSULAS DE ATENÇÃO — LEIA COM CUIDADO</p>}
+          {b.lines.map((l, j) => (isHead(l) ? <h2 key={j} className="font-bold pt-2">{l}</h2> : <p key={j}>{l}</p>))}
+        </div>
+      ))}
+      {d.payment?.method && (
+        <section className="rounded-md border border-border p-3">
+          <h2 className="font-bold">CONDIÇÕES DE PAGAMENTO</h2>
+          <p>{paymentSentence(d)}</p>
+        </section>
+      )}
+    </article>
+  );
 }
 
 type View = {
@@ -63,7 +119,7 @@ export default function ContractLink() {
   const { token = '' } = useParams();
   const [view, setView] = useState<View | null>(null);
   const [pages, setPages] = useState<string[]>([]);
-  const [textPages, setTextPages] = useState<string[][]>([]);
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
   const [font, setFont] = useState(17);
   const [full, setFull] = useState(false);
   const [readToEnd, setReadToEnd] = useState(false);
@@ -83,9 +139,14 @@ export default function ContractLink() {
     setView(v);
     if (v.record) {
       setName((n) => n || v.record!.customer_name || '');
+      // CPF/CNPJ já vem do cadastro do cliente
+      const cu = (v.record.customer || {}) as unknown as Record<string, unknown>;
+      const r = v.record as unknown as Record<string, unknown>;
+      const known = String(cu.cnpj || r.customer_cnpj || cu.cpf || r.customer_cpf || '').replace(/\D/g, '');
+      if (known) setDoc((x) => x || (known.length > 11 ? maskCNPJ(known) : maskCPF(known)));
+      setProfile(await getCompanyProfile(true));
       const pdf = await buildPdf(v);
       const blob = pdf.output('blob');
-      setTextPages(await extractPdfLines(blob).catch(() => []));
       setPages(await renderPdfPages(blob, 1.5));
     }
   };
@@ -163,14 +224,10 @@ export default function ContractLink() {
         <Button variant="outline" className="h-11" disabled={pages.length === 0} onClick={() => setFull(true)}><Maximize2 className="h-4 w-4 mr-1" />PDF</Button>
       </div>
       <div className="rounded-lg border border-border bg-card p-4 md:p-6">
-        {textPages.length === 0 && pages.length === 0 ? (
+        {view.record && profile ? (
+          <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
+        ) : pages.length === 0 ? (
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-        ) : textPages.some((p) => p.length) ? (
-          <article className="space-y-3 break-words text-foreground" style={{ fontSize: font, lineHeight: 1.6 }}>
-            {textPages.map((lines, i) => toParagraphs(lines).map((p, j) => (
-              p.head ? <h2 key={`${i}-${j}`} className="font-bold pt-2">{p.text}</h2> : <p key={`${i}-${j}`}>{p.text}</p>
-            )))}
-          </article>
         ) : (
           pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full h-auto border border-border" />)
         )}
@@ -185,13 +242,14 @@ export default function ContractLink() {
           </div>
           <div>
             <Label htmlFor="sg-doc">CPF ou CNPJ</Label>
+            {!doc && <p className="text-sm text-destructive mt-1">O cadastro não tem CPF/CNPJ. Preencha com o documento do contrato.</p>}
             <Input id="sg-doc" className="mt-1 min-h-11" inputMode="numeric" value={doc} placeholder="000.000.000-00" onChange={(e) => { const x = e.target.value.replace(/\D/g, ''); setDoc(x.length > 11 ? maskCNPJ(x) : maskCPF(x)); }} />
           </div>
           <div className="rounded-md border-2 border-destructive p-3 space-y-2">
             <p className="text-sm font-bold">⚠️ Cláusulas de atenção</p>
             <label className="flex items-start gap-2 text-sm font-semibold">
               <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={aware} onChange={(e) => setAware(e.target.checked)} />
-              <span>Declaro que li e compreendi as cláusulas em destaque (quadro “Cláusulas de atenção”), especialmente quanto às exclusões de garantia, às limitações do sistema, à propriedade dos equipamentos até a quitação e à minha responsabilidade pelo posicionamento das câmeras.</span>
+              <span>Declaro que li e compreendi as cláusulas 6ª a 9ª (quadro “Cláusulas de atenção”), especialmente quanto às exclusões de garantia, às limitações do sistema, à propriedade dos equipamentos até a quitação e à minha responsabilidade pelo posicionamento das câmeras.</span>
             </label>
           </div>
           <fieldset className="space-y-1">
