@@ -157,6 +157,11 @@ export default function Layout({ children }: LayoutProps) {
     }
   };
 
+  // Signing link: customer sees only the contract — no store header, menu, footer or floating buttons.
+  if (/^\/(assinar|contrato)\//.test(location.pathname)) {
+    return <div className="min-h-[100dvh] bg-background">{children}</div>;
+  }
+
   return (
     <div className="min-h-[100dvh] bg-background">
       {/* Faixa de frete */}
