@@ -78,6 +78,13 @@
       "when": 1793262106985,
       "tag": "0010_cart_quote_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793722459792,
+      "tag": "0011_signer_role",
+      "breakpoints": true
     }
   ]
 }

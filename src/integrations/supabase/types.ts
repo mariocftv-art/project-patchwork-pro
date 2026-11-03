@@ -463,6 +463,7 @@ export type Database = {
           signer_document: string | null
           signer_ip: string | null
           signer_name: string
+          signer_role: string | null
           user_agent: string | null
           version: number
         }
@@ -489,6 +490,7 @@ export type Database = {
           signer_document?: string | null
           signer_ip?: string | null
           signer_name: string
+          signer_role?: string | null
           user_agent?: string | null
           version: number
         }
@@ -515,6 +517,7 @@ export type Database = {
           signer_document?: string | null
           signer_ip?: string | null
           signer_name?: string
+          signer_role?: string | null
           user_agent?: string | null
           version?: number
         }
