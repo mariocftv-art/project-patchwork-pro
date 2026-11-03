@@ -130,17 +130,23 @@ function drawSidebar(doc: jsPDF, t: Theme) {
 function drawStamp(doc: jsPDF, sigs: Array<DocSignature | undefined>) {
   const list = sigs.filter(Boolean) as DocSignature[];
   if (!list.length) return;
+  const lines = stampLines(doc, list);
+  // Sempre dentro da área de texto: quebra pela largura útil, acima do rodapé
+  let y = PAGE_H - FOOTER_H - 2 - (lines.length - 1) * 3 - 1;
+  doc.setTextColor(...MUTED);
+  lines.forEach((l) => { doc.text(l, LEFT, y); y += 3; });
+}
+
+function stampLines(doc: jsPDF, list: DocSignature[]): string[] {
   const code = (list.find((a) => a.code)?.code || '').slice(0, 16).toUpperCase();
-  let y = PAGE_H - FOOTER_H - 2 - list.length * 3.2;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.6);
-  doc.setTextColor(...MUTED);
-  list.forEach((a) => {
+  return list.flatMap((a, i) => {
     const d = String(a.document || '').replace(/\D/g, '');
     const dl = d ? `, ${d.length > 11 ? 'CNPJ' : 'CPF'} ${fmtCpfCnpj(d)}` : '';
     const when = new Date(a.signedAt);
-    doc.text(`Assinado digitalmente por ${a.name}${dl}, em ${when.toLocaleDateString('pt-BR')} às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${code ? ` — Código de integridade ${code}` : ''}`, LEFT, y);
-    y += 3.2;
+    const txt = `Assinado digitalmente por ${a.name}${dl}, em ${when.toLocaleDateString('pt-BR')} às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${code && i === list.length - 1 ? ` — Código de integridade ${code}` : ''}`;
+    return doc.splitTextToSize(txt, CONTENT_W - 2) as string[];
   });
 }
 
@@ -311,12 +317,13 @@ export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProf
 
 async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise<{ doc: jsPDF; pages: number; free: number }> {
   const stampAll = data.payment?.stamp === 'all' && !!(data.signatures?.contratante || data.signatures?.contratada);
-  STAMP_H = stampAll ? 4 + [data.signatures?.contratante, data.signatures?.contratada].filter(Boolean).length * 3.2 : 0;
+  STAMP_H = 0;
   const t: Theme = {
     gold: hexToRgb(profile.pdf_gold_color, [201, 162, 39]),
     red: hexToRgb(profile.pdf_red_color, [200, 16, 46]),
   };
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  if (stampAll) STAMP_H = 5 + stampLines(doc, [data.signatures?.contratante, data.signatures?.contratada].filter(Boolean) as DocSignature[]).length * 3;
   // Helvetica só cobre Latin-1: emojis/símbolos viravam "Ø=Þáþ". Remove-os de todo texto.
   const clean = (s: unknown) =>
     typeof s === 'string' ? s.replace(/[^\u0009\u000A\u000D\u0020-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g, '').replace(/^\s+(?=\S)/, (m) => m) : s;
@@ -866,7 +873,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const sched = pay?.method === 'parcelado' && Number(pay.interestRate) > 0 ? installmentSchedule(data) : [];
   if (sched.length && !data.term) {
     y = ensureSpace(doc, y, 20);
-    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, `Quadro de parcelas — juros de ${String(pay!.interestRate).replace('.', ',')}% ao mês`);
+    y = sectionTitle(doc, t, LEFT, y, CONTENT_W, `Quadro de parcelas — Cálculo: tabela Price, taxa de ${String(pay!.interestRate).replace('.', ',')}% ao mês`);
     autoTable(doc, {
       startY: y,
       head: [['PARCELA', 'VENCIMENTO', 'VALOR']],
@@ -899,8 +906,17 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         sig: sc,
         title: data.docType === 'contrato' || data.term ? 'CONTRATANTE' : 'ASSINATURA DO CLIENTE',
         lines: [
-          `Nome: ${sc?.name || c.name || ''}`,
-          ...(data.docType === 'contrato' || data.term ? [`${partyDoc(c).label}: ${partyDoc(c).value || '______________________'}`] : []),
+          ...(partyDoc(c).label === 'CNPJ'
+            ? [
+                `Razão social: ${c.name || ''}`,
+                `CNPJ: ${partyDoc(c).value}`,
+                `Representante: ${(c.representative || '').trim() || sc?.name || '______________________'}`,
+                `Cargo: ${(c.representativeRole || '').trim() || '______________________'}`,
+              ]
+            : [
+                `Nome: ${c.name || sc?.name || ''}`,
+                ...(data.docType === 'contrato' || data.term || partyDoc(c).value ? [`CPF: ${partyDoc(c).value || '______________________'}`] : []),
+              ]),
           sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________',
         ],
       },
@@ -1032,7 +1048,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     doc.setPage(p);
     drawSidebar(doc, t);
     const lbl = data.term ? 'Termo de Aceite' : DOC_TYPE_LABELS[data.docType];
-    if (p > 1) drawCompactHeader(doc, profile, t, logo, lbl.toUpperCase(), data.number);
+    if (p > 1) drawCompactHeader(doc, profile, t, logo, lbl.toUpperCase(), data.number + ((data.revision || 0) > 1 ? `  •  Revisão ${data.revision}` : ''));
     if (stampAll && p < total) drawStamp(doc, [data.signatures?.contratante, data.signatures?.contratada]);
     drawFooter(doc, profile, t, logo, p, total, data.term ? `Termo de Aceite — Contrato Nº ${data.number}` : `${lbl} Nº ${data.number}`);
   }
