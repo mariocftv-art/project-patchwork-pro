@@ -71,6 +71,16 @@ export const CATEGORY_BADGE: Record<ItemCategory, string> = {
 };
 
 /** Nome do item no documento: sem o texto de anúncio depois de "|" e com a 1ª letra maiúscula. */
+const pluralWord = (w: string) =>
+  /ão$/i.test(w) ? w.replace(/ão$/i, 'ões') : /[aeiou]$/i.test(w) ? w + 's' : /[rzs]$/i.test(w) ? w + 'es' : /l$/i.test(w) ? w.replace(/l$/i, 'is') : /m$/i.test(w) ? w.replace(/m$/i, 'ns') : w + 's';
+/** "8 suportes para sensor de barreira IVA" — sem "x", minúscula, 1ª palavra no plural quando > 1. */
+export function itemPhrase(n: number, desc: string) {
+  const d = desc.trim().replace(/\.$/, '').replace(/^\d+\s*x\s+/i, '');
+  const [first, ...rest] = d.split(/\s+/);
+  const lower = /^[A-ZÀ-Ú0-9]{2,}$/.test(first) ? first : first.charAt(0).toLowerCase() + first.slice(1);
+  return `${n} ${[n > 1 && !/s$/i.test(lower) && !/^[A-Z0-9]{2,}$/.test(lower) ? pluralWord(lower) : lower, ...rest].join(' ')}`;
+}
+
 export function cleanItemName(s: string): string {
   const base = String(s || '').split('|')[0].replace(/\s+/g, ' ').trim();
   return base ? base.charAt(0).toUpperCase() + base.slice(1) : '';
@@ -157,9 +167,9 @@ export function buildScopeLines(items: ScopeItem[]): string[] {
   ];
   // Um item por linha com a quantidade (ex.: suportes de sensor de barreira)
   simple.forEach(([cat]) => {
-    (byCat.get(cat) || []).forEach((i) => lines.push(`Instalação de ${qty(i.quantity)}x ${i.description.replace(/\.$/, '')}.`));
+    (byCat.get(cat) || []).forEach((i) => lines.push(`Instalação de ${itemPhrase(qty(i.quantity), i.description)}.`));
   });
-  (byCat.get('OUTRO') || []).forEach((i) => lines.push(`Fornecimento de ${qty(i.quantity)}x ${i.description.trim().replace(/\.$/, '')}.`));
+  (byCat.get('OUTRO') || []).forEach((i) => lines.push(`Fornecimento de ${itemPhrase(qty(i.quantity), i.description)}.`));
 
   // Serviços Técnicos Especializados
   const svc = byCat.get('SERVICO') || [];
