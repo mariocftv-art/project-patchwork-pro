@@ -65,7 +65,7 @@ interface Order {
 function orderToQuote(order: Order) {
   const a = order.shipping_address;
   sendToQuoteEditor({
-    origin: `Pedido #${order.order_number}`,
+    origin: `pedido ${order.order_number}`,
     customer: {
       name: order.customer_name,
       email: order.customer_email || undefined,

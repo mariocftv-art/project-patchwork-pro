@@ -403,9 +403,19 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
-      if (!data.number && (data.docType === 'contrato' || data.docType === 'orcamento') && !/originad[oa] d[oa]/i.test(data.notes || '')
+      if (!data.number && (data.docType === 'contrato' || data.docType === 'orcamento') && !/originad[oa] d[oa]|gerado a partir d[oa]/i.test(data.notes || '')
         && !window.confirm('Este documento não veio de um pedido ou orçamento. Os itens e quantidades foram conferidos com o cliente? Toque em OK para gerar.')) {
         return;
+      }
+      if (data.customer.cnpj && (data.docType === 'contrato' || data.docType === 'orcamento')) {
+        const { checkCnpjName } = await import('@/lib/cnpjCheck');
+        const chk = await checkCnpjName(data.customer.cnpj, data.customer.name, data.customer.fantasy);
+        if (chk && !chk.ok) {
+          setErrors([`A razão social não confere com o CNPJ. No cadastro da Receita consta: "${chk.official}". Corrija o nome ou o CNPJ.`]);
+          setStep('edit');
+          toast({ title: 'Razão social não confere com o CNPJ', description: chk.official, variant: 'destructive' });
+          return;
+        }
       }
       let revision = 1;
       if (recordId) {

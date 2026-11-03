@@ -174,6 +174,7 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
   let installments = 0;
   let installmentValue = 0;
   let installmentTotal = 0;
+  let lastInstallmentC = 0;
   if (data.payment?.method === 'parcelado' && (data.payment.installments || 0) > 0) {
     installments = Math.floor(data.payment.installments!);
     const rate = (Number(data.payment.interestRate) || 0) / 100;
@@ -181,9 +182,11 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
       ? cents(data.payment.installmentValue)
       : rate > 0
         ? Math.ceil((totalC * rate) / (1 - Math.pow(1 + rate, -installments)))
-        : Math.ceil(totalC / installments);
+        : Math.floor(totalC / installments);
     installmentValue = ivC / 100;
-    installmentTotal = (ivC * installments) / 100;
+    // Sem juros: a última parcela leva os centavos que sobram, para fechar o total exato
+    lastInstallmentC = !data.payment.installmentValue && !(rate > 0) ? totalC - ivC * (installments - 1) : ivC;
+    installmentTotal = (ivC * (installments - 1) + lastInstallmentC) / 100;
   }
 
   return {
@@ -197,6 +200,7 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
     installments,
     installmentValue,
     installmentTotal,
+    lastInstallment: lastInstallmentC / 100,
   };
 }
 
@@ -229,7 +233,7 @@ export function installmentSchedule(data: Pick<PremiumDocData, 'payment' | 'date
   return Array.from({ length: t.installments }, (_, i) => {
     const d = new Date(first);
     d.setMonth(first.getMonth() + i);
-    return { n: i + 1, due: d, value: t.installmentValue };
+    return { n: i + 1, due: d, value: i === t.installments - 1 ? t.lastInstallment : t.installmentValue };
   });
 }
 
@@ -265,6 +269,8 @@ export function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof 
     const rate = Number(p.interestRate) || 0;
     if (rate > 0)
       return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)}, com juros de ${String(rate).replace('.', ',')}% ao mês, totalizando ${formatBRL(totals.installmentTotal)}, conforme o quadro de parcelas deste documento. Cálculo: tabela Price, taxa de ${String(rate).replace('.', ',')}% ao mês.`;
+    if (totals.installments > 1 && Math.abs(totals.lastInstallment - totals.installmentValue) > 0.001)
+      return `Pagamento parcelado em ${totals.installments}x sem juros: ${totals.installments - 1}x de ${formatBRL(totals.installmentValue)} e 1x de ${formatBRL(totals.lastInstallment)} (total de ${formatBRL(totals.installmentTotal)}).`;
     return `Pagamento parcelado em ${totals.installments}x sem juros de ${formatBRL(totals.installmentValue)} (total de ${formatBRL(totals.installmentTotal)}).`;
   }
   if (p.method === 'personalizado') return `${fixPaymentText((p.customText || '').trim().replace(/\n+/g, '; ')).replace(/\.$/, '')}.`;
@@ -292,7 +298,7 @@ export function partiesText(data: PremiumDocData, profile: PartyProfile): string
   const pd = partyDoc(c);
   const sede = [profile.city, profile.state].filter(Boolean).join('/');
   const v = (x?: string | null) => (x && String(x).trim()) || '—';
-  return `Pelo presente instrumento particular, de um lado: CONTRATADA: ${(profile.name || '').toUpperCase()}, inscrita no CNPJ nº ${v(fmtCpfCnpj(profile.cnpj))}${sede ? `, com sede em ${sede}` : ''}, telefone ${v(fmtPhoneBR(profile.phone))}, e-mail ${v(profile.email)}${profile.responsible_name ? `, neste ato representada por ${profile.responsible_name}` : ''}; e, de outro lado, CONTRATANTE: ${v(c.name)}, ${pd.label} nº ${v(pd.value)}, com endereço em ${v(customerAddress(c))}, telefone ${v(fmtPhoneBR(c.phone || c.whatsapp))}, e-mail ${v(c.email)}; têm entre si justo e contratado o que segue.`;
+  return `Pelo presente instrumento particular, de um lado: CONTRATADA: ${(profile.name || '').toUpperCase()}, inscrita no CNPJ nº ${v(fmtCpfCnpj(profile.cnpj))}${sede ? `, com sede em ${sede}` : ''}, telefone ${v(fmtPhoneBR(profile.phone))}${(profile.email || '').trim() ? `, e-mail ${profile.email}` : ''}${profile.responsible_name ? `, neste ato representada por ${profile.responsible_name}` : ''}; e, de outro lado, CONTRATANTE: ${v(c.name)}, ${pd.label} nº ${v(pd.value)}, com endereço em ${v(customerAddress(c))}, telefone ${v(fmtPhoneBR(c.phone || c.whatsapp))}${(c.email || '').trim() ? `, e-mail ${c.email}` : ''}; têm entre si justo e contratado o que segue.`;
 }
 
 export function warrantyPeriod(w?: DocWarranty): string {
