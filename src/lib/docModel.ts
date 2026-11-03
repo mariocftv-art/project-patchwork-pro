@@ -30,6 +30,9 @@ export interface DocCustomer {
   installSame?: boolean;
   /** Prazo de execução do contrato (ex.: 5 dias úteis após o pagamento) */
   executionTerm?: string;
+  /** Pessoa jurídica: representante legal e cargo (bloco de assinatura) */
+  representative?: string;
+  representativeRole?: string;
 }
 
 export interface DocItem {
@@ -95,6 +98,8 @@ export interface PremiumDocData {
   signatures?: { contratante?: DocSignature; contratada?: DocSignature };
   /** Gera o Termo de Recebimento e Aceite (a partir do contrato) */
   term?: { completedAt?: string };
+  /** Número da revisão (2+ quando um documento já gerado é gerado de novo) */
+  revision?: number;
 }
 
 export interface DocSignature {
@@ -228,6 +233,26 @@ export function installmentSchedule(data: Pick<PremiumDocData, 'payment' | 'date
   });
 }
 
+/** Há entrada (sinal) na forma de pagamento? */
+export function hasDownPayment(data: Pick<PremiumDocData, 'payment'>) {
+  const p = data.payment;
+  if (!p?.method) return false;
+  if (p.method === 'entrada50') return true;
+  return p.method === 'personalizado' && /\bentrada\b|\bsinal\b/i.test(p.customText || '');
+}
+
+/** Prazo de execução com o texto que depende da forma de pagamento. */
+export function executionTermText(data: Pick<PremiumDocData, 'payment' | 'customer'>) {
+  const raw = (data.customer.executionTerm || '').trim();
+  if (!raw) return '';
+  const m = raw.match(/(\d+)/);
+  if (!m) return raw;
+  const n = Number(m[1]);
+  const corridos = /corrid/i.test(raw);
+  const unit = corridos ? (n === 1 ? 'dia corrido' : 'dias corridos') : n === 1 ? 'dia útil' : 'dias úteis';
+  return hasDownPayment(data) ? `até ${n} ${unit} após o pagamento da entrada` : `até ${n} ${unit} após a assinatura, a contar da data acordada`;
+}
+
 /** Texto único da forma de pagamento: o mesmo na Cláusula 2ª e no bloco "Condições de pagamento". */
 export function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals> = computeTotals(data)) {
   const p = data.payment;
@@ -239,7 +264,7 @@ export function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof 
   if (p.method === 'parcelado') {
     const rate = Number(p.interestRate) || 0;
     if (rate > 0)
-      return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)}, com juros de ${String(rate).replace('.', ',')}% ao mês, totalizando ${formatBRL(totals.installmentTotal)}, conforme o quadro de parcelas deste documento.`;
+      return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)}, com juros de ${String(rate).replace('.', ',')}% ao mês, totalizando ${formatBRL(totals.installmentTotal)}, conforme o quadro de parcelas deste documento. Cálculo: tabela Price, taxa de ${String(rate).replace('.', ',')}% ao mês.`;
     return `Pagamento parcelado em ${totals.installments}x sem juros de ${formatBRL(totals.installmentValue)} (total de ${formatBRL(totals.installmentTotal)}).`;
   }
   if (p.method === 'personalizado') return `${fixPaymentText((p.customText || '').trim().replace(/\n+/g, '; ')).replace(/\.$/, '')}.`;
@@ -329,8 +354,10 @@ export function resolveContractText(data: PremiumDocData): string {
     .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
     .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
     .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
-    .replace(/\{PRAZO_EXECUCAO\}/g, (data.customer.executionTerm || '').trim() || '____________')
-    .replace(/no prazo estimado informado neste contrato/g, (data.customer.executionTerm || '').trim() ? `no prazo de ${(data.customer.executionTerm || '').trim()}` : '$&')
+    .replace(/\{PRAZO_EXECUCAO\}, a contar da data acordada entre as partes/g, '{PRAZO_EXECUCAO}')
+    .replace(/\{PRAZO_EXECUCAO\}/g, executionTermText(data) || '____________')
+    .replace(/no prazo estimado informado neste contrato/g, executionTermText(data) ? `no prazo de ${executionTermText(data)}` : '$&')
+    .replace(/,? ?após o pagamento da entrada/g, (m0) => (hasDownPayment(data) ? m0 : ' após a assinatura'))
     .replace(/\bterm[ií]nio\b/gi, 'término')
     .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
     .replace(/\{GARANTIA_PERIODO_MIN\}/g, period)
@@ -366,6 +393,7 @@ export function validateDoc(data: PremiumDocData): string[] {
     else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
     if (!c.executionTerm?.trim()) errors.push('Contrato: preencha o prazo de execução.');
     if (!customerAddress(c)) errors.push('Contrato: informe o endereço do cliente.');
+    if (cnpj && !c.representative?.trim()) errors.push('Contrato de empresa: informe o nome do representante legal.');
   }
   if (c.cep && c.cep.replace(/\D/g, '').length !== 8) errors.push('CEP deve ter 8 números.');
   if (!data.items.length) errors.push('Adicione pelo menos um item.');

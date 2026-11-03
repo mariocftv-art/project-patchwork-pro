@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
-import { partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
+import { executionTermText, partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
 import { cleanItemName } from '@/lib/docScope';
 import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
 import { buildPremiumPDF } from '@/lib/premiumPDF';
@@ -38,8 +38,19 @@ function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: Comp
     <article className="space-y-4 break-words text-foreground" style={{ fontSize: font, lineHeight: 1.6 }}>
       <section className="rounded-md border border-border p-3 space-y-0.5">
         <h2 className="font-bold">DADOS DO CLIENTE / CONTRATANTE</h2>
-        <Row l="Nome" v={c.name} />
-        <Row l={pd.label} v={pd.value} />
+        {pd.label === 'CNPJ' ? (
+          <>
+            <Row l="Razão social" v={c.name} />
+            <Row l="CNPJ" v={pd.value} />
+            <Row l="Representante" v={c.representative} />
+            <Row l="Cargo" v={c.representativeRole} />
+          </>
+        ) : (
+          <>
+            <Row l="Nome" v={c.name} />
+            <Row l="CPF" v={pd.value} />
+          </>
+        )}
         <Row l="Telefone" v={fmtPhoneBR(c.phone || c.whatsapp)} />
         <Row l="E-mail" v={c.email} />
         <Row l="Endereço" v={customerAddress(c)} />
@@ -52,7 +63,7 @@ function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: Comp
         <Row l="E-mail" v={profile.email} />
         <Row l="Responsável" v={profile.responsible_name} />
       </section>
-      {(c.executionTerm || '').trim() && <p><strong>Prazo de execução:</strong> {c.executionTerm}</p>}
+      {executionTermText(d) && <p><strong>Prazo de execução:</strong> {executionTermText(d)}</p>}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left" style={{ fontSize: Math.max(13, font - 2) }}>
           <thead><tr className="border-b-2 border-border"><th className="p-1.5">Item</th><th className="p-1.5">Descrição</th><th className="p-1.5 text-center">Quant.</th></tr></thead>

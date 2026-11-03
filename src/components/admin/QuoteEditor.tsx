@@ -403,8 +403,18 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       // Renova o login antes de gravar (celular parado por muito tempo deixa o acesso vencido)
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session || (sess.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await supabase.auth.refreshSession();
+      if (!data.number && (data.docType === 'contrato' || data.docType === 'orcamento') && !/originad[oa] d[oa]/i.test(data.notes || '')
+        && !window.confirm('Este documento não veio de um pedido ou orçamento. Os itens e quantidades foram conferidos com o cliente? Toque em OK para gerar.')) {
+        return;
+      }
+      let revision = 1;
+      if (recordId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: lv } = await (supabase.from('quote_versions' as any) as any).select('version').eq('quote_id', recordId).order('version', { ascending: false }).limit(1).maybeSingle();
+        revision = (lv?.version || 0) + 1;
+      }
       let number = data.number || (await nextDocNumber());
-      const final = { ...data, number, status };
+      const final = { ...data, number, status, revision };
       const profile = await getCompanyProfile(true);
       let doc = await buildPremiumPDF(final, profile);
       let url = await uploadPDF(doc, number);
@@ -717,6 +727,12 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <Field className="sm:col-span-2" label="Nome fantasia" v={data.customer.fantasy} on={(v) => setC('fantasy', v)} />
                 <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CPF * (ou CNPJ)' : 'CPF'} v={data.customer.cpf} on={(v) => setC('cpf', maskCPF(v))} ph="000.000.000-00" num />
                 <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CNPJ * (ou CPF)' : 'CNPJ'} v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
+                {!!(data.customer.cnpj || '').replace(/\D/g, '') && (
+                  <>
+                    <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'Representante legal *' : 'Representante legal'} v={data.customer.representative} on={(v) => setC('representative', v)} />
+                    <Field className="sm:col-span-3" label="Cargo do representante" v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
+                  </>
+                )}
                 <Field className="sm:col-span-2" label="Telefone *" v={data.customer.phone} on={(v) => setC('phone', maskPhone(v))} ph="(00) 00000-0000" num />
                 <Field className="sm:col-span-2" label="WhatsApp" v={data.customer.whatsapp} on={(v) => setC('whatsapp', maskPhone(v))} ph="(00) 00000-0000" num />
                 <Field className="sm:col-span-2" label="E-mail" v={data.customer.email} on={(v) => setC('email', v)} />
@@ -736,7 +752,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <Field label="Endereço da instalação (rua, nº, bairro, cidade/UF, CEP)" v={data.customer.installAddress} on={(v) => setC('installAddress', v)} />
                   )}
                 </div>
-                <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: até 5 dias úteis após o pagamento" />
+                <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: 5 dias úteis (o texto final segue a forma de pagamento)" />
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>
