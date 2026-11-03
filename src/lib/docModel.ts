@@ -6,7 +6,7 @@ import { formatBRL } from '@/lib/formatCurrency';
 /* ============ Tipos do documento ============ */
 
 export type DocType = 'orcamento' | 'contrato' | 'os' | 'recibo';
-export type PaymentMethod = '' | 'avista' | 'pix' | 'dinheiro' | 'cartao' | 'parcelado' | 'personalizado';
+export type PaymentMethod = '' | 'entrada50' | 'avista' | 'pix' | 'dinheiro' | 'cartao' | 'parcelado' | 'personalizado';
 export type WarrantyOption = '' | 'none' | '3m' | '6m' | '1y' | 'custom';
 
 export interface DocCustomer {
@@ -49,7 +49,13 @@ export interface DocPayment {
   method: PaymentMethod;
   installments?: number;
   installmentValue?: number;
+  /** Juros ao mês em % (0/vazio = sem juros) — só no parcelado */
+  interestRate?: number;
+  /** Vencimento da 1ª parcela (AAAA-MM-DD); vazio = 30 dias após a data do documento */
+  firstDue?: string;
   customText?: string;
+  /** Carimbo da assinatura digital: só na última página ou em todas */
+  stamp?: 'last' | 'all';
 }
 
 export interface DocWarranty {
@@ -124,6 +130,7 @@ export const DOC_TITLES: Record<DocType, string> = {
 };
 
 export const PAYMENT_LABELS: Record<Exclude<PaymentMethod, ''>, string> = {
+  entrada50: '50% no fechamento + 50% na conclusão',
   avista: 'À vista',
   pix: 'PIX',
   dinheiro: 'Dinheiro',
@@ -164,9 +171,12 @@ export function computeTotals(data: Pick<PremiumDocData, 'items' | 'discount' | 
   let installmentTotal = 0;
   if (data.payment?.method === 'parcelado' && (data.payment.installments || 0) > 0) {
     installments = Math.floor(data.payment.installments!);
+    const rate = (Number(data.payment.interestRate) || 0) / 100;
     const ivC = data.payment.installmentValue
       ? cents(data.payment.installmentValue)
-      : Math.ceil(totalC / installments);
+      : rate > 0
+        ? Math.ceil((totalC * rate) / (1 - Math.pow(1 + rate, -installments)))
+        : Math.ceil(totalC / installments);
     installmentValue = ivC / 100;
     installmentTotal = (ivC * installments) / 100;
   }
@@ -202,13 +212,62 @@ export function buildDefaultContractText(_data?: Pick<PremiumDocData, 'items' | 
 export const imageUseMark = (v?: boolean | null) =>
   `(${v === true ? 'X' : ' '}) AUTORIZO   (${v === false ? 'X' : ' '}) NÃO AUTORIZO`;
 
-function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals>) {
+/** Corrige erros comuns digitados e tira a repetição "condição de pagamento". */
+export const fixPaymentText = (s: string) =>
+  s.replace(/\bterm[ií]nio\b/gi, 'término').replace(/^\s*condi[çc][ãa]o de pagamento\s*:?\s*/i, '').replace(/(condi[çc][ãa]o de pagamento)(\s*[:,-]?\s*\1)+/gi, '$1');
+
+/** Parcelas com valor e vencimento (mensal a partir do 1º vencimento). */
+export function installmentSchedule(data: Pick<PremiumDocData, 'payment' | 'date' | 'items' | 'discount' | 'shipping' | 'chargedTotal'>) {
+  const t = computeTotals(data);
+  if (!t.installments) return [];
+  const first = data.payment?.firstDue ? new Date(`${data.payment.firstDue}T12:00:00`) : new Date(data.date.getTime() + 30 * 86400000);
+  return Array.from({ length: t.installments }, (_, i) => {
+    const d = new Date(first);
+    d.setMonth(first.getMonth() + i);
+    return { n: i + 1, due: d, value: t.installmentValue };
+  });
+}
+
+/** Texto único da forma de pagamento: o mesmo na Cláusula 2ª e no bloco "Condições de pagamento". */
+export function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals> = computeTotals(data)) {
   const p = data.payment;
   if (!p?.method) return 'A forma e o cronograma de pagamento serão definidos e registrados entre as partes.';
-  if (p.method === 'parcelado')
-    return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)} (total parcelado de ${formatBRL(totals.installmentTotal)}).`;
-  if (p.method === 'personalizado') return `Condição de pagamento: ${(p.customText || '').trim().replace(/\n+/g, '; ')}.`;
+  if (p.method === 'entrada50') {
+    const half = Math.round(totals.total * 50) / 100;
+    return `Pagamento de 50% no fechamento, no valor de ${formatBRL(half)}, e o restante de ${formatBRL(Math.round((totals.total - half) * 100) / 100)} na conclusão do serviço.`;
+  }
+  if (p.method === 'parcelado') {
+    const rate = Number(p.interestRate) || 0;
+    if (rate > 0)
+      return `Pagamento parcelado em ${totals.installments}x de ${formatBRL(totals.installmentValue)}, com juros de ${String(rate).replace('.', ',')}% ao mês, totalizando ${formatBRL(totals.installmentTotal)}, conforme o quadro de parcelas deste documento.`;
+    return `Pagamento parcelado em ${totals.installments}x sem juros de ${formatBRL(totals.installmentValue)} (total de ${formatBRL(totals.installmentTotal)}).`;
+  }
+  if (p.method === 'personalizado') return `${fixPaymentText((p.customText || '').trim().replace(/\n+/g, '; ')).replace(/\.$/, '')}.`;
   return `Forma de pagamento: ${PAYMENT_LABELS[p.method]}.`;
+}
+
+/** CPF ou CNPJ do cliente: CNPJ se for pessoa jurídica. */
+export function partyDoc(c: Pick<DocCustomer, 'cpf' | 'cnpj'>): { label: 'CPF' | 'CNPJ'; value: string } {
+  const cnpj = (c.cnpj || '').replace(/\D/g, '');
+  if (cnpj) return { label: 'CNPJ', value: fmtCpfCnpj(cnpj) };
+  return { label: 'CPF', value: fmtCpfCnpj(c.cpf || '') };
+}
+
+export function customerAddress(c: DocCustomer) {
+  const street = [c.street, c.number].filter((v) => v && v.trim()).join(', ');
+  const city = [c.city, c.state].filter((v) => v && v.trim()).join('/');
+  return [street, c.complement, c.district, city, c.cep ? `CEP ${c.cep}` : ''].filter((v) => v && String(v).trim()).join(' - ');
+}
+
+type PartyProfile = { name?: string | null; cnpj?: string | null; city?: string | null; state?: string | null; phone?: string | null; email?: string | null; responsible_name?: string | null };
+
+/** Qualificação das partes (antes da Cláusula 1ª). */
+export function partiesText(data: PremiumDocData, profile: PartyProfile): string {
+  const c = data.customer;
+  const pd = partyDoc(c);
+  const sede = [profile.city, profile.state].filter(Boolean).join('/');
+  const v = (x?: string | null) => (x && String(x).trim()) || '—';
+  return `Pelo presente instrumento particular, de um lado: CONTRATADA: ${(profile.name || '').toUpperCase()}, inscrita no CNPJ nº ${v(fmtCpfCnpj(profile.cnpj))}${sede ? `, com sede em ${sede}` : ''}, telefone ${v(fmtPhoneBR(profile.phone))}, e-mail ${v(profile.email)}${profile.responsible_name ? `, neste ato representada por ${profile.responsible_name}` : ''}; e, de outro lado, CONTRATANTE: ${v(c.name)}, ${pd.label} nº ${v(pd.value)}, com endereço em ${v(customerAddress(c))}, telefone ${v(fmtPhoneBR(c.phone || c.whatsapp))}, e-mail ${v(c.email)}; têm entre si justo e contratado o que segue.`;
 }
 
 export function warrantyPeriod(w?: DocWarranty): string {
@@ -270,6 +329,9 @@ export function resolveContractText(data: PremiumDocData): string {
     .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
     .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
     .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
+    .replace(/\{PRAZO_EXECUCAO\}/g, (data.customer.executionTerm || '').trim() || '____________')
+    .replace(/no prazo estimado informado neste contrato/g, (data.customer.executionTerm || '').trim() ? `no prazo de ${(data.customer.executionTerm || '').trim()}` : '$&')
+    .replace(/\bterm[ií]nio\b/gi, 'término')
     .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
     .replace(/\{GARANTIA_PERIODO_MIN\}/g, period)
     .replace(/\{AUTORIZACAO_IMAGEM\}/g, imageUseMark(data.signatures?.contratante?.imageUse));
@@ -302,6 +364,8 @@ export function validateDoc(data: PremiumDocData): string[] {
   if (data.docType === 'contrato') {
     if (!cpf && !cnpj) errors.push('Contrato: informe o CPF ou o CNPJ do cliente.');
     else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
+    if (!c.executionTerm?.trim()) errors.push('Contrato: preencha o prazo de execução.');
+    if (!customerAddress(c)) errors.push('Contrato: informe o endereço do cliente.');
   }
   if (c.cep && c.cep.replace(/\D/g, '').length !== 8) errors.push('CEP deve ter 8 números.');
   if (!data.items.length) errors.push('Adicione pelo menos um item.');
@@ -314,8 +378,9 @@ export function validateDoc(data: PremiumDocData): string[] {
   const t = computeTotals(data);
   if ((data.discount || 0) < 0) errors.push('Desconto não pode ser negativo.');
   if (t.total <= 0 && data.docType !== 'contrato') errors.push('O valor total precisa ser maior que zero.');
-  if (data.payment?.method === 'parcelado' && !(Number(data.payment.installments) >= 2))
-    errors.push('Informe a quantidade de parcelas (mínimo 2).');
+  if (data.payment?.method === 'parcelado' && !(Number(data.payment.installments) >= 2 && Number(data.payment.installments) <= 10))
+    errors.push('Informe a quantidade de parcelas (de 2 a 10).');
+  if (data.payment?.method === 'parcelado' && Number(data.payment.interestRate) < 0) errors.push('Juros não podem ser negativos.');
   if (data.payment?.method === 'personalizado' && !data.payment.customText?.trim())
     errors.push('Descreva a condição de pagamento personalizada.');
   if (data.warranty?.option === 'custom' && !data.warranty.customPeriod?.trim())

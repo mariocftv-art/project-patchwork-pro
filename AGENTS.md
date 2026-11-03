@@ -22,4 +22,6 @@
 - Store photos are WebP in 400/800/1600 named `-<w>.webp`; components build srcset via src/lib/imgSizes.ts, and uploadImage writes all three. Why: serve the right size per screen.
 - Pure document rules/types live in src/lib/docModel.ts (re-exported by premiumPDF.ts); store pages import docModel, never premiumPDF statically. Why: keep jsPDF out of the store's download.
 
-- Contract clauses: ContractClause[] (contractClauses.ts), template in company_profile, frozen copy per contract in quotes; composeClauses renumbers and wraps highlight clauses in [[DESTAQUE]] (bold bordered box + awareness); consents saved on contract_signatures. Why: editable clauses, frozen signed text, CDC art. 54 §4.- Visitor cart quotes are created only via RPC create_cart_quote (+attach_cart_quote_pdf); anon never calls next_quote_number. Why: the counter stays server-only.
+- Contract clauses: ContractClause[] (contractClauses.ts), template in company_profile, frozen per contract in quotes; highlight clauses wrapped in [[DESTAQUE]]; consents on contract_signatures. Why: frozen signed text, CDC 54 §4.
+- Cart quotes only via RPC create_cart_quote (+attach_cart_quote_pdf); anon never calls next_quote_number. Why: counter stays server-only.
+- Parties/payment/CPF-CNPJ text: docModel helpers only; ContractLink renders from data, not PDF text. Why: phone view merged blocks.

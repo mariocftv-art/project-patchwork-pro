@@ -10,7 +10,7 @@ export interface ContractClause {
   highlight?: boolean;
 }
 
-export const DEFAULT_CLAUSES_VERSION = '2026-10-11';
+export const DEFAULT_CLAUSES_VERSION = '2026-11-03';
 
 const C = (id: string, title: string, body: string[], highlight = false): ContractClause => ({ id, title, body: body.join('\n'), enabled: true, ...(highlight ? { highlight: true } : {}) });
 
@@ -31,7 +31,7 @@ export const DEFAULT_CLAUSES: ContractClause[] = [
     '2.3. Atraso superior a 30 dias autoriza a CONTRATADA a suspender a garantia contratual e o suporte, cobrar por meios próprios, protestar o título, incluir o débito nos órgãos de proteção ao crédito e exercer os direitos da Cláusula 8ª. Despesas de cobrança e honorários correm por conta do inadimplente, nos limites legais.',
   ]),
   C('prazo', 'PRAZO E EXECUÇÃO', [
-    '3.1. Execução na data acordada, no prazo estimado informado neste contrato.',
+    '3.1. Prazo de execução: {PRAZO_EXECUCAO}, a contar da data acordada entre as partes.',
     '3.2. O CONTRATANTE garante o acesso ao local e a presença de pessoa maior e autorizada durante toda a execução.',
     '3.3. Não contam no prazo: indisponibilidade do local, falta de energia ou de infraestrutura, impedimento de acesso, clima que inviabilize trabalho em altura ou área externa, atraso de fornecedores e qualquer fato não imputável à CONTRATADA.',
     '3.4. Comparecendo a equipe na data agendada e não sendo possível executar por motivo atribuível ao CONTRATANTE, será devida taxa de visita improdutiva, e nova data será agendada.',

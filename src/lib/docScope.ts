@@ -70,6 +70,12 @@ export const CATEGORY_BADGE: Record<ItemCategory, string> = {
   OUTRO: 'ITEM',
 };
 
+/** Nome do item no documento: sem o texto de anúncio depois de "|" e com a 1ª letra maiúscula. */
+export function cleanItemName(s: string): string {
+  const base = String(s || '').split('|')[0].replace(/\s+/g, ' ').trim();
+  return base ? base.charAt(0).toUpperCase() + base.slice(1) : '';
+}
+
 const qty = (n: number) => Math.max(0, Math.round(Number(n) || 0));
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -87,7 +93,9 @@ const capacity = (d: string) => norm(d).match(/(\d+)\s*(tb|gb)\b/);
 
 /** Linhas do escopo (com "• ") montadas somente a partir dos itens reais */
 export function buildScopeLines(items: ScopeItem[]): string[] {
-  const valid = items.filter((i) => i.description?.trim() && qty(i.quantity) > 0);
+  const valid = items
+    .map((i) => ({ ...i, description: cleanItemName(i.description) }))
+    .filter((i) => i.description && qty(i.quantity) > 0);
   const lines: string[] = [];
   const byCat = new Map<ItemCategory, ScopeItem[]>();
   valid.forEach((i) => {
@@ -105,16 +113,13 @@ export function buildScopeLines(items: ScopeItem[]): string[] {
       const t = cameraType(c.description);
       types.set(t, (types.get(t) || 0) + qty(c.quantity));
     });
-    const named = [...types.entries()].filter(([t]) => t);
-    let line = `Instalação de ${plural(camTotal, 'câmera de segurança', 'câmeras de segurança')}`;
-    if (types.size > 1 && named.length) {
-      const parts = [...types.entries()].map(([t, n]) => (t ? `${n} ${t}` : `${n} ${n === 1 ? 'outro modelo' : 'outros modelos'}`));
-      const last = parts.pop();
-      line += `, sendo ${parts.length ? `${parts.join(', ')} e ${last}` : last}`;
-    } else if (named.length === 1 && types.size === 1) {
-      line += ` (${named[0][0]})`;
-    }
-    lines.push(`${line}.`);
+    // Uma linha por modelo, com a quantidade real de cada um
+    types.forEach((n, t) => {
+      if (t) lines.push(`Instalação de ${plural(n, `câmera ${t}`, `câmeras ${t}`)}.`);
+    });
+    cams.filter((c) => !cameraType(c.description)).forEach((c) => {
+      lines.push(`Instalação de ${qty(c.quantity)} ${qty(c.quantity) === 1 ? 'câmera' : 'câmeras'} — ${c.description.replace(/\.$/, '')}.`);
+    });
   }
 
   // Gravadores
@@ -150,9 +155,9 @@ export function buildScopeLines(items: ScopeItem[]): string[] {
     ['CERCA_ELETRICA', 'item de cerca elétrica', 'itens de cerca elétrica'],
     ['ALARME', 'item de alarme', 'itens de alarme'],
   ];
-  simple.forEach(([cat, one, many]) => {
-    const n = sum(byCat.get(cat));
-    if (n) lines.push(`Instalação de ${plural(n, one, many)}.`);
+  // Um item por linha com a quantidade (ex.: suportes de sensor de barreira)
+  simple.forEach(([cat]) => {
+    (byCat.get(cat) || []).forEach((i) => lines.push(`Instalação de ${qty(i.quantity)}x ${i.description.replace(/\.$/, '')}.`));
   });
   (byCat.get('OUTRO') || []).forEach((i) => lines.push(`Fornecimento de ${qty(i.quantity)}x ${i.description.trim().replace(/\.$/, '')}.`));
 
