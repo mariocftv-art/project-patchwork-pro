@@ -25,6 +25,7 @@ export interface SignatureRow {
   includes_brand?: boolean | null;
   awareness_accepted?: boolean | null;
   image_use_authorized?: boolean | null;
+  signer_role?: string | null;
 }
 
 export const CONSENT_TEXT =
@@ -70,7 +71,7 @@ export async function listSignatures(): Promise<SignatureRow[]> {
 export function toDocSignatures(rows: SignatureRow[]) {
   const pick = (p: Party): DocSignature | undefined => {
     const r = rows.find((s) => s.party === p);
-    return r ? { image: r.signature_image, name: r.signer_name, signedAt: r.signed_at, ratio: imgRatio(r.signature_image), document: r.signer_document, ip: r.signer_ip ?? null, code: r.doc_hash || null, includesBrand: !!r.includes_brand, awareness: r.awareness_accepted ?? null, imageUse: r.image_use_authorized ?? null } : undefined;
+    return r ? { image: r.signature_image, name: r.signer_name, signedAt: r.signed_at, ratio: imgRatio(r.signature_image), document: r.signer_document, role: r.signer_role ?? null, ip: r.signer_ip ?? null, code: r.doc_hash || null, includesBrand: !!r.includes_brand, awareness: r.awareness_accepted ?? null, imageUse: r.image_use_authorized ?? null } : undefined;
   };
   return { contratante: pick('contratante'), contratada: pick('contratada') };
 }
@@ -104,7 +105,7 @@ export async function buildSignedPdf(q: QuoteRecord, sigs: SignatureRow[]) {
 /** Registra a assinatura, gera o PDF assinado e o guarda em área privada. */
 export interface SignMeta { method: 'salva' | 'desenhada'; savedName?: string | null; includesBrand?: boolean; awareness?: boolean; imageUse?: boolean | null }
 
-export async function signContract(q: QuoteRecord, party: Party, signer: { name: string; document?: string }, image: string, existing: SignatureRow[], meta: SignMeta = { method: 'desenhada' }) {
+export async function signContract(q: QuoteRecord, party: Party, signer: { name: string; document?: string; role?: string }, image: string, existing: SignatureRow[], meta: SignMeta = { method: 'desenhada' }) {
   // A empresa só usa assinatura salva no próprio campo; o cliente sempre desenha
   if (party === 'contratante' && meta.method !== 'desenhada') throw new Error('not-allowed');
   const { version, snapshot } = await currentVersion(q);
@@ -113,7 +114,7 @@ export async function signContract(q: QuoteRecord, party: Party, signer: { name:
   const signedAt = new Date().toISOString();
   const others = existing.filter((s) => s.version === version && s.party !== party);
   const draft: SignatureRow = {
-    id: 'new', quote_id: q.id, version, party, signer_name: signer.name, signer_document: signer.document || null,
+    id: 'new', quote_id: q.id, version, party, signer_name: signer.name, signer_document: signer.document || null, signer_role: signer.role?.trim() || null,
     signature_image: image, doc_hash: docHash, signed_at: signedAt, created_by_email: auth.user?.email ?? null, signed_pdf_path: null,
     includes_brand: party === 'contratada' && !!meta.includesBrand,
     awareness_accepted: party === 'contratante' ? !!meta.awareness : null, image_use_authorized: party === 'contratante' ? meta.imageUse ?? null : null,
@@ -124,7 +125,7 @@ export async function signContract(q: QuoteRecord, party: Party, signer: { name:
   const up = await supabase.storage.from('signed-contracts').upload(path, pdf.output('blob'), { contentType: 'application/pdf' });
   if (up.error) throw up.error;
   const ins = await t('contract_signatures').insert({
-    quote_id: q.id, version, party, signer_name: signer.name, signer_document: signer.document || null,
+    quote_id: q.id, version, party, signer_name: signer.name, signer_document: signer.document || null, signer_role: signer.role?.trim() || null,
     signature_image: image, doc_hash: docHash, user_agent: navigator.userAgent.slice(0, 400), consent_text: CONSENT_TEXT,
     signed_at: signedAt, created_by: auth.user?.id ?? null, created_by_email: auth.user?.email ?? null, signed_pdf_path: path,
     method: meta.method, saved_signature_name: meta.savedName ?? null, includes_brand: party === 'contratada' && !!meta.includesBrand,
