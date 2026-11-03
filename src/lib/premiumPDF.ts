@@ -360,7 +360,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   const cellW = CONTENT_W / ids.length;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.4);
-  const idLines = ids.map(([, v]) => (doc.splitTextToSize(v, cellW - 6) as string[]).slice(0, 2));
+  const idLines = ids.map(([, v]) => (doc.splitTextToSize(v, cellW - 6) as string[]));
   const idH = 10 + (Math.max(...idLines.map((l) => l.length)) - 1) * 3.8;
   doc.setFillColor(...SURFACE);
   doc.rect(LEFT, y, CONTENT_W, idH, 'F');
@@ -670,7 +670,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       const before = pageNo();
       const ny = ensureSpace(doc, y, needed);
       if (box && pageNo() !== before) {
-        drawBoxPart(box.page, box.top, PAGE_H - FOOTER_H - 4);
+        drawBoxPart(box.page, box.top, PAGE_H - FOOTER_H - 4 - STAMP_H);
         box = { page: pageNo(), top: ny - 6 };
         return ny + 1;
       }
@@ -893,7 +893,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   }
 
   /* ---- Assinaturas ---- */
-  if (data.showSignatures || data.signatures?.contratante || data.signatures?.contratada) {
+  if (data.showSignatures || data.docType === 'contrato' || data.docType === 'orcamento' || data.signatures?.contratante || data.signatures?.contratada) {
     const hasImg = !!(data.signatures?.contratante || data.signatures?.contratada);
     y = ensureSpace(doc, y, hasImg ? 56 : data.term ? 30 : 42);
     y += hasImg ? 22 : 9;

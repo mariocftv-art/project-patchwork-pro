@@ -223,7 +223,7 @@ export default function QuotesManagement() {
         prefillCustomer={handoff?.customer}
         prefillItems={handoff?.items}
         prefillShipping={handoff?.shipping}
-        prefillNote={handoff ? `Orçamento originado do ${handoff.origin}.` : undefined}
+        prefillNote={handoff ? `Orçamento gerado a partir do ${handoff.origin}.` : undefined}
         mode={editor.mode}
         duplicate={editor.duplicate}
         draft={editor.draft}
