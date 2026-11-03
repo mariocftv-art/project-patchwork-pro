@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
-import { partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
+import { executionTermText, partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
 import { cleanItemName } from '@/lib/docScope';
 import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
 import { buildPremiumPDF } from '@/lib/premiumPDF';
