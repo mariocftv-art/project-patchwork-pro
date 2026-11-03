@@ -407,11 +407,14 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         && !window.confirm('Este documento não veio de um pedido ou orçamento. Os itens e quantidades foram conferidos com o cliente? Toque em OK para gerar.')) {
         return;
       }
+      let cnpjInfo: Partial<DocCustomer> = {};
       if (data.customer.cnpj && (data.docType === 'contrato' || data.docType === 'orcamento')) {
         const { checkCnpjName } = await import('@/lib/cnpjCheck');
         const chk = await checkCnpjName(data.customer.cnpj, data.customer.name, data.customer.fantasy);
+        if (chk) cnpjInfo = { cnpjOfficialName: chk.official, cnpjCheckedAt: new Date().toISOString() };
+        if (chk) setData((d) => ({ ...d, customer: { ...d.customer, cnpjOfficialName: chk.official, cnpjCheckedAt: new Date().toISOString() } }));
         if (chk && !chk.ok) {
-          setErrors([`A razão social não confere com o CNPJ. No cadastro da Receita consta: "${chk.official}". Corrija o nome ou o CNPJ.`]);
+          setErrors([`A razão social não confere com o CNPJ. Consulta à Receita em ${new Date().toLocaleString('pt-BR')}: "${chk.official}". Corrija o nome ou o CNPJ.`]);
           setStep('edit');
           toast({ title: 'Razão social não confere com o CNPJ', description: chk.official, variant: 'destructive' });
           return;
@@ -424,7 +427,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         revision = (lv?.version || 0) + 1;
       }
       let number = data.number || (await nextDocNumber());
-      const final = { ...data, number, status, revision };
+      const final = { ...data, customer: { ...data.customer, ...cnpjInfo }, number, status, revision };
       const profile = await getCompanyProfile(true);
       let doc = await buildPremiumPDF(final, profile);
       let url = await uploadPDF(doc, number);
@@ -740,7 +743,11 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 {!!(data.customer.cnpj || '').replace(/\D/g, '') && (
                   <>
                     <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'Representante legal *' : 'Representante legal'} v={data.customer.representative} on={(v) => setC('representative', v)} />
-                    <Field className="sm:col-span-3" label="Cargo do representante" v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
+                    <Field className="sm:col-span-2" label={data.docType === 'contrato' ? 'Cargo de quem assina *' : 'Cargo de quem assina'} v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
+                    <Field className="sm:col-span-1" label={data.docType === 'contrato' ? 'CPF de quem assina *' : 'CPF de quem assina'} v={data.customer.representativeCpf} on={(v) => setC('representativeCpf', maskCPF(v))} ph="000.000.000-00" num />
+                    {data.customer.cnpjOfficialName && data.customer.cnpjCheckedAt && (
+                      <p className="sm:col-span-6 text-xs text-muted-foreground">Consulta do CNPJ em {new Date(data.customer.cnpjCheckedAt).toLocaleString('pt-BR')}: {data.customer.cnpjOfficialName}</p>
+                    )}
                   </>
                 )}
                 <Field className="sm:col-span-2" label="Telefone *" v={data.customer.phone} on={(v) => setC('phone', maskPhone(v))} ph="(00) 00000-0000" num />
