@@ -910,15 +910,15 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
             ? [
                 `Razão social: ${c.name || ''}`,
                 `CNPJ: ${partyDoc(c).value}`,
-                `Representante: ${(c.representative || '').trim() || sc?.name || '______________________'}`,
-                `Cargo: ${(c.representativeRole || '').trim() || '______________________'}`,
+                `Representante: ${sc?.name || (c.representative || '').trim() || '______________________'}`,
+                `Cargo: ${(sc?.role || '').trim() || (c.representativeRole || '').trim() || '______________________'}`,
                 ...(c.representativeCpf ? [`CPF: ${fmtCpfCnpj(c.representativeCpf)}`] : []),
               ]
             : [
                 `Nome: ${c.name || sc?.name || ''}`,
                 ...(data.docType === 'contrato' || data.term || partyDoc(c).value ? [`CPF: ${partyDoc(c).value || '______________________'}`] : []),
               ]),
-          sc ? `Assinado eletronicamente em ${fmt(sc.signedAt)}` : 'Data: ____/____/________',
+          ...(sc ? [`Data: ${new Date(sc.signedAt).toLocaleDateString('pt-BR')}`, `Assinado eletronicamente em ${fmt(sc.signedAt)}`] : ['Data: ____/____/________']),
         ],
       },
       {

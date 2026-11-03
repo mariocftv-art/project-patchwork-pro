@@ -113,6 +113,8 @@ export interface DocSignature {
   ratio?: number;
   /** CPF/CNPJ de quem assinou (rodapé de autenticidade) */
   document?: string | null;
+  /** Cargo de quem assinou pela empresa contratante */
+  role?: string | null;
   ip?: string | null;
   /** Código de integridade do documento */
   code?: string | null;
