@@ -878,7 +878,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
       styles: { font: 'helvetica', fontSize: 8.8, textColor: INK, cellPadding: 1.8, lineColor: [226, 222, 210], lineWidth: { top: 0, right: 0, left: 0, bottom: 0.2 } },
       headStyles: { fillColor: SURFACE, textColor: BLACK, fontStyle: 'bold', halign: 'left' },
       columnStyles: { 0: { halign: 'left' }, 1: { halign: 'left' }, 2: { halign: 'right', fontStyle: 'bold' } },
-      didParseCell: (h) => { if (h.section === 'body' && h.row.index === sched.length) h.cell.styles.fontStyle = 'bold'; },
+      didParseCell: (h) => { if (h.section === 'head' && h.column.index === 2) h.cell.styles.halign = 'right'; if (h.section === 'body' && h.row.index === sched.length) h.cell.styles.fontStyle = 'bold'; },
       margin: { left: LEFT, right: PAGE_W - RIGHT, top: 26, bottom: FOOTER_H + 6 + STAMP_H },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

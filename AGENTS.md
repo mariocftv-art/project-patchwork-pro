@@ -23,3 +23,4 @@
 - Pure document rules/types live in src/lib/docModel.ts (re-exported by premiumPDF.ts); store pages import docModel, never premiumPDF statically. Why: keep jsPDF out of the store's download.
 
 - Contract clauses: ContractClause[] (contractClauses.ts), template in company_profile, frozen copy per contract in quotes; composeClauses renumbers and wraps highlight clauses in [[DESTAQUE]] (bold bordered box + awareness); consents saved on contract_signatures. Why: editable clauses, frozen signed text, CDC art. 54 §4.- Visitor cart quotes are created only via RPC create_cart_quote (+attach_cart_quote_pdf); anon never calls next_quote_number. Why: the counter stays server-only.
+- Contract party qualification, payment text (same in Clause 2 and payment box) and CPF/CNPJ choice come from docModel helpers (partiesText/paymentSentence/partyDoc); ContractLink renders the contract from data, never from PDF text. Why: PDF text extraction merged blocks and tables on phones.
