@@ -895,7 +895,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   /* ---- Assinaturas ---- */
   if (data.showSignatures || data.signatures?.contratante || data.signatures?.contratada) {
     const hasImg = !!(data.signatures?.contratante || data.signatures?.contratada);
-    y = ensureSpace(doc, y, hasImg ? 46 : data.term ? 22 : 32);
+    y = ensureSpace(doc, y, hasImg ? 56 : data.term ? 30 : 42);
     y += hasImg ? 22 : 9;
     const sw = (CONTENT_W - 16) / 2;
     const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
