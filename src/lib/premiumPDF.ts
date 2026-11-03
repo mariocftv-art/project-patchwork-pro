@@ -9,7 +9,7 @@ import { buildScopeLines, categorize, CATEGORY_BADGE, cleanItemName } from '@/li
 import { loadDocImage } from '@/lib/docImages';
 
 export * from '@/lib/docModel';
-import { partyDoc, partiesText, paymentSentence, installmentSchedule, fmtCpfCnpj, fmtPhoneBR, docStatusLabel, DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
+import { executionTermText, partyDoc, partiesText, paymentSentence, installmentSchedule, fmtCpfCnpj, fmtPhoneBR, docStatusLabel, DOC_TITLES, computeTotals, lineTotal, isPriceHidden, resolveContractText, warrantyPeriod, PAYMENT_LABELS, WARRANTY_LABELS, DOC_TYPE_LABELS, docFileName, validateDoc } from '@/lib/docModel';
 import type { DocType, DocItem, DocCustomer, DocPayment, DocWarranty, PremiumDocData, DocSignature, PaymentMethod, WarrantyOption } from '@/lib/docModel';
 
 
@@ -347,13 +347,13 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     ['DATA DO CONTRATO', data.date.toLocaleDateString('pt-BR')],
     ['DATA DA CONCLUSÃO', data.term.completedAt ? new Date(data.term.completedAt).toLocaleDateString('pt-BR') : '____/____/________'],
   ] : [
-    [`${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº`, data.number],
+    [`${DOC_TYPE_LABELS[data.docType].toUpperCase()} Nº`, data.number + ((data.revision || 0) > 1 ? ` — Revisão ${data.revision}` : '')],
     ['DATA', data.date.toLocaleDateString('pt-BR')],
     ...(data.docType === 'contrato'
-      ? ([['PRAZO DE EXECUÇÃO', (data.customer.executionTerm || '').trim() || 'A PREENCHER']] as Array<[string, string]>)
+      ? ([['PRAZO DE EXECUÇÃO', executionTermText(data) || 'A PREENCHER']] as Array<[string, string]>)
       : [
           ...(validity ? ([['VALIDADE', validity]] as Array<[string, string]>) : []),
-          ...((data.customer.executionTerm || '').trim() && data.docType === 'orcamento' ? ([['PRAZO DE EXECUÇÃO', data.customer.executionTerm!.trim()]] as Array<[string, string]>) : []),
+          ...((data.customer.executionTerm || '').trim() && data.docType === 'orcamento' ? ([['PRAZO DE EXECUÇÃO', executionTermText(data)]] as Array<[string, string]>) : []),
         ]),
     ['STATUS', docStatusLabel(data)],
   ];
