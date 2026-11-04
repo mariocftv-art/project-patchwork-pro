@@ -353,6 +353,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         return URL.createObjectURL(blob);
       });
       setStep('preview');
+      toast({ title: '✅ Aplicado na prévia', description: recordId ? 'Para valer no PDF salvo e no link do cliente, toque em "Aplicar e gerar PDF".' : 'A prévia já mostra suas mudanças.' });
     } catch (e) {
       console.error('[QuoteEditor.preview]', e);
       const m = (e as Error)?.message || '';
@@ -564,7 +565,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       dirtyRef.current = false; skipDirtyRef.current = true; setSavedAt(null);
       setActiveDraft(null);
       onSaved();
-      toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
+      toast({ title: '✅ Aplicado — PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
     } catch (e) {
       // Erro técnico só no log; na tela, mensagem simples. O formulário continua preenchido.
       console.error('[QuoteEditor.save]', e);
@@ -707,7 +708,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 </>
               ) : (
               <Button onClick={handleGenerate} disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}
+                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : recordId ? 'Aplicar e gerar PDF' : 'Gerar PDF'}
               </Button>)}
               <Button variant="outline" onClick={handleDownload} disabled={!previewUrl}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
               <Button variant="outline" onClick={handlePrint} disabled={!previewBlob}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
@@ -1068,7 +1069,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <span className="text-xs font-normal opacity-80">O cliente fechou. Cláusulas e campos de assinatura.</span>
                   </Button>
                 </>
-              ) : (<Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}</Button>)}
+              ) : (<Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : recordId ? 'Aplicar e gerar PDF' : 'Gerar PDF'}</Button>)}
             </div>
           </div>
         )}
