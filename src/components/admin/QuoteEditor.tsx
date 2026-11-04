@@ -656,7 +656,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent ref={contentRef} onBlurCapture={() => persistRef.current()} className="max-w-4xl max-h-[92vh] overflow-y-auto">
+      <DialogContent ref={contentRef} onBlurCapture={() => persistRef.current()} className="max-w-4xl max-h-[92vh] overflow-y-auto overflow-x-hidden grid-cols-[minmax(0,1fr)]">
         <DialogHeader>
           <DialogTitle>
             {step === 'preview' ? 'Pré-visualização do documento' : recordId ? 'Editar documento' : 'Novo documento'}
