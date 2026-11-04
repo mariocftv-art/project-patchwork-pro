@@ -301,7 +301,20 @@ function formatAddress(c: DocCustomer) {
   return parts.join(' - ');
 }
 
-export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
+export async function buildPremiumPDF(input: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
+  // Data vinda de rascunho/JSON chega como texto: converte sempre para Date
+  const dt = input.date instanceof Date && !isNaN(input.date.getTime()) ? input.date : new Date((input.date as unknown as string) || Date.now());
+  const data: PremiumDocData = { ...input, date: isNaN(dt.getTime()) ? new Date() : dt };
+  try {
+    return await buildPremiumPDFInner(data, profile);
+  } catch (e) {
+    // Nunca deixa de montar: tenta de novo sem fotos dos itens (foto com defeito/formato não suportado)
+    console.error('[premiumPDF] falha ao montar, tentando sem fotos', e);
+    return buildPremiumPDFInner({ ...data, items: data.items.map((it) => ({ ...it, imageUrl: undefined })) }, profile);
+  }
+}
+
+async function buildPremiumPDFInner(data: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
   EXTRA = 0;
   const first = await buildOnce(data, profile);
   // Uma página só e sobrando espaço: distribui melhor os blocos

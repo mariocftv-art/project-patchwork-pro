@@ -354,8 +354,13 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       });
       setStep('preview');
     } catch (e) {
-      console.error(e);
-      toast({ title: 'Erro ao montar a pré-visualização', variant: 'destructive' });
+      console.error('[QuoteEditor.preview]', e);
+      const m = (e as Error)?.message || '';
+      toast({
+        title: 'Não foi possível montar a pré-visualização',
+        description: /fetch|network|load failed|import/i.test(m) ? 'Conexão falhou. Toque em Pré-visualizar de novo.' : `Toque em Pré-visualizar de novo. Detalhe: ${m.slice(0, 120)}`,
+        variant: 'destructive',
+      });
     } finally {
       setBusy(false);
     }
