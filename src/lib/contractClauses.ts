@@ -178,10 +178,6 @@ export function defaultContractFields() {
   READY_CLAUSES.forEach((r) => { cl = toggleReadyClause(cl, r.id, true); });
   return { contractClauses: cl, contractVersion: t.version, contractText: composeClauses(cl, t.version) };
 }
-function _unusedDefault() {
-  const t = getContractTemplate();
-  return { contractClauses: t.clauses, contractVersion: t.version, contractText: composeClauses(t.clauses, t.version) };
-}
 
 /** Cláusulas prontas que o dono liga na hora de fazer o contrato (texto editável depois). */
 export const READY_CLAUSES: Array<{ id: string; label: string; title: string; body: string }> = [
