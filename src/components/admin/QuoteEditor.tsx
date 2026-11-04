@@ -1,5 +1,6 @@
 import ClauseListEditor from './ClauseListEditor';
-import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate } from '@/lib/contractClauses';
+import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate, READY_CLAUSES, toggleReadyClause } from '@/lib/contractClauses';
+import ExecutionTermFields from './ExecutionTermFields';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
@@ -769,7 +770,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <Field label="Endereço da instalação (rua, nº, bairro, cidade/UF, CEP)" v={data.customer.installAddress} on={(v) => setC('installAddress', v)} />
                   )}
                 </div>
-                <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: 5 dias úteis (o texto final segue a forma de pagamento)" />
+                <ExecutionTermFields data={data} setData={setData} />
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>
@@ -987,6 +988,25 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                   Restaurar modelo padrão
                 </Button>
               </div>
+              {data.docType === 'contrato' && (
+                <div className="rounded-md border border-primary bg-card p-3 space-y-2">
+                  <p className="text-sm font-semibold">Cláusulas prontas (marque as que valem para este contrato)</p>
+                  {READY_CLAUSES.map((r) => {
+                    const on = !!data.contractClauses?.some((c) => c.id === r.id && c.enabled);
+                    return (
+                      <label key={r.id} className="flex items-center gap-2 text-sm min-h-9">
+                        <input type="checkbox" className="h-5 w-5" checked={on} onChange={(e) => {
+                          const c = toggleReadyClause(data.contractClauses || defaultContractFields().contractClauses, r.id, e.target.checked);
+                          const pay = r.id === 'pronta-pagamento' && e.target.checked ? { payment: { ...(data.payment || {}), method: 'entrada50' } as typeof data.payment } : {};
+                          setData({ ...data, ...pay, contractClauses: c, contractVersion: data.contractVersion || defaultContractFields().contractVersion, contractText: composeClauses(c, data.contractVersion || defaultContractFields().contractVersion) });
+                        }} />
+                        {r.label}
+                      </label>
+                    );
+                  })}
+                  <p className="text-xs text-muted-foreground">Depois de marcar, toque no lápis da cláusula na lista abaixo para mudar o texto só deste contrato. O pagamento 50% / 50% calcula os valores sozinho a partir do total.</p>
+                </div>
+              )}
               {data.contractClauses ? (
                 <>
                   <p className="text-xs text-muted-foreground">Modelo usado: versão de {formatVersion(data.contractVersion || '')}. Ligue ou desligue as cláusulas só deste contrato.</p>
