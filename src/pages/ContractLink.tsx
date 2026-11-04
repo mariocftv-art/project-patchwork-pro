@@ -291,7 +291,7 @@ export default function ContractLink() {
   if (netFail) return (
     <div className="max-w-md mx-auto text-center py-16 space-y-4 px-4">
       <p className="text-lg font-semibold">Não foi possível abrir o contrato.</p>
-      <p className="text-muted-foreground">A internet parece fraca ou caiu. Tentamos 3 vezes. Confira o sinal e toque abaixo.</p>
+      <p className="text-muted-foreground">Tentamos 3 vezes. Motivo: {netFail}. Confira a internet e toque abaixo.</p>
       <Button className="w-full min-h-12" onClick={() => load()}>Tentar de novo</Button>
     </div>
   );
@@ -331,14 +331,17 @@ export default function ContractLink() {
       </div>
       <div className="rounded-lg border border-border bg-card p-4 md:p-6">
         {view.record && profile ? (
-          <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
+          <ReaderBoundary key={retryKey} onRetry={() => setRetryKey((k) => k + 1)}>
+            <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
+          </ReaderBoundary>
         ) : pages.length === 0 ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground" role="status"><Loader2 className="h-6 w-6 animate-spin text-primary" />Carregando o texto…</div>
         ) : (
           pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full h-auto border border-border" />)
         )}
         <div ref={endRef} className="h-2" />
       </div>
+      {pdfErr && <p className="text-xs text-muted-foreground">A versão em PDF não abriu ({pdfErr}). O texto acima é o contrato completo e você pode assinar normalmente.</p>}
 
       {canSign && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
