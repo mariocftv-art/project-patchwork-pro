@@ -34,6 +34,16 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || '');
 
+    // ---------- Registro de falha na tela de assinatura (para cruzar com o print do dono) ----------
+    if (action === 'client_log') {
+      const cut = (v: unknown, n: number) => String(v ?? '').slice(0, n);
+      console.error('[assinatura-falha]', JSON.stringify({
+        at: new Date().toISOString(), token: cut(body.token, 8), step: cut(body.step, 80), reason: cut(body.reason, 400),
+        device: device(req.headers.get('user-agent') || ''), ua: cut(req.headers.get('user-agent'), 200),
+      }));
+      return json({ ok: true });
+    }
+
     // ---------- Ações do administrador ----------
     if (action === 'create' || action === 'revoke') {
       const auth = req.headers.get('Authorization') || '';
