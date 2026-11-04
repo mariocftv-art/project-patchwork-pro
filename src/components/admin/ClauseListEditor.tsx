@@ -29,7 +29,7 @@ export default function ClauseListEditor({ clauses, onChange }: { clauses: Contr
               <Switch checked={c.enabled} onCheckedChange={(v) => upd(i, { enabled: v })} aria-label={`Ligar ${c.title}`} />
               <button type="button" className="flex-1 text-left text-sm min-w-0" onClick={() => setOpen(isOpen ? null : c.id)}>
                 <span className="text-xs text-muted-foreground mr-2">{label}</span>
-                <span className="font-medium truncate">{c.title}</span>{c.highlight && <span className="ml-2 text-xs font-bold text-destructive">⚠️ destaque</span>}
+                <span className="font-medium break-words">{c.title}</span>{c.highlight && <span className="ml-2 text-xs font-bold text-destructive">⚠️ destaque</span>}
               </button>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => move(i, -1)} aria-label="Subir"><ChevronUp className="h-4 w-4" /></Button>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => move(i, 1)} aria-label="Descer"><ChevronDown className="h-4 w-4" /></Button>

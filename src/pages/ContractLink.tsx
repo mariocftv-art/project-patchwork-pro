@@ -199,10 +199,10 @@ export default function ContractLink() {
 
   const confirm = async (png: string) => {
     if (!view) return;
-    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
+    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() || null : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
     const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
-    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
+    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() || undefined : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     if (r?.state === 'expired') return setView({ state: 'expired' });
@@ -259,7 +259,7 @@ export default function ContractLink() {
           </div>
           {isPJ && (
             <div>
-              <Label htmlFor="sg-role">Cargo</Label>
+              <Label htmlFor="sg-role">Cargo (opcional)</Label>
               <Input id="sg-role" className="mt-1 min-h-11" value={role} placeholder="Ex.: Sócio-administrador" onChange={(e) => setRole(e.target.value)} />
             </div>
           )}
@@ -285,7 +285,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">

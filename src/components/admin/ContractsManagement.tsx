@@ -617,7 +617,7 @@ function SignForm({ defaultName, defaultRole = '', pj, btn, client, onStart }: {
     <div className="space-y-2">
       <p className="text-sm flex items-center gap-1 text-destructive"><Clock className="h-4 w-4" />Pendente</p>
       <Input placeholder={pj ? 'Nome do representante' : 'Nome completo de quem assina'} value={name} onChange={(e) => setName(e.target.value)} />
-      {pj && <Input placeholder="Cargo do representante (ex.: Sócio-administrador)" value={role} onChange={(e) => setRole(e.target.value)} />}
+      {pj && <Input placeholder="Cargo do representante (opcional)" value={role} onChange={(e) => setRole(e.target.value)} />}
       <label className="flex items-start gap-2 text-xs">
         <input type="checkbox" className="mt-0.5" checked={ok} onChange={(e) => setOk(e.target.checked)} />
         <span>Li integralmente o contrato e concordo em assiná-lo eletronicamente.</span>
@@ -635,7 +635,7 @@ function SignForm({ defaultName, defaultRole = '', pj, btn, client, onStart }: {
           </div>
         </>
       )}
-      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3 || (!!pj && role.trim().length < 2) || (!!client && (!aware || imageUse === null))} onClick={() => onStart(name.trim(), client ? { awareness: aware, imageUse } : undefined, pj ? role.trim() : undefined)}>{btn}</Button>
+      <Button className="w-full h-12 font-bold" disabled={!ok || name.trim().length < 3 || (!!client && (!aware || imageUse === null))} onClick={() => onStart(name.trim(), client ? { awareness: aware, imageUse } : undefined, pj ? role.trim() || undefined : undefined)}>{btn}</Button>
     </div>
   );
 }

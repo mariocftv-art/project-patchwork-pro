@@ -1017,6 +1017,15 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     });
     y += 24 + Math.max(0, extra - 6);
 
+    if (data.docType === 'contrato' && !data.term && !sc && !sm) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8.6);
+      doc.setTextColor(...MUTED);
+      doc.text('Contrato sem assinatura', LEFT + CONTENT_W / 2, y, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      y += 6;
+    }
+
     // Rodapé de autenticidade
     const fmtDoc = (v?: string | null) => {
       const x = String(v || '').replace(/\D/g, '');
