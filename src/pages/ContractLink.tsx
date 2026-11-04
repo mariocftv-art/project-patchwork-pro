@@ -171,6 +171,19 @@ export default function ContractLink() {
   const brand = getBrand().name;
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
+  // Registra a falha (etapa + motivo + data/hora) no aparelho e no servidor, sem nunca travar a tela
+  const report = (step: string, reason: string) => {
+    const at = new Date().toLocaleString('pt-BR');
+    try {
+      const k = 'mr-sign-failures';
+      const list = JSON.parse(localStorage.getItem(k) || '[]');
+      list.unshift({ at, step, reason, token: String(token || '').slice(0, 8) });
+      localStorage.setItem(k, JSON.stringify(list.slice(0, 20)));
+    } catch { /* ignore */ }
+    void (call({ action: 'client_log', token, step, reason }) as Promise<unknown>).catch(() => {});
+    return `Etapa que falhou: ${step}. Motivo: ${reason}. Registrado em ${at}.`;
+  };
+
   const load = async () => {
     setNetFail(null);
     setPdfErr(null);
@@ -195,10 +208,10 @@ export default function ContractLink() {
         if (i < 2) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
       }
     }
-    if (!v) { setNetFail(reason || 'sem resposta'); return; }
+    if (!v) { setNetFail(report('1 — buscar o contrato (tentamos 3 vezes)', reason || 'sem resposta')); return; }
     console.info(`[contrato] passo 1 ok (${ms()}): estado=${v.state}, tem dados=${!!v.record}`);
     if (v.state === 'ok' || v.state === 'signed') {
-      if (!v.record) { setNetFail('o servidor não enviou os dados do contrato'); return; }
+      if (!v.record) { setNetFail(report('1 — buscar o contrato', 'o servidor não enviou os dados do contrato')); return; }
     }
     setView(v);
     if (v.record) {
@@ -209,7 +222,8 @@ export default function ContractLink() {
       if (known) setDoc((x) => x || (known.length > 11 ? maskCNPJ(known) : maskCPF(known)));
       // Pessoa jurídica: quem assina é o representante, com o cargo dele
       const pj = known.length > 11;
-      setName((n) => n || (pj ? String(cu.representative || '') : '') || v.record!.customer_name || '');
+      // PJ: nunca usar o nome da empresa no lugar do representante
+      setName((n) => n || (pj ? String(cu.representative || '').trim() : v.record!.customer_name || ''));
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
       // Passo 2: dados da empresa (no máximo 4 s; se falhar usa o padrão)
@@ -224,7 +238,7 @@ export default function ContractLink() {
           console.info(`[contrato] passo 4 ok (${ms()}): PDF pronto`);
         } catch (e) {
           console.error('[contrato] passo 4 (PDF) falhou — o texto continua na tela', e);
-          setPdfErr(e instanceof Error ? e.message : String(e));
+          setPdfErr(report('4 — montar o PDF', e instanceof Error ? e.message : String(e)));
         }
       }, 50);
     }
@@ -291,7 +305,8 @@ export default function ContractLink() {
   if (netFail) return (
     <div className="max-w-md mx-auto text-center py-16 space-y-4 px-4">
       <p className="text-lg font-semibold">Não foi possível abrir o contrato.</p>
-      <p className="text-muted-foreground">Tentamos 3 vezes. Motivo: {netFail}. Confira a internet e toque abaixo.</p>
+      <p className="text-muted-foreground">{netFail}</p>
+      <p className="text-sm text-muted-foreground">Confira a internet e toque abaixo. Se continuar, tire um print desta tela.</p>
       <Button className="w-full min-h-12" onClick={() => load()}>Tentar de novo</Button>
     </div>
   );
@@ -348,7 +363,7 @@ export default function ContractLink() {
           <div>
             <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
-            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">Escreva o nome de quem está assinando.</p>}
+            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">{isPJ ? 'Preencha o nome e o cargo do representante.' : 'Escreva o nome de quem está assinando.'}</p>}
           </div>
           {isPJ && (
             <div>

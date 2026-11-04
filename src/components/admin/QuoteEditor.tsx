@@ -2,7 +2,7 @@ import ClauseListEditor from './ClauseListEditor';
 import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate, READY_CLAUSES, toggleReadyClause } from '@/lib/contractClauses';
 import ExecutionTermFields from './ExecutionTermFields';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
+import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, deleteDraftsForRecord, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2, EyeOff, MoreVertical } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -560,6 +560,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       });
       setStep('preview');
       void deleteDraft(draftIdRef.current);
+      // Rascunhos antigos deste documento não podem trazer a versão antiga de volta
+      void deleteDraftsForRecord(targetId);
+      if (recordId && recordId !== targetId) void deleteDraftsForRecord(recordId);
       draftIdRef.current = newDraftId();
       draftCreatedRef.current = new Date().toISOString();
       dirtyRef.current = false; skipDirtyRef.current = true; setSavedAt(null);
@@ -1024,7 +1027,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
               )}
               {data.contractClauses ? (
                 <>
-                  <p className="text-xs text-muted-foreground">Modelo usado: versão de {formatVersion(data.contractVersion || '')}. Ligue ou desligue as cláusulas só deste contrato.</p>
+                  <p className="text-xs text-muted-foreground">Modelo usado: modelo de {formatVersion(data.contractVersion || '').slice(0, 5)} + cláusulas prontas — {data.contractClauses.length} cláusulas ({data.contractClauses.filter((c) => !c.id.startsWith('pronta-')).length} do modelo + {data.contractClauses.filter((c) => c.id.startsWith('pronta-')).length} prontas). Ligue ou desligue as cláusulas só deste contrato.</p>
                   <ClauseListEditor
                     clauses={data.contractClauses}
                     onChange={(c) => setData({ ...data, contractClauses: c, contractText: composeClauses(c, data.contractVersion || '') })}

@@ -97,3 +97,17 @@ export function setActiveDraft(id: string | null) {
 export function getActiveDraft(): string | null {
   try { return localStorage.getItem(ACTIVE); } catch { return null; }
 }
+
+/** Apaga todos os rascunhos de um documento salvo (aparelho + banco). */
+export async function deleteDraftsForRecord(recordId: string | null | undefined) {
+  if (!recordId) return;
+  const all = readAll();
+  const active = getActiveDraft();
+  Object.values(all).forEach((d) => { if (d.recordId === recordId) { delete all[d.id]; if (active === d.id) setActiveDraft(null); } });
+  writeAll(all);
+  try { await tbl().delete().eq('record_id', recordId); } catch { /* ignore */ }
+}
+
+/** Rascunho mais antigo que a versão salva do documento: não reabre sozinho e avisa. */
+export const isStaleDraft = (d: QuoteDraft, recordUpdatedAt?: string | null) =>
+  !!(d.recordId && recordUpdatedAt && new Date(recordUpdatedAt).getTime() > new Date(d.updatedAt).getTime());

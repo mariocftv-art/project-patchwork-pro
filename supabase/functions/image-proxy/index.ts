@@ -37,17 +37,18 @@ Deno.serve(async (req) => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 10000);
     const r = await fetch(u.toString(), { signal: ctrl.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 MR-PDF' } });
-    clearTimeout(timer);
     const type = r.headers.get('content-type') || '';
     if (!r.ok || !type.startsWith('image/')) {
       return new Response('Imagem indisponível', { status: 422, headers: cors });
     }
-    const buf = new Uint8Array(await r.arrayBuffer());
+    let buf: Uint8Array;
+    try { buf = new Uint8Array(await r.arrayBuffer()); } finally { clearTimeout(timer); }
     if (buf.byteLength > MAX) return new Response('Imagem muito grande', { status: 413, headers: cors });
     return new Response(buf, {
       headers: { ...cors, 'Content-Type': type, 'Cache-Control': 'public, max-age=86400' },
     });
-  } catch (_e) {
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') return new Response('Imagem demorou demais', { status: 504, headers: cors });
     return new Response('Erro ao buscar imagem', { status: 502, headers: cors });
   }
 });

@@ -908,7 +908,12 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   /* ---- Assinaturas ---- */
   if (data.showSignatures || data.docType === 'contrato' || data.docType === 'orcamento' || data.signatures?.contratante || data.signatures?.contratada) {
     const hasImg = !!(data.signatures?.contratante || data.signatures?.contratada);
-    y = ensureSpace(doc, y, hasImg ? 56 : data.term ? 30 : 42);
+    // Registro da assinatura fica no mesmo bloco/página das assinaturas (nunca sozinho numa página quase vazia).
+    // É o fim do documento: o carimbo não é desenhado na última página, então não reserva espaço dele aqui.
+    const nAuth = [data.signatures?.contratante, data.signatures?.contratada].filter(Boolean).length;
+    const authH = nAuth ? (nAuth + 1) * 3.6 * 1.6 + 4 : 0;
+    const sigNeed = (hasImg ? 56 : data.term ? 30 : 42) + authH + 8;
+    if (y + sigNeed > PAGE_H - FOOTER_H - 6) { doc.addPage(); y = 30; }
     y += hasImg ? 22 : 9;
     const sw = (CONTENT_W - 16) / 2;
     const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -1054,7 +1059,6 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         return `Assinado eletronicamente por ${a.name}${dl}, em ${fmt(a.signedAt)}${a.ip ? `, IP ${a.ip}` : ''}`;
       });
       if (code) lines.push(`Código do documento: ${code}`);
-      y = ensureSpace(doc, y, lines.length * 4 + 4);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.2);
       doc.setTextColor(...MUTED);
