@@ -1,13 +1,25 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect } from "react";
+import React, { lazy as reactLazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ScrollToTop from "./components/ScrollToTop";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import AdminGuard from "./components/AdminGuard";
+
+/** Carrega a página; se o arquivo sumiu (site atualizado), tenta de novo e, se preciso, recarrega uma vez. */
+const lazy = <T extends React.ComponentType<any>>(f: () => Promise<{ default: T }>) => // eslint-disable-line @typescript-eslint/no-explicit-any
+  reactLazy(async () => {
+    try { return await f(); } catch {
+      await new Promise((r) => setTimeout(r, 800));
+      try { return await f(); } catch (e) {
+        if (!sessionStorage.getItem("chunk-reload")) { sessionStorage.setItem("chunk-reload", "1"); window.location.reload(); }
+        throw e;
+      }
+    }
+  });
 
 const Privacy = lazy(() => import("./pages/Legal").then((m) => ({ default: m.Privacy })));
 const Terms = lazy(() => import("./pages/Legal").then((m) => ({ default: m.Terms })));
