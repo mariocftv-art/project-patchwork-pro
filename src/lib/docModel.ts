@@ -30,6 +30,13 @@ export interface DocCustomer {
   installSame?: boolean;
   /** Prazo de execução do contrato (ex.: 5 dias úteis após o pagamento) */
   executionTerm?: string;
+  /** Prazo deste contrato em dias corridos, início e conclusão prevista (yyyy-mm-dd) — valem só para este documento */
+  executionDays?: number;
+  startDate?: string;
+  endDate?: string;
+  /** Entrega antecipada: texto editável, sai junto do prazo quando ligado */
+  earlyDelivery?: boolean;
+  earlyText?: string;
   /** Pessoa jurídica: representante legal e cargo (bloco de assinatura) */
   representative?: string;
   representativeRole?: string;
@@ -252,7 +259,30 @@ export function hasDownPayment(data: Pick<PremiumDocData, 'payment'>) {
 }
 
 /** Prazo de execução com o texto que depende da forma de pagamento. */
+export const fmtDateBR = (iso?: string) => {
+  const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+};
+/** Data de conclusão = início + N dias corridos (yyyy-mm-dd). */
+export function addDaysISO(iso: string, days: number) {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m || !Number.isFinite(days)) return '';
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days));
+  return d.toISOString().slice(0, 10);
+}
+export const DEFAULT_EARLY_TEXT = 'A entrega pode ocorrer antes do prazo, conforme o andamento do serviço.';
+
 export function executionTermText(data: Pick<PremiumDocData, 'payment' | 'customer'>) {
+  const c = data.customer;
+  const days = Number(c.executionDays);
+  if (days > 0) {
+    let t = `até ${days} ${days === 1 ? 'dia corrido' : 'dias corridos'}`;
+    const ini = fmtDateBR(c.startDate), fim = fmtDateBR(c.endDate);
+    if (ini) t += `, com início em ${ini}`;
+    if (fim) t += `${ini ? ' e' : ','} conclusão prevista em ${fim}`;
+    if (c.earlyDelivery) t += `. ${(c.earlyText || DEFAULT_EARLY_TEXT).trim().replace(/\.$/, '')}`;
+    return t;
+  }
   const raw = (data.customer.executionTerm || '').trim();
   if (!raw) return '';
   const m = raw.match(/(\d+)/);
@@ -365,6 +395,11 @@ export function resolveContractText(data: PremiumDocData): string {
     .join('\n')
     .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
     .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
+    .replace(/\{VALOR_ENTRADA\}/g, formatBRL(Math.round(totals.total * 50) / 100))
+    .replace(/\{VALOR_FINAL\}/g, formatBRL(totals.total - Math.round(totals.total * 50) / 100))
+    .replace(/\{PRAZO_DIAS\}/g, Number(data.customer.executionDays) > 0 ? String(data.customer.executionDays) : '____')
+    .replace(/\{DATA_INICIO\}/g, fmtDateBR(data.customer.startDate) || '____/____/______')
+    .replace(/\{DATA_CONCLUSAO\}/g, fmtDateBR(data.customer.endDate) || '____/____/______')
     .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
     .replace(/\{PRAZO_EXECUCAO\}, a contar da data acordada entre as partes/g, '{PRAZO_EXECUCAO}')
     .replace(/\{PRAZO_EXECUCAO\}/g, executionTermText(data) || '____________')
@@ -403,7 +438,7 @@ export function validateDoc(data: PremiumDocData): string[] {
   if (data.docType === 'contrato') {
     if (!cpf && !cnpj) errors.push('Contrato: informe o CPF ou o CNPJ do cliente.');
     else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
-    if (!c.executionTerm?.trim()) errors.push('Contrato: preencha o prazo de execução.');
+    if (!c.executionTerm?.trim() && !(Number(c.executionDays) > 0)) errors.push('Contrato: preencha o prazo de execução.');
     if (!customerAddress(c)) errors.push('Contrato: informe o endereço do cliente.');
     if (cnpj) {
       if (!c.representative?.trim()) errors.push('Contrato de empresa: informe o nome de quem assina.');
