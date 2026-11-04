@@ -169,7 +169,7 @@ export default function ContractLink() {
       if (known) setDoc((x) => x || (known.length > 11 ? maskCNPJ(known) : maskCPF(known)));
       // Pessoa jurídica: quem assina é o representante, com o cargo dele
       const pj = known.length > 11;
-      setName((n) => n || (pj ? String(cu.representative || '') : v.record!.customer_name || ''));
+      setName((n) => n || (pj ? String(cu.representative || '') : '') || v.record!.customer_name || '');
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
       const prof = await Promise.race([
@@ -278,6 +278,7 @@ export default function ContractLink() {
           <div>
             <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
+            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">Escreva o nome de quem está assinando.</p>}
           </div>
           {isPJ && (
             <div>
