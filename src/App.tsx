@@ -12,7 +12,7 @@ import AdminGuard from "./components/AdminGuard";
 /** Carrega a página; se o arquivo sumiu (site atualizado), tenta de novo e, se preciso, recarrega uma vez. */
 const lazy = <T extends React.ComponentType<any>>(f: () => Promise<{ default: T }>) => // eslint-disable-line @typescript-eslint/no-explicit-any
   reactLazy(async () => {
-    try { return await f(); } catch {
+    try { const m = await f(); sessionStorage.removeItem("chunk-reload"); return m; } catch {
       await new Promise((r) => setTimeout(r, 800));
       try { return await f(); } catch (e) {
         if (!sessionStorage.getItem("chunk-reload")) { sessionStorage.setItem("chunk-reload", "1"); window.location.reload(); }
