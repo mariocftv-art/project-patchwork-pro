@@ -5,7 +5,7 @@ import { toggleReadyClause, composeClauses } from './contractClauses';
 const base = (days: number): PremiumDocData => ({
   docType: 'contrato',
   customer: { name: 'Teste', executionDays: days, startDate: '2026-11-04', endDate: addDaysISO('2026-11-04', days) },
-  items: [{ description: 'Serviço', qty: 1, unitPrice: 1000 }],
+  items: [{ description: 'Serviço', quantity: 1, unitPrice: 1000 }],
   payment: { method: 'entrada50' },
 } as unknown as PremiumDocData);
 
