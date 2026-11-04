@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, Download, CheckCircle2, Plus, Minus, Maximize2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,6 +95,26 @@ function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: Comp
     </article>
   );
 }
+
+/** Se a montagem do texto quebrar, mostra o motivo e "Tentar de novo" em vez de tela branca ou bolinha. */
+class ReaderBoundary extends Component<{ onRetry: () => void; children: ReactNode }, { err: string | null }> {
+  state = { err: null as string | null };
+  static getDerivedStateFromError(e: unknown) { return { err: e instanceof Error ? e.message : String(e) }; }
+  componentDidCatch(e: unknown) { console.error('[contrato] passo 3 (montar texto) falhou', e); }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return (
+      <div className="text-center space-y-3 py-6" role="alert">
+        <p className="font-semibold">Não foi possível mostrar o texto do contrato.</p>
+        <p className="text-sm text-muted-foreground">Motivo: {this.state.err}</p>
+        <Button className="min-h-12" onClick={() => { this.setState({ err: null }); this.props.onRetry(); }}>Tentar de novo</Button>
+      </div>
+    );
+  }
+}
+
+const withTimeout = <T,>(p: Promise<T>, ms: number, what: string) =>
+  Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`${what} demorou mais de ${Math.round(ms / 1000)} s`)), ms))]);
 
 type View = {
   state: 'ok' | 'signed' | 'expired' | 'revoked' | 'invalid';
