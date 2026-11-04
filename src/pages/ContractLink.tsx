@@ -149,7 +149,17 @@ export default function ContractLink() {
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
   const load = async () => {
-    const v: View = await call({ action: 'view', token }).catch(() => ({ state: 'invalid' }));
+    // Até 3 tentativas, cada uma com limite de 15 s, para nunca ficar girando sem fim
+    let v: View | null = null;
+    for (let i = 0; i < 3 && !v; i++) {
+      try {
+        v = await Promise.race([
+          call({ action: 'view', token }) as Promise<View>,
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000)),
+        ]);
+      } catch { await new Promise((r) => setTimeout(r, 800)); }
+    }
+    if (!v) v = { state: 'invalid' };
     setView(v);
     if (v.record) {
       // CPF/CNPJ já vem do cadastro do cliente
@@ -161,21 +171,30 @@ export default function ContractLink() {
       const pj = known.length > 11;
       setName((n) => n || (pj ? String(cu.representative || '') : v.record!.customer_name || ''));
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
-      setProfile(await getCompanyProfile(true));
-      const pdf = await buildPdf(v);
-      const blob = pdf.output('blob');
-      setPages(await renderPdfPages(blob, 1.5));
+      // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
+      const prof = await Promise.race([
+        getCompanyProfile(),
+        new Promise<CompanyProfile>((r) => setTimeout(() => r(defaultCompanyProfile), 6000)),
+      ]);
+      setProfile(prof);
+      const vv = v;
+      setTimeout(async () => {
+        try {
+          const pdf = await buildPdf(vv);
+          setPages(await renderPdfPages(pdf.output('blob'), 1.5));
+        } catch (e) { console.error('[contrato] PDF de leitura falhou', e); }
+      }, 50);
     }
   };
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
   useEffect(() => {
-    if (!endRef.current || pages.length === 0) return;
+    if (!endRef.current || (!profile && pages.length === 0)) return;
     const io = new IntersectionObserver((e) => e[0].isIntersecting && setReadToEnd(true), { threshold: 0.5 });
     io.observe(endRef.current);
     return () => io.disconnect();
-  }, [pages.length]);
+  }, [pages.length, profile, view]);
 
   const downloadSigned = async () => {
     const r = await call({ action: 'pdf', token });
@@ -276,7 +295,7 @@ export default function ContractLink() {
             </label>
           </div>
           <fieldset className="space-y-1">
-            <legend className="text-sm font-medium">Fotos do local para divulgação (antes e depois)</legend>
+            <legend className="text-sm font-medium">Fotos do local para divulgação (antes e depois) — opcional</legend>
             <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === true} onChange={() => setImageUse(true)} />Autorizo</label>
             <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === false} onChange={() => setImageUse(false)} />Não autorizo</label>
           </fieldset>
@@ -285,7 +304,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">
