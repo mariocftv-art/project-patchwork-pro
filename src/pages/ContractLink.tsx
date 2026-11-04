@@ -276,7 +276,7 @@ export default function ContractLink() {
     const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() || null : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
     let r: { error?: string; state?: string } | null = null;
     try {
-    const pdf = await buildPdf(view, draft);
+    const pdf = await withTimeout(buildPdf(view, draft), 45000, 'O PDF assinado');
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
     r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() || undefined : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     } catch (e) { console.error('[contrato] assinatura falhou', e); }
