@@ -367,6 +367,14 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       toast({ title: 'Faltam informações', description: errs[0], variant: 'destructive' });
       return;
     }
+    // Prévia sempre abre: sem prazo, mostra com o último prazo usado (ou 15 dias) só para visualizar
+    const c = data.customer;
+    if (data.docType === 'contrato' && !c.executionTerm?.trim() && !(Number(c.executionDays) > 0)) {
+      const days = Number(localStorage.getItem('mr-last-exec-days')) || 15;
+      const start = c.startDate || new Date().toISOString().slice(0, 10);
+      renderPreview({ ...data, customer: { ...c, executionDays: days, startDate: start, endDate: addDaysISO(start, days), executionTerm: `${days} dias corridos` } });
+      return;
+    }
     renderPreview(data);
   };
 
@@ -389,7 +397,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         if (pct > 30 && !window.confirm(`⚠️ O valor a cobrar está ${pct}% ${tt.adjustment < 0 ? 'abaixo' : 'acima'} do somatório dos itens. Confirma?`)) return;
       }
     }
-    const errs = validateDoc(data);
+    const errs = validateDoc(data, { final: true });
     if (errs.length) {
       setErrors(errs);
       setStep('edit');
@@ -743,9 +751,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CNPJ * (ou CPF)' : 'CNPJ'} v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
                 {!!(data.customer.cnpj || '').replace(/\D/g, '') && (
                   <>
-                    <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'Representante legal *' : 'Representante legal'} v={data.customer.representative} on={(v) => setC('representative', v)} />
-                    <Field className="sm:col-span-2" label={data.docType === 'contrato' ? 'Cargo de quem assina *' : 'Cargo de quem assina'} v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
-                    <Field className="sm:col-span-1" label={data.docType === 'contrato' ? 'CPF de quem assina *' : 'CPF de quem assina'} v={data.customer.representativeCpf} on={(v) => setC('representativeCpf', maskCPF(v))} ph="000.000.000-00" num />
+                    <Field className="sm:col-span-3" label="Nome de quem assina (opcional)" v={data.customer.representative} on={(v) => setC('representative', v)} />
+                    <Field className="sm:col-span-2" label="Cargo de quem assina (opcional)" v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
+                    <Field className="sm:col-span-1" label="CPF de quem assina (opcional)" v={data.customer.representativeCpf} on={(v) => setC('representativeCpf', maskCPF(v))} ph="000.000.000-00" num />
                     {data.customer.cnpjOfficialName && data.customer.cnpjCheckedAt && (
                       <p className="sm:col-span-6 text-xs text-muted-foreground">Consulta do CNPJ em {new Date(data.customer.cnpjCheckedAt).toLocaleString('pt-BR')}: {data.customer.cnpjOfficialName}</p>
                     )}
