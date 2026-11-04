@@ -173,6 +173,13 @@ export async function saveContractTemplate(id: string, clauses: ContractClause[]
 /** Campos de um contrato novo a partir do modelo atual. */
 export function defaultContractFields() {
   const t = getContractTemplate();
+  // As 4 cláusulas prontas já vêm ligadas em contrato novo (o dono desliga contrato por contrato)
+  let cl = t.clauses;
+  READY_CLAUSES.forEach((r) => { cl = toggleReadyClause(cl, r.id, true); });
+  return { contractClauses: cl, contractVersion: t.version, contractText: composeClauses(cl, t.version) };
+}
+function _unusedDefault() {
+  const t = getContractTemplate();
   return { contractClauses: t.clauses, contractVersion: t.version, contractText: composeClauses(t.clauses, t.version) };
 }
 

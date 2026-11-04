@@ -305,7 +305,8 @@ export default function ContractLink() {
   if (netFail) return (
     <div className="max-w-md mx-auto text-center py-16 space-y-4 px-4">
       <p className="text-lg font-semibold">Não foi possível abrir o contrato.</p>
-      <p className="text-muted-foreground">Tentamos 3 vezes. Motivo: {netFail}. Confira a internet e toque abaixo.</p>
+      <p className="text-muted-foreground">{netFail}</p>
+      <p className="text-sm text-muted-foreground">Confira a internet e toque abaixo. Se continuar, tire um print desta tela.</p>
       <Button className="w-full min-h-12" onClick={() => load()}>Tentar de novo</Button>
     </div>
   );
@@ -362,7 +363,7 @@ export default function ContractLink() {
           <div>
             <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
-            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">Escreva o nome de quem está assinando.</p>}
+            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">{isPJ ? 'Preencha o nome e o cargo do representante.' : 'Escreva o nome de quem está assinando.'}</p>}
           </div>
           {isPJ && (
             <div>

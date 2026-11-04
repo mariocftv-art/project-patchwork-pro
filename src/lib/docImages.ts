@@ -40,12 +40,23 @@ function loadImg(src: string, timeoutMs = 12000) {
   });
 }
 
+export const PROXY_TIMEOUT_MS = 12000;
+
 async function viaProxy(src: string, maxPx?: number) {
   const base = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const res = await fetch(`${base}/functions/v1/image-proxy?url=${encodeURIComponent(src)}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
-  });
+  // Limite de tempo: foto lenta de outro site nunca trava o PDF (sai sem a foto, com aviso no log)
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), PROXY_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/functions/v1/image-proxy?url=${encodeURIComponent(src)}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: ctrl.signal,
+    });
+  } catch (e) {
+    console.warn('[pdf] foto de outro site demorou ou falhou; PDF segue sem ela:', src, e);
+    throw e;
+  } finally { clearTimeout(timer); }
   if (!res.ok) throw new Error(`proxy ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

@@ -1024,7 +1024,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
               )}
               {data.contractClauses ? (
                 <>
-                  <p className="text-xs text-muted-foreground">Modelo usado: versão de {formatVersion(data.contractVersion || '')}. Ligue ou desligue as cláusulas só deste contrato.</p>
+                  <p className="text-xs text-muted-foreground">Modelo usado: modelo de {formatVersion(data.contractVersion || '').slice(0, 5)} + cláusulas prontas — {data.contractClauses.length} cláusulas ({data.contractClauses.filter((c) => !c.id.startsWith('pronta-')).length} do modelo + {data.contractClauses.filter((c) => c.id.startsWith('pronta-')).length} prontas). Ligue ou desligue as cláusulas só deste contrato.</p>
                   <ClauseListEditor
                     clauses={data.contractClauses}
                     onChange={(c) => setData({ ...data, contractClauses: c, contractText: composeClauses(c, data.contractVersion || '') })}
