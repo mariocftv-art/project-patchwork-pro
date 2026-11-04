@@ -144,22 +144,31 @@ export default function ContractLink() {
   const [err, setErr] = useState<string | null>(null);
   const [pad, setPad] = useState(false);
   const [done, setDone] = useState(false);
+  const [netFail, setNetFail] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const brand = getBrand().name;
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
   const load = async () => {
-    // Até 3 tentativas, cada uma com limite de 15 s, para nunca ficar girando sem fim
+    setNetFail(false);
+    // Dados da empresa em paralelo com o contrato (não espera um pelo outro)
+    const profP = Promise.race([
+      getCompanyProfile(),
+      new Promise<CompanyProfile>((r) => setTimeout(() => r(defaultCompanyProfile), 4000)),
+    ]);
+    // Até 3 tentativas, cada uma com limite de 10 s, para nunca ficar girando sem fim
     let v: View | null = null;
     for (let i = 0; i < 3 && !v; i++) {
       try {
-        v = await Promise.race([
+        const r = await Promise.race([
           call({ action: 'view', token }) as Promise<View>,
-          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000)),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000)),
         ]);
-      } catch { await new Promise((r) => setTimeout(r, 800)); }
+        if (r && typeof r === 'object' && 'state' in r) v = r;
+        else throw new Error('resposta vazia');
+      } catch { await new Promise((r) => setTimeout(r, 1000)); }
     }
-    if (!v) v = { state: 'invalid' };
+    if (!v) { setNetFail(true); return; }
     setView(v);
     if (v.record) {
       // CPF/CNPJ já vem do cadastro do cliente
@@ -172,11 +181,7 @@ export default function ContractLink() {
       setName((n) => n || (pj ? String(cu.representative || '') : '') || v.record!.customer_name || '');
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
-      const prof = await Promise.race([
-        getCompanyProfile(),
-        new Promise<CompanyProfile>((r) => setTimeout(() => r(defaultCompanyProfile), 6000)),
-      ]);
-      setProfile(prof);
+      setProfile(await profP);
       const vv = v;
       setTimeout(async () => {
         try {
@@ -233,7 +238,19 @@ export default function ContractLink() {
     load();
   };
 
-  if (!view) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (netFail) return (
+    <div className="max-w-md mx-auto text-center py-16 space-y-4 px-4">
+      <p className="text-lg font-semibold">Não foi possível abrir o contrato.</p>
+      <p className="text-muted-foreground">A internet parece fraca ou caiu. Tentamos 3 vezes. Confira o sinal e toque abaixo.</p>
+      <Button className="w-full min-h-12" onClick={() => load()}>Tentar de novo</Button>
+    </div>
+  );
+  if (!view) return (
+    <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground" role="status">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <span className="text-sm">Abrindo o contrato…</span>
+    </div>
+  );
 
   const msg: Record<string, string> = {
     expired: `Este link expirou. Peça um novo à ${brand}.`,
