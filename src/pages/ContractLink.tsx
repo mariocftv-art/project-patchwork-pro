@@ -164,31 +164,42 @@ export default function ContractLink() {
   const [err, setErr] = useState<string | null>(null);
   const [pad, setPad] = useState(false);
   const [done, setDone] = useState(false);
-  const [netFail, setNetFail] = useState(false);
+  const [netFail, setNetFail] = useState<string | null>(null);
+  const [pdfErr, setPdfErr] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
   const brand = getBrand().name;
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
   const load = async () => {
-    setNetFail(false);
-    // Dados da empresa em paralelo com o contrato (não espera um pelo outro)
-    const profP = Promise.race([
-      getCompanyProfile(),
-      new Promise<CompanyProfile>((r) => setTimeout(() => r(defaultCompanyProfile), 4000)),
-    ]);
-    // Até 3 tentativas, cada uma com limite de 10 s, para nunca ficar girando sem fim
+    setNetFail(null);
+    setPdfErr(null);
+    const t0 = performance.now();
+    const ms = () => `${Math.round(performance.now() - t0)} ms`;
+    // Dados da empresa em paralelo com o contrato (não espera um pelo outro; nunca trava)
+    const profP = withTimeout(getCompanyProfile(), 4000, 'Dados da empresa').catch((e) => {
+      console.warn('[contrato] dados da empresa: usando padrão', e);
+      return defaultCompanyProfile;
+    });
+    // Passo 1: buscar o contrato. Até 3 tentativas, cada uma com limite de 10 s
     let v: View | null = null;
+    let reason = '';
     for (let i = 0; i < 3 && !v; i++) {
       try {
-        const r = await Promise.race([
-          call({ action: 'view', token }) as Promise<View>,
-          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000)),
-        ]);
+        const r = await withTimeout(call({ action: 'view', token }) as Promise<View & { error?: string }>, 10000, 'A conexão');
         if (r && typeof r === 'object' && 'state' in r) v = r;
-        else throw new Error('resposta vazia');
-      } catch { await new Promise((r) => setTimeout(r, 1000)); }
+        else throw new Error(r?.error ? `servidor respondeu "${r.error}"` : 'resposta vazia do servidor');
+      } catch (e) {
+        reason = e instanceof Error ? e.message : String(e);
+        console.warn(`[contrato] passo 1 (buscar contrato) tentativa ${i + 1}/3 falhou:`, reason);
+        if (i < 2) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+      }
     }
-    if (!v) { setNetFail(true); return; }
+    if (!v) { setNetFail(reason || 'sem resposta'); return; }
+    console.info(`[contrato] passo 1 ok (${ms()}): estado=${v.state}, tem dados=${!!v.record}`);
+    if (v.state === 'ok' || v.state === 'signed') {
+      if (!v.record) { setNetFail('o servidor não enviou os dados do contrato'); return; }
+    }
     setView(v);
     if (v.record) {
       // CPF/CNPJ já vem do cadastro do cliente
@@ -201,25 +212,44 @@ export default function ContractLink() {
       setName((n) => n || (pj ? String(cu.representative || '') : '') || v.record!.customer_name || '');
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
+      // Passo 2: dados da empresa (no máximo 4 s; se falhar usa o padrão)
       setProfile(await profP);
+      console.info(`[contrato] passo 2 ok (${ms()}): texto na tela`);
+      // Passo 4: PDF em segundo plano, com limite de tempo. Não trava o texto nem o botão
       const vv = v;
       setTimeout(async () => {
         try {
-          const pdf = await buildPdf(vv);
-          setPages(await renderPdfPages(pdf.output('blob'), 1.5));
-        } catch (e) { console.error('[contrato] PDF de leitura falhou', e); }
+          const pdf = await withTimeout(buildPdf(vv), 30000, 'O PDF');
+          setPages(await withTimeout(renderPdfPages(pdf.output('blob'), 1.5), 20000, 'A imagem do PDF'));
+          console.info(`[contrato] passo 4 ok (${ms()}): PDF pronto`);
+        } catch (e) {
+          console.error('[contrato] passo 4 (PDF) falhou — o texto continua na tela', e);
+          setPdfErr(e instanceof Error ? e.message : String(e));
+        }
       }, 50);
     }
   };
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
+  // (passo 5: detecção de rolagem — observador + rolagem, para funcionar em qualquer navegador)
   useEffect(() => {
-    if (!endRef.current || (!profile && pages.length === 0)) return;
-    const io = new IntersectionObserver((e) => e[0].isIntersecting && setReadToEnd(true), { threshold: 0.5 });
-    io.observe(endRef.current);
-    return () => io.disconnect();
-  }, [pages.length, profile, view]);
+    const el = endRef.current;
+    if (!el || (!profile && pages.length === 0)) return;
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight + 40) setReadToEnd(true);
+    };
+    let io: IntersectionObserver | null = null;
+    if ('IntersectionObserver' in window) {
+      io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setReadToEnd(true), { threshold: 0 });
+      io.observe(el);
+    }
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    const t = setTimeout(check, 300);
+    return () => { io?.disconnect(); window.removeEventListener('scroll', check); window.removeEventListener('resize', check); clearTimeout(t); };
+  }, [pages.length, profile, view, retryKey]);
 
   const downloadSigned = async () => {
     const r = await call({ action: 'pdf', token });
