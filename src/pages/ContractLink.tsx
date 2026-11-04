@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
+import { getCompanyProfile, defaultCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
 import { executionTermText, partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
 import { cleanItemName } from '@/lib/docScope';
 import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
@@ -219,9 +219,12 @@ export default function ContractLink() {
   const confirm = async (png: string) => {
     if (!view) return;
     const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() || null : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
+    let r: { error?: string; state?: string } | null = null;
+    try {
     const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
-    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() || undefined : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
+    r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() || undefined : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
+    } catch (e) { console.error('[contrato] assinatura falhou', e); }
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     if (r?.state === 'expired') return setView({ state: 'expired' });
