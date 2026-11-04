@@ -989,7 +989,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 </Button>
               </div>
               {data.docType === 'contrato' && (
-                <div className="rounded-md border border-primary/60 bg-accent/30 p-3 space-y-2">
+                <div className="rounded-md border border-primary bg-card p-3 space-y-2">
                   <p className="text-sm font-semibold">Cláusulas prontas (marque as que valem para este contrato)</p>
                   {READY_CLAUSES.map((r) => {
                     const on = !!data.contractClauses?.some((c) => c.id === r.id && c.enabled);
