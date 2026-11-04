@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
 import { ADMIN_TAB_EVENT } from '@/lib/docHandoff';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays } from 'lucide-react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays, ArrowLeft, LayoutGrid } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
@@ -48,13 +48,40 @@ function scrollAdminTop() {
   [80, 250, 600].forEach((ms) => setTimeout(go, ms));
 }
 
+const ADMIN_GROUPS = [
+  { title: 'Vendas', items: [
+    { value: 'sales', label: 'Vendas', desc: 'Veja o total de vendas', icon: BarChart3 },
+    { value: 'orders', label: 'Pedidos', desc: 'Veja, imprima e marque como atendido', icon: ShoppingBag },
+    { value: 'quotes', label: 'Orçamentos', desc: 'Veja, baixe, imprima e envie pelo WhatsApp', icon: ClipboardList },
+    { value: 'contracts', label: 'Contratos Feitos', desc: 'Veja os contratos fechados', icon: FileText },
+  ] },
+  { title: 'Atendimento', items: [
+    { value: 'appointments', label: 'Agendamentos', desc: 'Veja e confirme os agendamentos', icon: CalendarDays },
+    { value: 'contact', label: 'Contato', desc: 'Telefone, WhatsApp e e-mail da empresa', icon: Phone },
+    { value: 'help', label: 'Ajuda', desc: 'Tire dúvida sobre o painel', icon: HelpCircle },
+  ] },
+  { title: 'Loja', items: [
+    { value: 'products', label: 'Produtos', desc: 'Cadastre, edite e organize os produtos', icon: Package },
+    { value: 'categories', label: 'Categorias', desc: 'Câmeras, DVR/NVR, Cercas, Alarmes, Interfones, Porteiros, Cabos/Acessórios, Instalações', icon: FolderOpen },
+    { value: 'branding', label: 'Personalização', desc: 'Logo, capa, cores e textos do site', icon: Palette },
+    { value: 'services', label: 'Fotos Serviços', desc: 'Fotos dos trabalhos realizados', icon: Camera },
+    { value: 'installations', label: 'Instalações', desc: 'Serviços de instalação, com preço', icon: Wrench },
+  ] },
+  { title: 'Site', items: [
+    { value: 'about', label: 'Sobre', desc: 'Texto sobre a empresa', icon: Info },
+    { value: 'content', label: 'Conteúdo', desc: 'Como funciona, galeria e localização', icon: LayoutGrid },
+    { value: 'payment', label: 'Pagamento', desc: 'Pix, dinheiro, cartão de crédito e débito', icon: CreditCard },
+    { value: 'settings', label: 'Configurações', desc: 'Horário, entrega, retirada e dados da empresa', icon: Settings },
+  ] },
+];
+
 export default function Admin() {
   // Rascunho aberto quando a página foi descartada pelo celular: volta direto para ele
   const [tab, setTab] = useState(() => {
     const want = new URLSearchParams(window.location.search).get('tab');
     if (want) return want;
     const id = getActiveDraft(); const d = id ? getLocalDraft(id) : null;
-    return d ? (d.docType === 'contrato' ? 'contracts' : 'quotes') : 'sales';
+    return d ? (d.docType === 'contrato' ? 'contracts' : 'quotes') : 'home';
   });
   useEffect(() => {
     const prev = window.history.scrollRestoration;
@@ -131,73 +158,41 @@ export default function Admin() {
 
 
       <Tabs value={tab} onValueChange={changeTab} className="space-y-6">
-        <TabsList className="bg-muted p-1 rounded-lg flex-wrap h-auto gap-1">
-          <TabsTrigger value="sales" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Vendas
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4" />
-            Pedidos
-          </TabsTrigger>
-          <TabsTrigger value="quotes" className="flex items-center gap-2">
-            <ClipboardList className="w-4 h-4" />
-            Orçamentos
-          </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Contratos Feitos
-          </TabsTrigger>
-          <TabsTrigger value="appointments" className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4" />
-            Agendamentos
-            {aptAlerts > 0 && <span className="ml-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold px-2" aria-label={`${aptAlerts} avisos`}>{aptAlerts}</span>}
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="flex items-center gap-2">
-            <Palette className="w-4 h-4" />
-            Personalização
-          </TabsTrigger>
-          <TabsTrigger value="products" className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Produtos
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
-            Categorias
-          </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Pagamento
-          </TabsTrigger>
-          <TabsTrigger value="contact" className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            Contato
-          </TabsTrigger>
-          <TabsTrigger value="help" className="flex items-center gap-2">
-            <HelpCircle className="w-4 h-4" />
-            Ajuda
-          </TabsTrigger>
-          <TabsTrigger value="about" className="flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            Sobre
-          </TabsTrigger>
-          <TabsTrigger value="services" className="flex items-center gap-2">
-            <Camera className="w-4 h-4" />
-            Fotos Serviços
-          </TabsTrigger>
-          <TabsTrigger value="installations" className="flex items-center gap-2">
-            <Wrench className="w-4 h-4" />
-            Instalações
-          </TabsTrigger>
-          <TabsTrigger value="content" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Conteúdo
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Configurações
-          </TabsTrigger>
-        </TabsList>
+        {tab === 'home' ? (
+          <div className="space-y-8">
+            {ADMIN_GROUPS.map((g) => (
+              <section key={g.title} aria-labelledby={`grp-${g.title}`}>
+                <h2 id={`grp-${g.title}`} className="font-display text-lg font-bold text-foreground mb-3 border-l-4 border-primary pl-3">{g.title}</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {g.items.map((it) => (
+                    <button
+                      key={it.value}
+                      type="button"
+                      onClick={() => changeTab(it.value)}
+                      className="relative flex flex-col items-center text-center gap-2 rounded-xl border border-border bg-card p-4 min-h-[9rem] hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                    >
+                      <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-secondary text-primary">
+                        <it.icon className="w-7 h-7" aria-hidden="true" />
+                      </span>
+                      <span className="font-bold text-sm sm:text-base text-foreground leading-tight break-normal hyphens-none">{it.label}</span>
+                      <span className="text-xs text-muted-foreground leading-snug">{it.desc}</span>
+                      {it.value === 'appointments' && aptAlerts > 0 && (
+                        <span className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground text-xs font-bold px-2" aria-label={`${aptAlerts} avisos`}>{aptAlerts}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button variant="outline" onClick={() => changeTab('home')} className="min-h-11 gap-2">
+              <ArrowLeft className="w-4 h-4" /> Voltar
+            </Button>
+            <span className="font-display text-xl font-bold text-foreground">{ADMIN_GROUPS.flatMap((g) => g.items).find((i) => i.value === tab)?.label}</span>
+          </div>
+        )}
 
         {/* Sales Tab */}
         <TabsContent value="sales" className="space-y-4">
