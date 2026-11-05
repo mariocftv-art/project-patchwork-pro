@@ -87,7 +87,29 @@ export const DEFAULT_CLAUSES: ContractClause[] = [
     '12.4. Nas relações de consumo, nenhuma disposição deste contrato afasta os direitos assegurados pelo Código de Defesa do Consumidor.',
     '12.5. Fica eleito o foro da comarca de São Paulo/SP, ressalvado, nas relações de consumo, o direito do CONTRATANTE de demandar no foro de seu domicílio.',
   ]),
+  ...EXTRA_CLAUSES(),
 ];
+
+/** Cláusulas prontas acrescentadas no fim (ligar/desligar e editar no lápis). */
+function EXTRA_CLAUSES(): ContractClause[] {
+  return [
+    C('pagamento5050', 'PAGAMENTO 50% / 50%', [
+      '13.1. O valor total é conforme este contrato, sendo 50% de entrada para início do serviço, e 50% final após a conclusão do serviço.',
+      '13.2. Valor total: {VALOR_TOTAL}. Valor de entrada (50%): {VALOR_ENTRADA_50}. Valor final (50%): {VALOR_FINAL_50}.',
+    ]),
+    C('prazoseguranca', 'PRAZO, CONCLUSÃO E SEGURANÇA', [
+      '14.1. O prazo para conclusão do serviço é de até {PRAZO_DIAS} dias, contados a partir da data de início informada neste contrato, podendo a entrega ocorrer antes do prazo, em 7 ou 10 dias, conforme o andamento, por se tratar de empresa com movimentação de pessoas e acesso de público, onde o trabalho deve ser executado com segurança, sem dilatar o prazo.',
+      '14.2. Data de início: {DATA_INICIO}. Data prevista de conclusão: {DATA_CONCLUSAO}.',
+    ]),
+  ];
+}
+export const EXTRA_CLAUSE_IDS = ['pagamento5050', 'prazoseguranca'];
+
+/** Acrescenta no fim as cláusulas prontas que ainda não existem (nunca apaga nenhuma). */
+export function withExtraClauses(list: ContractClause[]): ContractClause[] {
+  const have = new Set(list.map((c) => c.id));
+  return [...list, ...EXTRA_CLAUSES().filter((c) => !have.has(c.id))];
+}
 
 export const CLAUSE_HEAD = /^CLÁUSULA\s+(\d+)ª\s+—\s+/i;
 export const VERSION_LINE = /^Modelo de cláusulas — versão de /;
@@ -155,7 +177,7 @@ export const getContractTemplate = () => ({ clauses: cloneClauses(template.claus
 export async function loadContractTemplate() {
   const { data } = await supabase.from('company_profile').select('id, contract_clauses, contract_clauses_version').limit(1).maybeSingle();
   const c = data?.contract_clauses as unknown as ContractClause[] | null;
-  if (Array.isArray(c) && c.length) template = { clauses: c, version: data?.contract_clauses_version || DEFAULT_CLAUSES_VERSION };
+  if (Array.isArray(c) && c.length) template = { clauses: withExtraClauses(c), version: data?.contract_clauses_version || DEFAULT_CLAUSES_VERSION };
   else template = { clauses: DEFAULT_CLAUSES, version: DEFAULT_CLAUSES_VERSION };
   return { id: data?.id ?? null, ...getContractTemplate(), custom: Array.isArray(c) && c.length > 0 };
 }

@@ -245,6 +245,7 @@ export type Database = {
           pdf_subline: string
           phone: string | null
           primary_color: string | null
+          public_site_url: string | null
           quote_validity_days: number
           responsible_name: string | null
           responsible_role: string | null
@@ -289,6 +290,7 @@ export type Database = {
           pdf_subline?: string
           phone?: string | null
           primary_color?: string | null
+          public_site_url?: string | null
           quote_validity_days?: number
           responsible_name?: string | null
           responsible_role?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           pdf_subline?: string
           phone?: string | null
           primary_color?: string | null
+          public_site_url?: string | null
           quote_validity_days?: number
           responsible_name?: string | null
           responsible_role?: string | null
