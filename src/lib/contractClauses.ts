@@ -173,30 +173,5 @@ export async function saveContractTemplate(id: string, clauses: ContractClause[]
 /** Campos de um contrato novo a partir do modelo atual. */
 export function defaultContractFields() {
   const t = getContractTemplate();
-  // As 4 cláusulas prontas já vêm ligadas em contrato novo (o dono desliga contrato por contrato)
-  let cl = t.clauses;
-  READY_CLAUSES.forEach((r) => { cl = toggleReadyClause(cl, r.id, true); });
-  return { contractClauses: cl, contractVersion: t.version, contractText: composeClauses(cl, t.version) };
-}
-
-/** Cláusulas prontas que o dono liga na hora de fazer o contrato (texto editável depois). */
-export const READY_CLAUSES: Array<{ id: string; label: string; title: string; body: string }> = [
-  { id: 'pronta-prazo', label: 'Prazo, conclusão e segurança', title: 'PRAZO, CONCLUSÃO E SEGURANÇA',
-    body: 'O prazo para conclusão do serviço é de até {PRAZO_DIAS} dias, contados a partir da data de início informada neste contrato ({DATA_INICIO}), com conclusão prevista em {DATA_CONCLUSAO}, podendo a entrega ocorrer antes do prazo, em 7 ou 10 dias, conforme o andamento, por se tratar de empresa com movimentação de pessoas e acesso de público, onde o trabalho deve ser executado com segurança, sem dilatar o prazo.' },
-  { id: 'pronta-pagamento', label: 'Pagamento 50% / 50%', title: 'PAGAMENTO 50% / 50%',
-    body: 'O valor total é de {VALOR_TOTAL}, conforme este contrato, sendo 50% de entrada ({VALOR_ENTRADA}) para início do serviço e 50% final ({VALOR_FINAL}) após a conclusão do serviço.' },
-  { id: 'pronta-nf', label: 'Nota fiscal após conclusão', title: 'NOTA FISCAL',
-    body: 'A nota fiscal será emitida após o término e a conclusão do serviço executado, pela CONTRATADA, com CNPJ, junto à prefeitura.' },
-  { id: 'pronta-registro', label: 'Registro do combinado', title: 'REGISTRO DO COMBINADO',
-    body: 'Fica registrado neste contrato tudo o que foi combinado em áudio e mensagem entre as partes, sem alteração fora do contrato.' },
-];
-
-/** Liga/desliga uma cláusula pronta: entra no fim da lista, com numeração própria. */
-export function toggleReadyClause(clauses: ContractClause[], id: string, on: boolean): ContractClause[] {
-  const has = clauses.some((c) => c.id === id);
-  if (!on) return clauses.filter((c) => c.id !== id);
-  if (has) return clauses.map((c) => (c.id === id ? { ...c, enabled: true } : c));
-  const r = READY_CLAUSES.find((x) => x.id === id);
-  if (!r) return clauses;
-  return [...clauses, { id, title: r.title, body: `${clauses.length + 1}.1. ${r.body}`, enabled: true }];
+  return { contractClauses: t.clauses, contractVersion: t.version, contractText: composeClauses(t.clauses, t.version) };
 }

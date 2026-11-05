@@ -1,1 +1,0 @@
-ALTER TABLE public.company_profile ADD COLUMN IF NOT EXISTS public_site_url text;

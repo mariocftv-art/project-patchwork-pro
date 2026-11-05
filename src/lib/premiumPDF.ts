@@ -301,20 +301,7 @@ function formatAddress(c: DocCustomer) {
   return parts.join(' - ');
 }
 
-export async function buildPremiumPDF(input: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
-  // Data vinda de rascunho/JSON chega como texto: converte sempre para Date
-  const dt = input.date instanceof Date && !isNaN(input.date.getTime()) ? input.date : new Date((input.date as unknown as string) || Date.now());
-  const data: PremiumDocData = { ...input, date: isNaN(dt.getTime()) ? new Date() : dt };
-  try {
-    return await buildPremiumPDFInner(data, profile);
-  } catch (e) {
-    // Nunca deixa de montar: tenta de novo sem fotos dos itens (foto com defeito/formato não suportado)
-    console.error('[premiumPDF] falha ao montar, tentando sem fotos', e);
-    return buildPremiumPDFInner({ ...data, items: data.items.map((it) => ({ ...it, imageUrl: undefined })) }, profile);
-  }
-}
-
-async function buildPremiumPDFInner(data: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
+export async function buildPremiumPDF(data: PremiumDocData, profile: CompanyProfile): Promise<jsPDF> {
   EXTRA = 0;
   const first = await buildOnce(data, profile);
   // Uma página só e sobrando espaço: distribui melhor os blocos
@@ -908,12 +895,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
   /* ---- Assinaturas ---- */
   if (data.showSignatures || data.docType === 'contrato' || data.docType === 'orcamento' || data.signatures?.contratante || data.signatures?.contratada) {
     const hasImg = !!(data.signatures?.contratante || data.signatures?.contratada);
-    // Registro da assinatura fica no mesmo bloco/página das assinaturas (nunca sozinho numa página quase vazia).
-    // É o fim do documento: o carimbo não é desenhado na última página, então não reserva espaço dele aqui.
-    const nAuth = [data.signatures?.contratante, data.signatures?.contratada].filter(Boolean).length;
-    const authH = nAuth ? (nAuth + 1) * 3.6 * 1.6 + 4 : 0;
-    const sigNeed = (hasImg ? 56 : data.term ? 30 : 42) + authH + 8;
-    if (y + sigNeed > PAGE_H - FOOTER_H - 6) { doc.addPage(); y = 30; }
+    y = ensureSpace(doc, y, hasImg ? 56 : data.term ? 30 : 42);
     y += hasImg ? 22 : 9;
     const sw = (CONTENT_W - 16) / 2;
     const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -1035,15 +1017,6 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
     });
     y += 24 + Math.max(0, extra - 6);
 
-    if (data.docType === 'contrato' && !data.term && !sc && !sm) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8.6);
-      doc.setTextColor(...MUTED);
-      doc.text('Contrato sem assinatura', LEFT + CONTENT_W / 2, y, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      y += 6;
-    }
-
     // Rodapé de autenticidade
     const fmtDoc = (v?: string | null) => {
       const x = String(v || '').replace(/\D/g, '');
@@ -1059,6 +1032,7 @@ async function buildOnce(data: PremiumDocData, profile: CompanyProfile): Promise
         return `Assinado eletronicamente por ${a.name}${dl}, em ${fmt(a.signedAt)}${a.ip ? `, IP ${a.ip}` : ''}`;
       });
       if (code) lines.push(`Código do documento: ${code}`);
+      y = ensureSpace(doc, y, lines.length * 4 + 4);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.2);
       doc.setTextColor(...MUTED);

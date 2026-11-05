@@ -1,8 +1,7 @@
 import ClauseListEditor from './ClauseListEditor';
-import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate, READY_CLAUSES, toggleReadyClause } from '@/lib/contractClauses';
-import ExecutionTermFields from './ExecutionTermFields';
+import { composeClauses, defaultContractFields, formatVersion, loadContractTemplate } from '@/lib/contractClauses';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, deleteDraftsForRecord, setActiveDraft } from '@/lib/quoteDrafts';
+import { type QuoteDraft, newDraftId, saveDraftLocal, deleteDraft, setActiveDraft } from '@/lib/quoteDrafts';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Eye, Loader2, Download, Printer, Share2, Pencil, FileCheck, MessageCircle, PenLine, Link2, EyeOff, MoreVertical } from 'lucide-react';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -40,7 +39,6 @@ import {
   PremiumDocData,
   uploadPDF,
   validateDoc,
-  addDaysISO,
   WarrantyOption,
   WARRANTY_LABELS,
 } from '@/lib/premiumPDF';
@@ -353,15 +351,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         return URL.createObjectURL(blob);
       });
       setStep('preview');
-      toast({ title: '✅ Aplicado na prévia', description: recordId ? 'Para valer no PDF salvo e no link do cliente, toque em "Aplicar e gerar PDF".' : 'A prévia já mostra suas mudanças.' });
     } catch (e) {
-      console.error('[QuoteEditor.preview]', e);
-      const m = (e as Error)?.message || '';
-      toast({
-        title: 'Não foi possível montar a pré-visualização',
-        description: /fetch|network|load failed|import/i.test(m) ? 'Conexão falhou. Toque em Pré-visualizar de novo.' : `Toque em Pré-visualizar de novo. Detalhe: ${m.slice(0, 120)}`,
-        variant: 'destructive',
-      });
+      console.error(e);
+      toast({ title: 'Erro ao montar a pré-visualização', variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -372,14 +364,6 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
     setErrors(errs);
     if (errs.length) {
       toast({ title: 'Faltam informações', description: errs[0], variant: 'destructive' });
-      return;
-    }
-    // Prévia sempre abre: sem prazo, mostra com o último prazo usado (ou 15 dias) só para visualizar
-    const c = data.customer;
-    if (data.docType === 'contrato' && !c.executionTerm?.trim() && !(Number(c.executionDays) > 0)) {
-      const days = Number(localStorage.getItem('mr-last-exec-days')) || 15;
-      const start = c.startDate || new Date().toISOString().slice(0, 10);
-      renderPreview({ ...data, customer: { ...c, executionDays: days, startDate: start, endDate: addDaysISO(start, days), executionTerm: `${days} dias corridos` } });
       return;
     }
     renderPreview(data);
@@ -404,7 +388,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
         if (pct > 30 && !window.confirm(`⚠️ O valor a cobrar está ${pct}% ${tt.adjustment < 0 ? 'abaixo' : 'acima'} do somatório dos itens. Confirma?`)) return;
       }
     }
-    const errs = validateDoc(data, { final: true });
+    const errs = validateDoc(data);
     if (errs.length) {
       setErrors(errs);
       setStep('edit');
@@ -560,15 +544,12 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
       });
       setStep('preview');
       void deleteDraft(draftIdRef.current);
-      // Rascunhos antigos deste documento não podem trazer a versão antiga de volta
-      void deleteDraftsForRecord(targetId);
-      if (recordId && recordId !== targetId) void deleteDraftsForRecord(recordId);
       draftIdRef.current = newDraftId();
       draftCreatedRef.current = new Date().toISOString();
       dirtyRef.current = false; skipDirtyRef.current = true; setSavedAt(null);
       setActiveDraft(null);
       onSaved();
-      toast({ title: '✅ Aplicado — PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
+      toast({ title: 'PDF gerado e salvo', description: `${DOC_TYPE_LABELS[final.docType]} ${finalNumber}` });
     } catch (e) {
       // Erro técnico só no log; na tela, mensagem simples. O formulário continua preenchido.
       console.error('[QuoteEditor.save]', e);
@@ -665,7 +646,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent ref={contentRef} onBlurCapture={() => persistRef.current()} className="max-w-4xl max-h-[92vh] overflow-y-auto overflow-x-hidden grid-cols-[minmax(0,1fr)]">
+      <DialogContent ref={contentRef} onBlurCapture={() => persistRef.current()} className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === 'preview' ? 'Pré-visualização do documento' : recordId ? 'Editar documento' : 'Novo documento'}
@@ -711,7 +692,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 </>
               ) : (
               <Button onClick={handleGenerate} disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : recordId ? 'Aplicar e gerar PDF' : 'Gerar PDF'}
+                {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}
               </Button>)}
               <Button variant="outline" onClick={handleDownload} disabled={!previewUrl}><Download className="h-4 w-4 mr-1" />Baixar PDF</Button>
               <Button variant="outline" onClick={handlePrint} disabled={!previewBlob}><Printer className="h-4 w-4 mr-1" />Imprimir</Button>
@@ -761,9 +742,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                 <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'CNPJ * (ou CPF)' : 'CNPJ'} v={data.customer.cnpj} on={(v) => setC('cnpj', maskCNPJ(v))} ph="00.000.000/0000-00" num />
                 {!!(data.customer.cnpj || '').replace(/\D/g, '') && (
                   <>
-                    <Field className="sm:col-span-3" label="Nome de quem assina (opcional)" v={data.customer.representative} on={(v) => setC('representative', v)} />
-                    <Field className="sm:col-span-2" label="Cargo de quem assina (opcional)" v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
-                    <Field className="sm:col-span-1" label="CPF de quem assina (opcional)" v={data.customer.representativeCpf} on={(v) => setC('representativeCpf', maskCPF(v))} ph="000.000.000-00" num />
+                    <Field className="sm:col-span-3" label={data.docType === 'contrato' ? 'Representante legal *' : 'Representante legal'} v={data.customer.representative} on={(v) => setC('representative', v)} />
+                    <Field className="sm:col-span-2" label={data.docType === 'contrato' ? 'Cargo de quem assina *' : 'Cargo de quem assina'} v={data.customer.representativeRole} on={(v) => setC('representativeRole', v)} ph="Ex.: Sócio-administrador" />
+                    <Field className="sm:col-span-1" label={data.docType === 'contrato' ? 'CPF de quem assina *' : 'CPF de quem assina'} v={data.customer.representativeCpf} on={(v) => setC('representativeCpf', maskCPF(v))} ph="000.000.000-00" num />
                     {data.customer.cnpjOfficialName && data.customer.cnpjCheckedAt && (
                       <p className="sm:col-span-6 text-xs text-muted-foreground">Consulta do CNPJ em {new Date(data.customer.cnpjCheckedAt).toLocaleString('pt-BR')}: {data.customer.cnpjOfficialName}</p>
                     )}
@@ -788,7 +769,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <Field label="Endereço da instalação (rua, nº, bairro, cidade/UF, CEP)" v={data.customer.installAddress} on={(v) => setC('installAddress', v)} />
                   )}
                 </div>
-                <ExecutionTermFields data={data} setData={setData} />
+                <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: 5 dias úteis (o texto final segue a forma de pagamento)" />
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>
@@ -1006,28 +987,9 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                   Restaurar modelo padrão
                 </Button>
               </div>
-              {data.docType === 'contrato' && (
-                <div className="rounded-md border border-primary bg-card p-3 space-y-2">
-                  <p className="text-sm font-semibold">Cláusulas prontas (marque as que valem para este contrato)</p>
-                  {READY_CLAUSES.map((r) => {
-                    const on = !!data.contractClauses?.some((c) => c.id === r.id && c.enabled);
-                    return (
-                      <label key={r.id} className="flex items-center gap-2 text-sm min-h-9">
-                        <input type="checkbox" className="h-5 w-5" checked={on} onChange={(e) => {
-                          const c = toggleReadyClause(data.contractClauses || defaultContractFields().contractClauses, r.id, e.target.checked);
-                          const pay = r.id === 'pronta-pagamento' && e.target.checked ? { payment: { ...(data.payment || {}), method: 'entrada50' } as typeof data.payment } : {};
-                          setData({ ...data, ...pay, contractClauses: c, contractVersion: data.contractVersion || defaultContractFields().contractVersion, contractText: composeClauses(c, data.contractVersion || defaultContractFields().contractVersion) });
-                        }} />
-                        {r.label}
-                      </label>
-                    );
-                  })}
-                  <p className="text-xs text-muted-foreground">Depois de marcar, toque no lápis da cláusula na lista abaixo para mudar o texto só deste contrato. O pagamento 50% / 50% calcula os valores sozinho a partir do total.</p>
-                </div>
-              )}
               {data.contractClauses ? (
                 <>
-                  <p className="text-xs text-muted-foreground">Modelo usado: modelo de {formatVersion(data.contractVersion || '').slice(0, 5)} + cláusulas prontas — {data.contractClauses.length} cláusulas ({data.contractClauses.filter((c) => !c.id.startsWith('pronta-')).length} do modelo + {data.contractClauses.filter((c) => c.id.startsWith('pronta-')).length} prontas). Ligue ou desligue as cláusulas só deste contrato.</p>
+                  <p className="text-xs text-muted-foreground">Modelo usado: versão de {formatVersion(data.contractVersion || '')}. Ligue ou desligue as cláusulas só deste contrato.</p>
                   <ClauseListEditor
                     clauses={data.contractClauses}
                     onChange={(c) => setData({ ...data, contractClauses: c, contractText: composeClauses(c, data.contractVersion || '') })}
@@ -1072,7 +1034,7 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                     <span className="text-xs font-normal opacity-80">O cliente fechou. Cláusulas e campos de assinatura.</span>
                   </Button>
                 </>
-              ) : (<Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : recordId ? 'Aplicar e gerar PDF' : 'Gerar PDF'}</Button>)}
+              ) : (<Button onClick={handleGenerate} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileCheck className="h-4 w-4 mr-1" />}{busy ? 'Salvando…' : 'Gerar PDF'}</Button>)}
             </div>
           </div>
         )}

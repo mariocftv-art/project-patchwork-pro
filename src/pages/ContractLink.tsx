@@ -1,11 +1,11 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, Download, CheckCircle2, Plus, Minus, Maximize2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getCompanyProfile, defaultCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
+import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
 import { executionTermText, partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
 import { cleanItemName } from '@/lib/docScope';
 import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
@@ -96,26 +96,6 @@ function ContractReader({ d, profile, font }: { d: PremiumDocData; profile: Comp
   );
 }
 
-/** Se a montagem do texto quebrar, mostra o motivo e "Tentar de novo" em vez de tela branca ou bolinha. */
-class ReaderBoundary extends Component<{ onRetry: () => void; children: ReactNode }, { err: string | null }> {
-  state = { err: null as string | null };
-  static getDerivedStateFromError(e: unknown) { return { err: e instanceof Error ? e.message : String(e) }; }
-  componentDidCatch(e: unknown) { console.error('[contrato] passo 3 (montar texto) falhou', e); }
-  render() {
-    if (!this.state.err) return this.props.children;
-    return (
-      <div className="text-center space-y-3 py-6" role="alert">
-        <p className="font-semibold">Não foi possível mostrar o texto do contrato.</p>
-        <p className="text-sm text-muted-foreground">Motivo: {this.state.err}</p>
-        <Button className="min-h-12" onClick={() => { this.setState({ err: null }); this.props.onRetry(); }}>Tentar de novo</Button>
-      </div>
-    );
-  }
-}
-
-const withTimeout = <T,>(p: Promise<T>, ms: number, what: string) =>
-  Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`${what} demorou mais de ${Math.round(ms / 1000)} s`)), ms))]);
-
 type View = {
   state: 'ok' | 'signed' | 'expired' | 'revoked' | 'invalid';
   kind?: 'sign' | 'download';
@@ -164,55 +144,12 @@ export default function ContractLink() {
   const [err, setErr] = useState<string | null>(null);
   const [pad, setPad] = useState(false);
   const [done, setDone] = useState(false);
-  const [netFail, setNetFail] = useState<string | null>(null);
-  const [pdfErr, setPdfErr] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
   const brand = getBrand().name;
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
-  // Registra a falha (etapa + motivo + data/hora) no aparelho e no servidor, sem nunca travar a tela
-  const report = (step: string, reason: string) => {
-    const at = new Date().toLocaleString('pt-BR');
-    try {
-      const k = 'mr-sign-failures';
-      const list = JSON.parse(localStorage.getItem(k) || '[]');
-      list.unshift({ at, step, reason, token: String(token || '').slice(0, 8) });
-      localStorage.setItem(k, JSON.stringify(list.slice(0, 20)));
-    } catch { /* ignore */ }
-    void (call({ action: 'client_log', token, step, reason }) as Promise<unknown>).catch(() => {});
-    return `Etapa que falhou: ${step}. Motivo: ${reason}. Registrado em ${at}.`;
-  };
-
   const load = async () => {
-    setNetFail(null);
-    setPdfErr(null);
-    const t0 = performance.now();
-    const ms = () => `${Math.round(performance.now() - t0)} ms`;
-    // Dados da empresa em paralelo com o contrato (não espera um pelo outro; nunca trava)
-    const profP = withTimeout(getCompanyProfile(), 4000, 'Dados da empresa').catch((e) => {
-      console.warn('[contrato] dados da empresa: usando padrão', e);
-      return defaultCompanyProfile;
-    });
-    // Passo 1: buscar o contrato. Até 3 tentativas, cada uma com limite de 10 s
-    let v: View | null = null;
-    let reason = '';
-    for (let i = 0; i < 3 && !v; i++) {
-      try {
-        const r = await withTimeout(call({ action: 'view', token }) as Promise<View & { error?: string }>, 10000, 'A conexão');
-        if (r && typeof r === 'object' && 'state' in r) v = r;
-        else throw new Error(r?.error ? `servidor respondeu "${r.error}"` : 'resposta vazia do servidor');
-      } catch (e) {
-        reason = e instanceof Error ? e.message : String(e);
-        console.warn(`[contrato] passo 1 (buscar contrato) tentativa ${i + 1}/3 falhou:`, reason);
-        if (i < 2) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
-      }
-    }
-    if (!v) { setNetFail(report('1 — buscar o contrato (tentamos 3 vezes)', reason || 'sem resposta')); return; }
-    console.info(`[contrato] passo 1 ok (${ms()}): estado=${v.state}, tem dados=${!!v.record}`);
-    if (v.state === 'ok' || v.state === 'signed') {
-      if (!v.record) { setNetFail(report('1 — buscar o contrato', 'o servidor não enviou os dados do contrato')); return; }
-    }
+    const v: View = await call({ action: 'view', token }).catch(() => ({ state: 'invalid' }));
     setView(v);
     if (v.record) {
       // CPF/CNPJ já vem do cadastro do cliente
@@ -222,48 +159,23 @@ export default function ContractLink() {
       if (known) setDoc((x) => x || (known.length > 11 ? maskCNPJ(known) : maskCPF(known)));
       // Pessoa jurídica: quem assina é o representante, com o cargo dele
       const pj = known.length > 11;
-      // PJ: nunca usar o nome da empresa no lugar do representante
-      setName((n) => n || (pj ? String(cu.representative || '').trim() : v.record!.customer_name || ''));
+      setName((n) => n || (pj ? String(cu.representative || '') : v.record!.customer_name || ''));
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
-      // Texto do contrato aparece na hora; o PDF é montado depois, sem travar a tela
-      // Passo 2: dados da empresa (no máximo 4 s; se falhar usa o padrão)
-      setProfile(await profP);
-      console.info(`[contrato] passo 2 ok (${ms()}): texto na tela`);
-      // Passo 4: PDF em segundo plano, com limite de tempo. Não trava o texto nem o botão
-      const vv = v;
-      setTimeout(async () => {
-        try {
-          const pdf = await withTimeout(buildPdf(vv), 30000, 'O PDF');
-          setPages(await withTimeout(renderPdfPages(pdf.output('blob'), 1.5), 20000, 'A imagem do PDF'));
-          console.info(`[contrato] passo 4 ok (${ms()}): PDF pronto`);
-        } catch (e) {
-          console.error('[contrato] passo 4 (PDF) falhou — o texto continua na tela', e);
-          setPdfErr(report('4 — montar o PDF', e instanceof Error ? e.message : String(e)));
-        }
-      }, 50);
+      setProfile(await getCompanyProfile(true));
+      const pdf = await buildPdf(v);
+      const blob = pdf.output('blob');
+      setPages(await renderPdfPages(blob, 1.5));
     }
   };
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
-  // (passo 5: detecção de rolagem — observador + rolagem, para funcionar em qualquer navegador)
   useEffect(() => {
-    const el = endRef.current;
-    if (!el || (!profile && pages.length === 0)) return;
-    const check = () => {
-      const r = el.getBoundingClientRect();
-      if (r.top < window.innerHeight + 40) setReadToEnd(true);
-    };
-    let io: IntersectionObserver | null = null;
-    if ('IntersectionObserver' in window) {
-      io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setReadToEnd(true), { threshold: 0 });
-      io.observe(el);
-    }
-    window.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check);
-    const t = setTimeout(check, 300);
-    return () => { io?.disconnect(); window.removeEventListener('scroll', check); window.removeEventListener('resize', check); clearTimeout(t); };
-  }, [pages.length, profile, view, retryKey]);
+    if (!endRef.current || pages.length === 0) return;
+    const io = new IntersectionObserver((e) => e[0].isIntersecting && setReadToEnd(true), { threshold: 0.5 });
+    io.observe(endRef.current);
+    return () => io.disconnect();
+  }, [pages.length]);
 
   const downloadSigned = async () => {
     const r = await call({ action: 'pdf', token });
@@ -287,13 +199,10 @@ export default function ContractLink() {
 
   const confirm = async (png: string) => {
     if (!view) return;
-    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() || null : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
-    let r: { error?: string; state?: string } | null = null;
-    try {
-    const pdf = await withTimeout(buildPdf(view, draft), 45000, 'O PDF assinado');
+    const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
+    const pdf = await buildPdf(view, draft);
     const b64 = (pdf.output('datauristring') as string).split(',')[1];
-    r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() || undefined : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
-    } catch (e) { console.error('[contrato] assinatura falhou', e); }
+    const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
     if (r?.state === 'expired') return setView({ state: 'expired' });
@@ -302,20 +211,7 @@ export default function ContractLink() {
     load();
   };
 
-  if (netFail) return (
-    <div className="max-w-md mx-auto text-center py-16 space-y-4 px-4">
-      <p className="text-lg font-semibold">Não foi possível abrir o contrato.</p>
-      <p className="text-muted-foreground">{netFail}</p>
-      <p className="text-sm text-muted-foreground">Confira a internet e toque abaixo. Se continuar, tire um print desta tela.</p>
-      <Button className="w-full min-h-12" onClick={() => load()}>Tentar de novo</Button>
-    </div>
-  );
-  if (!view) return (
-    <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground" role="status">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <span className="text-sm">Abrindo o contrato…</span>
-    </div>
-  );
+  if (!view) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   const msg: Record<string, string> = {
     expired: `Este link expirou. Peça um novo à ${brand}.`,
@@ -346,28 +242,24 @@ export default function ContractLink() {
       </div>
       <div className="rounded-lg border border-border bg-card p-4 md:p-6">
         {view.record && profile ? (
-          <ReaderBoundary key={retryKey} onRetry={() => setRetryKey((k) => k + 1)}>
-            <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
-          </ReaderBoundary>
+          <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
         ) : pages.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground" role="status"><Loader2 className="h-6 w-6 animate-spin text-primary" />Carregando o texto…</div>
+          <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
           pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full h-auto border border-border" />)
         )}
         <div ref={endRef} className="h-2" />
       </div>
-      {pdfErr && <p className="text-xs text-muted-foreground">A versão em PDF não abriu ({pdfErr}). O texto acima é o contrato completo e você pode assinar normalmente.</p>}
 
       {canSign && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div>
             <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
-            {name.trim().length < 3 && <p className="text-sm text-muted-foreground mt-1">{isPJ ? 'Preencha o nome e o cargo do representante.' : 'Escreva o nome de quem está assinando.'}</p>}
           </div>
           {isPJ && (
             <div>
-              <Label htmlFor="sg-role">Cargo (opcional)</Label>
+              <Label htmlFor="sg-role">Cargo</Label>
               <Input id="sg-role" className="mt-1 min-h-11" value={role} placeholder="Ex.: Sócio-administrador" onChange={(e) => setRole(e.target.value)} />
             </div>
           )}
@@ -384,7 +276,7 @@ export default function ContractLink() {
             </label>
           </div>
           <fieldset className="space-y-1">
-            <legend className="text-sm font-medium">Fotos do local para divulgação (antes e depois) — opcional</legend>
+            <legend className="text-sm font-medium">Fotos do local para divulgação (antes e depois)</legend>
             <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === true} onChange={() => setImageUse(true)} />Autorizo</label>
             <label className="flex items-center gap-2 text-sm min-h-11"><input type="radio" name="img-use" className="h-5 w-5" checked={imageUse === false} onChange={() => setImageUse(false)} />Não autorizo</label>
           </fieldset>
@@ -393,7 +285,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || name.trim().length < 3 || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">

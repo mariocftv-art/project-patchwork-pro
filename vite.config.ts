@@ -15,8 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      // Registro feito em src/main.tsx (fora da página de assinatura do cliente)
-      injectRegister: false,
+      injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png", "pwa-maskable-512x512.png"],
       manifest: {
         name: "MR Segurança Máxima",
@@ -54,9 +53,6 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        cleanupOutdatedCaches: true,
-        // Link de assinatura sempre busca a versão nova do site, nunca a guardada no aparelho
-        navigateFallbackDenylist: [/^\/assinar\//, /^\/contrato\//],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
         globIgnores: ["**/pdf.worker*", "**/b*-tall-*.jpg", "**/b*-wide-*.jpg"],
         runtimeCaching: [

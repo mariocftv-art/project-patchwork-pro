@@ -1,14 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getBrand } from '@/lib/brand';
 import { whatsappUrl } from '@/lib/quoteWhatsApp';
-import { publicOrigin } from '@/lib/publicUrl';
 import type { QuoteRecord } from '@/components/admin/QuoteEditor';
 
 /** Cria link pessoal de assinatura/download do contrato. */
 export async function createContractLink(q: QuoteRecord, kind: 'sign' | 'download') {
   const { data, error } = await supabase.functions.invoke('contract-link', { body: { action: 'create', kind, quote_id: q.id } });
   if (error || !data?.token) throw error || new Error('falhou');
-  return { link: `${publicOrigin()}/assinar/${data.token}`, expires: data.expires_at as string };
+  return { link: `${window.location.origin}/assinar/${data.token}`, expires: data.expires_at as string };
 }
 
 export const contractPhone = (q: QuoteRecord) => (q.customer?.whatsapp || q.customer_phone || '') as string;

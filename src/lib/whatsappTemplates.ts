@@ -1,4 +1,3 @@
-import { publicOrigin } from '@/lib/publicUrl';
 import { formatBRL } from '@/lib/formatCurrency';
 import { getOrderStatusLabel } from '@/lib/orderStatus';
 import {
@@ -59,7 +58,7 @@ function productLines(items: OrderMessageItem[]): string {
 
 function buildVars(data: OrderMessageData, profile: CompanyProfile) {
   const date = data.createdAt ? new Date(data.createdAt) : new Date();
-  const origin = publicOrigin(profile.public_site_url);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const shipping =
     data.shippingFee && data.shippingFee > 0 ? formatBRL(data.shippingFee) : 'A combinar';
   const discount = data.discount && data.discount > 0 ? formatBRL(data.discount) : 'Não aplicado';
