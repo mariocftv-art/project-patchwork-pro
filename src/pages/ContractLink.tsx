@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
+import { getCompanyProfile, defaultCompanyProfile, type CompanyProfile } from '@/lib/companyProfile';
 import { executionTermText, partyDoc, partiesText, paymentSentence, resolveContractText, customerAddress, fmtPhoneBR, fmtCpfCnpj, type PremiumDocData } from '@/lib/docModel';
 import { cleanItemName } from '@/lib/docScope';
 import { HIGHLIGHT_END, HIGHLIGHT_START, VERSION_LINE } from '@/lib/contractClauses';
@@ -185,7 +185,7 @@ export default function ContractLink() {
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto primeiro: o perfil não pode travar a leitura
       const p = await withTimeout(getCompanyProfile(true), 8000).catch(() => null);
-      setProfile(p || ({ ...getBrand(), name: getBrand().name } as unknown as CompanyProfile));
+      setProfile(p || { ...defaultCompanyProfile, name: getBrand().name });
       // PDF por trás, até 30 s; se falhar, o cliente lê e assina pelo texto
       setPdfState('loading');
       withTimeout((async () => {
@@ -229,8 +229,11 @@ export default function ContractLink() {
   const confirm = async (png: string) => {
     if (!view) return;
     const draft = { id: 'new', quote_id: '', version: 0, party: 'contratante', signer_name: name.trim(), signer_document: doc, signer_role: isPJ ? role.trim() : null, signer_ip: view.client_ip ?? null, signature_image: png, doc_hash: view.doc_code || '', signed_at: new Date().toISOString(), created_by_email: null, signed_pdf_path: null, awareness_accepted: true, image_use_authorized: imageUse } as SignatureRow;
-    const pdf = await buildPdf(view, draft);
-    const b64 = (pdf.output('datauristring') as string).split(',')[1];
+    let b64 = '';
+    try {
+      const pdf = await withTimeout(buildPdf(view, draft), 30000);
+      b64 = (pdf.output('datauristring') as string).split(',')[1];
+    } catch { /* assina mesmo sem o PDF; o painel gera depois */ }
     const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
@@ -285,6 +288,8 @@ export default function ContractLink() {
         )}
         <div ref={endRef} className="h-2" />
       </div>
+      {pdfState === 'loading' && view.record && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Preparando o PDF em segundo plano. Você já pode ler e assinar.</p>}
+      {pdfState === 'failed' && <p className="text-xs text-muted-foreground">O PDF não carregou agora, mas você pode ler e assinar pelo texto acima.</p>}
 
       {canSign && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
