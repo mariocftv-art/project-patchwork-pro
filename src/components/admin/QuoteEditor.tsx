@@ -42,6 +42,7 @@ import {
   WarrantyOption,
   WARRANTY_LABELS,
 } from '@/lib/premiumPDF';
+import { addDaysISO, completionInfo, split5050 } from '@/lib/docModel';
 
 export interface QuoteRecord {
   id: string;
@@ -770,6 +771,33 @@ export default function QuoteEditor({ open, onOpenChange, record: recordProp, mo
                   )}
                 </div>
                 <Field className="sm:col-span-6" label={data.docType === 'contrato' ? 'Prazo de execução (obrigatório)' : 'Prazo de execução'} v={data.customer.executionTerm} on={(v) => setC('executionTerm', v)} ph="Ex.: 5 dias úteis (o texto final segue a forma de pagamento)" />
+                {data.docType === 'contrato' && (() => {
+                  const ci = completionInfo(data.customer);
+                  const setPrazo = (patch: Partial<DocCustomer>) => {
+                    const c = { ...data.customer, ...patch };
+                    const n = parseInt(String(c.completionDays ?? ''), 10);
+                    if (!('completionDate' in patch) && c.startDate && n > 0) c.completionDate = addDaysISO(c.startDate, n);
+                    setData({ ...data, customer: c });
+                  };
+                  const half = split5050(totals?.total || 0);
+                  return (
+                    <div className="sm:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-md border border-border p-2">
+                      <div>
+                        <Label htmlFor="q-days">Prazo de conclusão do serviço (dias)</Label>
+                        <Input id="q-days" className="mt-1" inputMode="numeric" value={data.customer.completionDays ?? String(ci.days)} onChange={(e) => setPrazo({ completionDays: e.target.value.replace(/\D/g, '').slice(0, 3) })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="q-start">Data de início</Label>
+                        <Input id="q-start" type="date" className="mt-1" value={data.customer.startDate || ''} onChange={(e) => setPrazo({ startDate: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="q-end">Data prevista de conclusão</Label>
+                        <Input id="q-end" type="date" className="mt-1" value={data.customer.completionDate || ''} onChange={(e) => setPrazo({ completionDate: e.target.value })} />
+                      </div>
+                      <p className="sm:col-span-3 text-xs text-muted-foreground">Sugestão de {ci.days} dias só para este contrato. Pagamento 50% / 50%: entrada {formatBRL(half.entry)} · final {formatBRL(half.final)} (total {formatBRL(totals?.total || 0)}).</p>
+                    </div>
+                  );
+                })()}
                 <Field className="sm:col-span-6" label="Observação do cliente" v={data.customer.note} on={(v) => setC('note', v)} />
               </div>
             </section>
