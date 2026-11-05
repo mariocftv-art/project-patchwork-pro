@@ -30,6 +30,10 @@ export interface DocCustomer {
   installSame?: boolean;
   /** Prazo de execução do contrato (ex.: 5 dias úteis após o pagamento) */
   executionTerm?: string;
+  /** Prazo de conclusão deste contrato (dias), início e data prevista (AAAA-MM-DD) */
+  completionDays?: string;
+  startDate?: string;
+  completionDate?: string;
   /** Pessoa jurídica: representante legal e cargo (bloco de assinatura) */
   representative?: string;
   representativeRole?: string;
@@ -263,6 +267,35 @@ export function executionTermText(data: Pick<PremiumDocData, 'payment' | 'custom
   return hasDownPayment(data) ? `até ${n} ${unit} após o pagamento da entrada` : `até ${n} ${unit} após a assinatura, a contar da data acordada`;
 }
 
+/** Prazo sugerido para um contrato novo; cada contrato guarda o seu. */
+export const DEFAULT_COMPLETION_DAYS = 15;
+
+/** Soma dias a uma data AAAA-MM-DD (sem fuso). */
+export function addDaysISO(iso: string, days: number) {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m || !Number.isFinite(days)) return '';
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days));
+  return d.toISOString().slice(0, 10);
+}
+const fmtISO = (iso?: string) => {
+  const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+};
+
+/** Prazo deste contrato: dias, início e conclusão (calculada se não foi digitada). */
+export function completionInfo(c: DocCustomer) {
+  const n = parseInt(String(c.completionDays ?? ''), 10);
+  const days = Number.isFinite(n) && n > 0 ? n : DEFAULT_COMPLETION_DAYS;
+  const end = c.completionDate || (c.startDate ? addDaysISO(c.startDate, days) : '');
+  return { days, start: fmtISO(c.startDate), end: fmtISO(end) };
+}
+
+/** 50% de entrada e 50% final; o final absorve o centavo. */
+export function split5050(total: number) {
+  const entry = Math.floor(total * 50) / 100;
+  return { entry, final: Math.round((total - entry) * 100) / 100 };
+}
+
 /** Texto único da forma de pagamento: o mesmo na Cláusula 2ª e no bloco "Condições de pagamento". */
 export function paymentSentence(data: PremiumDocData, totals: ReturnType<typeof computeTotals> = computeTotals(data)) {
   const p = data.payment;
@@ -365,6 +398,11 @@ export function resolveContractText(data: PremiumDocData): string {
     .join('\n')
     .replace(/\{ESCOPO\}/g, scope.length ? scope.join('\n') : '• Conforme itens descritos na tabela deste documento.')
     .replace(/\{VALOR_TOTAL\}/g, formatBRL(totals.total))
+    .replace(/\{VALOR_ENTRADA_50\}/g, formatBRL(split5050(totals.total).entry))
+    .replace(/\{VALOR_FINAL_50\}/g, formatBRL(split5050(totals.total).final))
+    .replace(/\{PRAZO_DIAS\}/g, String(completionInfo(data.customer).days))
+    .replace(/\{DATA_INICIO\}/g, completionInfo(data.customer).start || '____/____/______')
+    .replace(/\{DATA_CONCLUSAO\}/g, completionInfo(data.customer).end || '____/____/______')
     .replace(/\{PAGAMENTO\}/g, paymentSentence(data, totals))
     .replace(/\{PRAZO_EXECUCAO\}, a contar da data acordada entre as partes/g, '{PRAZO_EXECUCAO}')
     .replace(/\{PRAZO_EXECUCAO\}/g, executionTermText(data) || '____________')
