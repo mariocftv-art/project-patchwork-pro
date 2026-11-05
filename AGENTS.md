@@ -25,3 +25,4 @@
 - Contract clauses: ContractClause[] (contractClauses.ts), template in company_profile, frozen per contract in quotes; highlight clauses wrapped in [[DESTAQUE]]; consents on contract_signatures. Why: frozen signed text, CDC 54 §4.
 - Cart quotes only via RPC create_cart_quote (+attach_cart_quote_pdf); anon never calls next_quote_number. Why: counter stays server-only.
 - Parties/payment/CPF-CNPJ text: docModel helpers only; ContractLink renders from data, not PDF text. Why: phone view merged blocks.
+- Links sent to customers (signing) use publicOrigin() from src/lib/publicUrl.ts, never window.location.origin. Why: preview hosts demand an editor login.
