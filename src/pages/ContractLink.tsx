@@ -118,6 +118,12 @@ const call = async (body: Record<string, unknown>) => {
   return data;
 };
 
+const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+  new Promise<T>((res, rej) => {
+    const t = setTimeout(() => rej(new Error('timeout')), ms);
+    p.then((x) => { clearTimeout(t); res(x); }, (e) => { clearTimeout(t); rej(e); });
+  });
+
 const asSigRows = (v: View) => (v.signatures || []).map((s) => ({ ...s, id: s.party, quote_id: '', version: 0, signer_document: s.signer_document ?? null, doc_hash: s.doc_hash || '', created_by_email: null, signed_pdf_path: null })) as SignatureRow[];
 
 async function buildPdf(v: View, extra?: SignatureRow) {
@@ -148,8 +154,24 @@ export default function ContractLink() {
   const brand = getBrand().name;
   const isPJ = doc.replace(/\D/g, '').length > 11;
 
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [pdfState, setPdfState] = useState<'loading' | 'ok' | 'failed'>('loading');
+
   const load = async () => {
-    const v: View = await call({ action: 'view', token }).catch(() => ({ state: 'invalid' }));
+    setLoadErr(null);
+    let v: View | null = null;
+    let reason = '';
+    for (let i = 0; i < 3 && !v; i++) {
+      try {
+        const r = await withTimeout(call({ action: 'view', token }), 20000);
+        if (r && typeof r === 'object' && 'state' in r) v = r as View;
+        else reason = 'O servidor não respondeu certo.';
+      } catch (e) {
+        reason = e instanceof Error && e.message === 'timeout' ? 'A conexão demorou demais.' : 'Sem conexão com o servidor.';
+        await new Promise((res) => setTimeout(res, 1000 * (i + 1)));
+      }
+    }
+    if (!v) { setLoadErr(reason || 'Não foi possível abrir o contrato.'); return; }
     setView(v);
     if (v.record) {
       // CPF/CNPJ já vem do cadastro do cliente
@@ -161,21 +183,28 @@ export default function ContractLink() {
       const pj = known.length > 11;
       setName((n) => n || (pj ? String(cu.representative || '') : v.record!.customer_name || ''));
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
-      setProfile(await getCompanyProfile(true));
-      const pdf = await buildPdf(v);
-      const blob = pdf.output('blob');
-      setPages(await renderPdfPages(blob, 1.5));
+      // Texto primeiro: o perfil não pode travar a leitura
+      const p = await withTimeout(getCompanyProfile(true), 8000).catch(() => null);
+      setProfile(p || ({ ...getBrand(), name: getBrand().name } as unknown as CompanyProfile));
+      // PDF por trás, até 30 s; se falhar, o cliente lê e assina pelo texto
+      setPdfState('loading');
+      withTimeout((async () => {
+        const pdf = await buildPdf(v!);
+        return renderPdfPages(pdf.output('blob'), 1.5);
+      })(), 30000)
+        .then((pg) => { setPages(pg); setPdfState('ok'); })
+        .catch(() => setPdfState('failed'));
     }
   };
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
   useEffect(() => {
-    if (!endRef.current || pages.length === 0) return;
-    const io = new IntersectionObserver((e) => e[0].isIntersecting && setReadToEnd(true), { threshold: 0.5 });
+    if (!endRef.current || !profile) return;
+    const io = new IntersectionObserver((e) => e[0].isIntersecting && setReadToEnd(true), { threshold: 0 });
     io.observe(endRef.current);
     return () => io.disconnect();
-  }, [pages.length]);
+  }, [profile, view]);
 
   const downloadSigned = async () => {
     const r = await call({ action: 'pdf', token });
@@ -211,7 +240,13 @@ export default function ContractLink() {
     load();
   };
 
-  if (!view) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loadErr) return (
+    <div className="max-w-md mx-auto text-center py-16 space-y-4">
+      <p className="text-lg">Não conseguimos abrir o contrato. {loadErr}</p>
+      <Button className="min-h-12" onClick={() => load()}>Tentar de novo</Button>
+    </div>
+  );
+  if (!view) return <div className="flex flex-col items-center gap-2 py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-sm text-muted-foreground">Abrindo o contrato…</p></div>;
 
   const msg: Record<string, string> = {
     expired: `Este link expirou. Peça um novo à ${brand}.`,
