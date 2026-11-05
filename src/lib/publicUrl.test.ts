@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { publicOrigin } from './publicUrl';
 
 const PUB = 'https://mrsegmaxima2026.lovable.app';

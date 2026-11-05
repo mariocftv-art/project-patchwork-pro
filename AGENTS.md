@@ -27,3 +27,4 @@
 - Parties/payment/CPF-CNPJ text: docModel helpers only; ContractLink renders from data, not PDF text. Why: phone view merged blocks.
 - The service worker is registered manually in src/main.tsx (injectRegister off) and never on /assinar or /contrato, which are also in navigateFallbackDenylist. Why: customers opening a signing link must get fresh code without a multi-MB background precache.
 - buildPremiumPDF normalizes `date` and retries without item photos on failure. Why: preview must always build, even from JSON drafts or bad images.
+- Links sent to customers (signing, tracking, invites) use publicOrigin() from src/lib/publicUrl.ts, which reads company_profile.public_site_url and never returns a preview/editor host. Why: preview links demand a Lovable login and showed "Access denied" to customers.
