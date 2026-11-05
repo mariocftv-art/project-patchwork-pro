@@ -233,7 +233,8 @@ export default function ContractLink() {
     try {
       const pdf = await withTimeout(buildPdf(view, draft), 30000);
       b64 = (pdf.output('datauristring') as string).split(',')[1];
-    } catch { /* assina mesmo sem o PDF; o painel gera depois */ }
+    } catch { /* tratado abaixo */ }
+    if (!b64) { setPad(false); return setErr('Não foi possível montar o PDF assinado. Toque em "Assinar contrato" de novo.'); }
     const r = await call({ action: 'sign', token, name: name.trim(), document: doc, role: isPJ ? role.trim() : undefined, accepted: ok, awareness: aware, awareness_text: AWARENESS_TEXT, image_use: imageUse, image: png, pdf_base64: b64 });
     setPad(false);
     if (r?.error === 'mismatch') return setErr(`Os dados não conferem com os do contrato. Fale com a ${brand}.`);
