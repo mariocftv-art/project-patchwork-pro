@@ -146,6 +146,11 @@ export default function CompanyProfileForm() {
             <Input value={profile.website} onChange={(e) => set('website', e.target.value)} placeholder="www.suaempresa.com.br" />
           </div>
           <div className="sm:col-span-2">
+            <Label>Endereço publicado (links de assinatura e rastreio)</Label>
+            <Input value={profile.public_site_url} onChange={(e) => set('public_site_url', e.target.value)} placeholder="https://seusite.lovable.app" />
+            <p className="text-xs text-muted-foreground mt-1">Os links enviados aos clientes sempre usam este endereço, nunca o da prévia.</p>
+          </div>
+          <div className="sm:col-span-2">
             <Label>Instagram</Label>
             <Input value={profile.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@suaempresa" />
           </div>

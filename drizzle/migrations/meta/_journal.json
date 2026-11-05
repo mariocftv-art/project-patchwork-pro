@@ -85,6 +85,13 @@
       "when": 1793722459792,
       "tag": "0011_signer_role",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793840817317,
+      "tag": "0012_migration",
+      "breakpoints": true
     }
   ]
 }

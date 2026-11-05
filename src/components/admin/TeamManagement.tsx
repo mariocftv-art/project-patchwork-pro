@@ -1,3 +1,4 @@
+import { publicOrigin } from '@/lib/publicUrl';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +56,7 @@ export default function TeamManagement() {
         <Input className="h-11" type="email" placeholder="E-mail do técnico" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
         <Button className="h-11 w-full" disabled={busy || !invite.email.includes('@')} onClick={async () => {
           setBusy(true);
-          const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'invite', ...invite, redirect: `${window.location.origin}/perfil` } });
+          const { data, error } = await supabase.functions.invoke('manage-technicians', { body: { action: 'invite', ...invite, redirect: `${publicOrigin()}/perfil` } });
           setBusy(false);
           if (error || data?.error) return toast({ title: 'Não foi possível convidar', description: data?.error || 'Tente de novo.', variant: 'destructive' });
           toast({ title: data.invited ? 'Convite enviado por e-mail' : 'Acesso de técnico liberado', description: 'Ele cria a senha pelo e-mail e já entra como técnico.' });
