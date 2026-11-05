@@ -12,6 +12,8 @@ export interface CompanyProfile {
   city: string;
   state: string;
   website: string;
+  /** Endereço publicado usado em links enviados a clientes. */
+  public_site_url: string;
   instagram: string;
   logo_url: string | null;
   primary_color: string;
@@ -108,6 +110,7 @@ export const defaultCompanyProfile: CompanyProfile = {
   city: '',
   state: '',
   website: '',
+  public_site_url: '',
   instagram: '',
   logo_url: null,
   primary_color: '#1E3A8A',
@@ -184,6 +187,7 @@ export async function saveCompanyProfile(profile: CompanyProfile): Promise<Compa
     city: profile.city,
     state: profile.state,
     website: profile.website,
+    public_site_url: profile.public_site_url.trim() || null,
     instagram: profile.instagram,
     logo_url: profile.logo_url,
     primary_color: profile.primary_color,
