@@ -1,5 +1,5 @@
 ---
-name: Corrigir Bugs
+name: corrigir-bugs
 description: Analisa e corrige todos os bugs do projeto
 ---
 
