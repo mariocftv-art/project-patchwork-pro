@@ -347,7 +347,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-14 text-lg font-bold rounded-xl" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-14 h-auto whitespace-normal text-base md:text-lg font-bold rounded-xl" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">
