@@ -351,7 +351,8 @@ export function warrantyPeriod(w?: DocWarranty): string {
  * Remove a cláusula de garantia se nenhuma foi escolhida e renumera as cláusulas.
  */
 export function resolveContractText(data: PremiumDocData): string {
-  const raw = data.contractText || '';
+  // Aceita marcações escritas com colchetes ([PRAZO_DIAS]) como se fossem chaves; [[DESTAQUE]] fica intacto.
+  const raw = (data.contractText || '').replace(/(^|[^[])\[([A-Z][A-Z0-9_]{2,})\](?!\])/g, '$1{$2}');
   if (!raw.trim()) return '';
   const totals = computeTotals(data);
   const scope = buildScopeLines(data.items);
@@ -411,7 +412,9 @@ export function resolveContractText(data: PremiumDocData): string {
     .replace(/\bterm[ií]nio\b/gi, 'término')
     .replace(/\{GARANTIA_PERIODO\}/g, period.toUpperCase())
     .replace(/\{GARANTIA_PERIODO_MIN\}/g, period)
-    .replace(/\{AUTORIZACAO_IMAGEM\}/g, imageUseMark(data.signatures?.contratante?.imageUse));
+    .replace(/\{AUTORIZACAO_IMAGEM\}/g, imageUseMark(data.signatures?.contratante?.imageUse))
+    // Nenhuma marcação desconhecida pode sobrar no texto.
+    .replace(/\{[A-Z][A-Z0-9_]{2,}\}/g, '');
   return out;
 }
 
@@ -443,12 +446,9 @@ export function validateDoc(data: PremiumDocData): string[] {
     else if (cpf.length === 11 && !isValidCPFDigits(cpf)) errors.push('CPF inválido. Confira os números.');
     if (!c.executionTerm?.trim()) errors.push('Contrato: preencha o prazo de execução.');
     if (!customerAddress(c)) errors.push('Contrato: informe o endereço do cliente.');
-    if (cnpj) {
-      if (!c.representative?.trim()) errors.push('Contrato de empresa: informe o nome de quem assina.');
-      if (!c.representativeRole?.trim()) errors.push('Contrato de empresa: informe o cargo de quem assina.');
-      const rc = (c.representativeCpf || '').replace(/\D/g, '');
-      if (rc.length !== 11 || !isValidCPFDigits(rc)) errors.push('Contrato de empresa: informe um CPF válido de quem assina.');
-    }
+    // Nome/cargo/CPF de quem assina são opcionais; o CPF só é conferido se for preenchido.
+    const rc = (c.representativeCpf || '').replace(/\D/g, '');
+    if (rc && (rc.length !== 11 || !isValidCPFDigits(rc))) errors.push('CPF de quem assina inválido. Confira ou deixe em branco.');
   }
   if (c.cep && c.cep.replace(/\D/g, '').length !== 8) errors.push('CEP deve ter 8 números.');
   if (!data.items.length) errors.push('Adicione pelo menos um item.');
