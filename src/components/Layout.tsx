@@ -1,3 +1,4 @@
+import { APP_VERSION_LABEL } from '@/components/UpdateBanner';
 import { ReactNode, useState, useEffect } from 'react';
 import { useBrand, brandLogo, waLink, waNumber, getBrand, loadBrand } from '@/lib/brand';
 import { imgAt } from '@/lib/imgSizes';
@@ -573,7 +574,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
           <div className="border-t border-background/20 mt-8 pt-6 text-center text-xs">
-            {`© 2011–${new Date().getFullYear()} ${brand.name.replace(/^[^\p{L}\d]+/u, '')}. Todos os direitos reservados.`}
+            {`© 2011–${new Date().getFullYear()} ${brand.name.replace(/^[^\p{L}\d]+/u, '')}. Todos os direitos reservados. ${APP_VERSION_LABEL}`}
           </div>
         </div>
       </footer>

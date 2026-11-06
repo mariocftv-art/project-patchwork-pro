@@ -3,15 +3,32 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import fs from "fs";
+
+// Versão do site: muda a cada publicação (horário de São Paulo)
+const BUILD_ID = String(Date.now());
+const BUILD_LABEL = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "");
+const versionFile = () => ({
+  name: "version-json",
+  apply: "build" as const,
+  writeBundle(opts: { dir?: string }) {
+    fs.writeFileSync(path.join(opts.dir || "dist", "version.json"), JSON.stringify({ id: BUILD_ID, label: BUILD_LABEL }));
+  },
+});
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+    __APP_BUILD_LABEL__: JSON.stringify(BUILD_LABEL),
+  },
   server: {
     host: "::",
     port: 8080,
   },
   plugins: [
     react(),
+    versionFile(),
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
@@ -53,9 +70,23 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}"],
+        // HTML nunca fica guardado: a página sempre vem nova da internet
+        globPatterns: ["**/*.{js,css,ico,png,svg,jpg,jpeg,webp}"],
+        navigateFallback: null,
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globIgnores: ["**/pdf.worker*", "**/b*-tall-*.jpg", "**/b*-wide-*.jpg"],
         runtimeCaching: [
+          {
+            urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: { cacheName: "pages", networkTimeoutSeconds: 4, expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 } },
+          },
+          {
+            urlPattern: /\/version\.json/,
+            handler: "NetworkOnly",
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
