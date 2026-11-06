@@ -14,7 +14,7 @@ import { renderPdfPages } from '@/components/admin/PdfPagesPreview';
 import SignaturePad from '@/components/admin/SignaturePad';
 import { recordToDoc, QuoteRecord } from '@/components/admin/QuoteEditor';
 import { toDocSignatures, preloadRatios, SignatureRow } from '@/lib/contractSignatures';
-import { getBrand } from '@/lib/brand';
+import { getBrand, brandLogo } from '@/lib/brand';
 import { maskCPF, maskCNPJ, isValidCPF } from '@/lib/masks';
 import { AWARENESS_TEXT } from '@/lib/contractClauses';
 
@@ -262,9 +262,18 @@ export default function ContractLink() {
   const signed = view.state === 'signed';
   const canSign = view.kind === 'sign' && !signed;
 
+  const today = new Date().toLocaleDateString('pt-BR');
+  const bp = profile || getBrand();
+
   return (
-    <div className="max-w-3xl mx-auto w-full min-w-0 space-y-4">
-      <h1 className="text-xl md:text-2xl font-bold">Contrato {view.quote_number}</h1>
+    <div className="dark min-h-[100dvh] bg-background text-foreground">
+    <div className="max-w-3xl mx-auto w-full min-w-0 space-y-5 px-3 pb-10">
+      <header className="text-center pt-8 pb-2 space-y-2">
+        <img src={brandLogo(bp)} alt={bp.name} className="mx-auto h-28 md:h-36 w-auto object-contain" />
+        <h1 className="text-2xl md:text-4xl font-bold tracking-wide text-gold uppercase">{bp.name}</h1>
+        <p className="text-[11px] md:text-xs tracking-[0.2em] text-gold/90 uppercase">Contrato de prestação de serviços • Assinatura digital</p>
+        <p className="text-xs text-muted-foreground">Contrato {view.quote_number}</p>
+      </header>
       {(done || signed) && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           {done && <p className="font-semibold flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-promo" />✅ Contrato assinado com sucesso</p>}
@@ -277,9 +286,15 @@ export default function ContractLink() {
         <span className="text-sm text-muted-foreground mr-auto">Tamanho da letra</span>
         <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Diminuir letra" onClick={() => setFont((f) => Math.max(13, f - 2))}><Minus className="h-5 w-5" /></Button>
         <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Aumentar letra" onClick={() => setFont((f) => Math.min(28, f + 2))}><Plus className="h-5 w-5" /></Button>
-        <Button variant="outline" className="h-11" disabled={pages.length === 0} onClick={() => setFull(true)}><Maximize2 className="h-4 w-4 mr-1" />PDF</Button>
       </div>
-      <div className="rounded-lg border border-border bg-card p-4 md:p-6">
+      <div className="keep-light rounded-2xl bg-card text-card-foreground p-4 md:p-8 shadow-2xl">
+        <h2 className="text-center text-xl md:text-3xl font-bold leading-tight">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
+        <div className="mx-auto mt-3 mb-5 h-0.5 w-16 bg-gold" />
+        <div className="flex justify-center mb-5">
+          <Button variant="outline" className="h-11 border-gold" disabled={pages.length === 0} onClick={() => setFull(true)}>
+            <Maximize2 className="h-4 w-4 mr-2" />{pages.length === 0 ? 'Preparando o PDF…' : 'Ver o contrato em PDF'}
+          </Button>
+        </div>
         {view.record && profile ? (
           <ContractReader d={recordToDoc(view.record)} profile={profile} font={font} />
         ) : pages.length === 0 ? (
@@ -293,7 +308,8 @@ export default function ContractLink() {
       {pdfState === 'failed' && <p className="text-xs text-muted-foreground">O PDF não carregou agora, mas você pode ler e assinar pelo texto acima.</p>}
 
       {canSign && (
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <div className="rounded-2xl border border-gold/40 bg-card p-4 md:p-6 space-y-3">
+          <h2 className="text-xl md:text-2xl font-bold text-gold">Assinatura do Contratante</h2>
           <div>
             <Label htmlFor="sg-name">{isPJ ? 'Nome do representante' : 'Nome completo'}</Label>
             <Input id="sg-name" className="mt-1 min-h-11" value={name} onChange={(e) => setName(e.target.value)} />
@@ -308,6 +324,11 @@ export default function ContractLink() {
             <Label htmlFor="sg-doc">CPF ou CNPJ</Label>
             {!doc && <p className="text-sm text-destructive mt-1">O cadastro não tem CPF/CNPJ. Preencha com o documento do contrato.</p>}
             <Input id="sg-doc" className="mt-1 min-h-11" inputMode="numeric" value={doc} placeholder="000.000.000-00" onChange={(e) => { const x = e.target.value.replace(/\D/g, ''); setDoc(x.length > 11 ? maskCNPJ(x) : maskCPF(x)); }} />
+          </div>
+          <div>
+            <Label htmlFor="sg-date">Data da assinatura</Label>
+            <Input id="sg-date" className="mt-1 min-h-11" value={today} readOnly aria-describedby="sg-date-help" />
+            <p id="sg-date-help" className="text-xs text-muted-foreground mt-1">Registrada automaticamente, com hora, no momento em que você assina.</p>
           </div>
           <div className="rounded-md border-2 border-destructive p-3 space-y-2">
             <p className="text-sm font-bold">⚠️ Cláusulas de atenção</p>
@@ -326,7 +347,7 @@ export default function ContractLink() {
             <span>Li e concordo com os termos deste contrato</span>
           </label>
           {err && <p className="text-sm text-destructive font-medium">{err}</p>}
-          <Button className="w-full min-h-12 font-bold" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
+          <Button className="w-full min-h-14 text-lg font-bold rounded-xl" disabled={!readToEnd || !ok || !aware || imageUse === null || name.trim().length < 3 || (isPJ && role.trim().length < 2) || doc.replace(/\D/g, '').length < 11} onClick={start}>
             {readToEnd ? '✍️ Assinar contrato' : 'Role até o fim do contrato para assinar'}
           </Button>
           <p className="text-xs text-muted-foreground">
@@ -356,6 +377,10 @@ export default function ContractLink() {
           onConfirm={confirm}
         />
       )}
+      <footer className="text-center text-xs text-gold/80 pt-4">
+        {bp.name}{bp.cnpj ? ` • CNPJ ${bp.cnpj}` : ''}
+      </footer>
+    </div>
     </div>
   );
 }

@@ -70,6 +70,8 @@
     --sidebar-ring: 210 100% 35%;
   }
 
+  :root { --gold: 44 70% 55%; }
+
   .dark {
     --background: 220 6% 9% !important;
     --foreground: 40 8% 88% !important;
