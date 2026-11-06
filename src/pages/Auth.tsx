@@ -79,7 +79,12 @@ const Auth = () => {
       redirectTo: `${publicOrigin()}/reset-password`,
     });
     setIsSubmitting(false);
-    if (error) setError('Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.');
+    if (error) {
+      console.error('reset password email failed:', error.message);
+      setError(/seconds|rate|security purposes/i.test(error.message)
+        ? 'Um e-mail já foi enviado há pouco. Espere 1 minuto antes de pedir outro e veja também o spam.'
+        : 'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.');
+    }
     else setSuccess(`Se ${email.trim()} tiver acesso, chegará um e-mail com o link para criar uma senha nova. Veja também o spam.`);
   };
 
