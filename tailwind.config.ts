@@ -20,6 +20,7 @@ export default {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       colors: {
+        gold: "hsl(var(--gold))",
         price: "hsl(var(--price))",
         "price-old": "hsl(var(--price-old))",
         promo: "hsl(var(--promo))",
