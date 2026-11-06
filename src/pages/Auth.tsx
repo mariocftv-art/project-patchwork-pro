@@ -10,6 +10,8 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { publicOrigin } from '@/lib/publicUrl';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
@@ -63,6 +65,27 @@ const Auth = () => {
       }
     }
     setIsSubmitting(false);
+  };
+
+  const handleForgot = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!emailSchema.safeParse(email).success) {
+      setError('Digite seu e-mail no campo acima e toque de novo em "Esqueci minha senha".');
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${publicOrigin()}/reset-password`,
+    });
+    setIsSubmitting(false);
+    if (error) {
+      console.error('reset password email failed:', error.message);
+      setError(/seconds|rate|security purposes/i.test(error.message)
+        ? 'Um e-mail já foi enviado há pouco. Espere 1 minuto antes de pedir outro e veja também o spam.'
+        : 'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.');
+    }
+    else setSuccess(`Se ${email.trim()} tiver acesso, chegará um e-mail com o link para criar uma senha nova. Veja também o spam.`);
   };
 
   if (loading) {
@@ -147,6 +170,9 @@ const Auth = () => {
                     'Entrar'
                   )}
                 </Button>
+                <button type="button" onClick={handleForgot} disabled={isSubmitting} className="w-full text-sm underline text-muted-foreground hover:text-foreground">
+                  Esqueci minha senha
+                </button>
               </form>
             </TabsContent>
             

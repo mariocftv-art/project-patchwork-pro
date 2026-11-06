@@ -24,6 +24,7 @@ const Services = lazy(() => import("./pages/Services"));
 const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const MyProfile = lazy(() => import("./pages/MyProfile"));
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/categoria/:slug" element={<LegacyCategory />} />
             <Route path="/categorias/:slug" element={<LegacyCategory />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/agenda" element={<Agenda />} />
             <Route path="/perfil" element={<MyProfile />} />
             <Route path="/admin/orcamentos/novo" element={<Navigate to="/admin?tab=quotes" replace />} />
