@@ -26,3 +26,4 @@
 - Cart quotes only via RPC create_cart_quote (+attach_cart_quote_pdf); anon never calls next_quote_number. Why: counter stays server-only.
 - Parties/payment/CPF-CNPJ text: docModel helpers only; ContractLink renders from data, not PDF text. Why: phone view merged blocks.
 - Links sent to customers (signing) use publicOrigin() from src/lib/publicUrl.ts, never window.location.origin. Why: preview hosts demand an editor login.
+- Site version = build timestamp (vite define + dist/version.json); UpdateBanner polls it and never auto-reloads, waits while body[data-signing]; service worker never precaches HTML. Why: old cached pages were being served.

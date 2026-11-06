@@ -185,17 +185,25 @@ export default function ContractLink() {
       if (pj) setRole((x) => x || String(cu.representativeRole || ''));
       // Texto primeiro: o perfil não pode travar a leitura
       const p = await withTimeout(getCompanyProfile(true), 8000).catch(() => null);
-      setProfile(p || { ...defaultCompanyProfile, name: getBrand().name });
+      { const pp = p || { ...defaultCompanyProfile, name: getBrand().name }; setProfile({ ...pp, name: cleanName(pp.name) }); }
       // PDF por trás, até 30 s; se falhar, o cliente lê e assina pelo texto
-      setPdfState('loading');
-      withTimeout((async () => {
-        const pdf = await buildPdf(v!);
-        return renderPdfPages(pdf.output('blob'), 1.5);
-      })(), 30000)
-        .then((pg) => { setPages(pg); setPdfState('ok'); })
-        .catch(() => setPdfState('failed'));
+      makePdf(v);
     }
   };
+  const makePdf = (v: View) => {
+    setPdfState('loading');
+    withTimeout((async () => {
+      const pdf = await buildPdf(v);
+      return renderPdfPages(pdf.output('blob'), 1.5);
+    })(), 30000)
+      .then((pg) => { setPages(pg); setPdfState('ok'); })
+      .catch(() => setPdfState('failed'));
+  };
+  const openPdf = () => {
+    setFull(true);
+    if (pdfState === 'failed' && view) makePdf(view);
+  };
+  useEffect(() => { document.body.dataset.signing = pad ? '1' : ''; return () => { delete document.body.dataset.signing; }; }, [pad]);
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
@@ -263,16 +271,16 @@ export default function ContractLink() {
   const canSign = view.kind === 'sign' && !signed;
 
   const today = new Date().toLocaleDateString('pt-BR');
-  const bp = profile || getBrand();
+  const bp = profile || { ...getBrand(), name: cleanName(getBrand().name) };
 
   return (
     <div className="dark min-h-[100dvh] bg-background text-foreground">
     <div className="max-w-3xl mx-auto w-full min-w-0 space-y-5 px-3 pb-10">
-      <header className="text-center pt-8 pb-2 space-y-2">
-        <img src={brandLogo(bp)} alt={bp.name} className="mx-auto h-28 md:h-36 w-auto object-contain" />
-        <h1 className="text-2xl md:text-4xl font-bold tracking-wide text-gold uppercase">{bp.name}</h1>
+      <header className="text-center pt-10 pb-4 space-y-3">
+        <img src={brandLogo(bp)} alt={bp.name} className="mx-auto h-32 md:h-40 w-auto object-contain mb-4" />
+        <h1 className="text-3xl md:text-5xl font-bold tracking-wider text-gold uppercase leading-tight">{bp.name}</h1>
         <p className="text-[11px] md:text-xs tracking-[0.2em] text-gold/90 uppercase">Contrato de prestação de serviços • Assinatura digital</p>
-        <p className="text-xs text-muted-foreground">Contrato {view.quote_number}</p>
+        <p className="text-sm text-foreground pt-1">Contrato {view.quote_number}</p>
       </header>
       {(done || signed) && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -280,7 +288,7 @@ export default function ContractLink() {
           <Button className="w-full min-h-12" onClick={downloadSigned}><Download className="h-4 w-4 mr-2" />Baixar o PDF assinado</Button>
         </div>
       )}
-      {canSign && <p className="text-sm text-muted-foreground">Leia o contrato inteiro até o fim. O botão de assinar libera depois disso.</p>}
+      {canSign && <p className="text-center text-sm md:text-base leading-relaxed text-muted-foreground max-w-xl mx-auto px-2">Leia o contrato até o fim. O botão <strong>Assinar contrato</strong> será liberado após a leitura completa.</p>}
 
       <div className="sticky top-0 z-10 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
         <span className="text-sm text-muted-foreground mr-auto">Tamanho da letra</span>
@@ -291,8 +299,8 @@ export default function ContractLink() {
         <h2 className="text-center text-xl md:text-3xl font-bold leading-tight">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
         <div className="mx-auto mt-3 mb-5 h-0.5 w-16 bg-gold" />
         <div className="flex justify-center mb-5">
-          <Button variant="outline" className="h-11 border-gold" disabled={pages.length === 0} onClick={() => setFull(true)}>
-            <Maximize2 className="h-4 w-4 mr-2" />{pages.length === 0 ? 'Preparando o PDF…' : 'Ver o contrato em PDF'}
+          <Button variant="outline" className="h-11 border-gold" onClick={openPdf}>
+            <Maximize2 className="h-4 w-4 mr-2" />Ver o contrato em PDF
           </Button>
         </div>
         {view.record && profile ? (
@@ -304,8 +312,6 @@ export default function ContractLink() {
         )}
         <div ref={endRef} className="h-2" />
       </div>
-      {pdfState === 'loading' && view.record && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Preparando o PDF em segundo plano. Você já pode ler e assinar.</p>}
-      {pdfState === 'failed' && <p className="text-xs text-muted-foreground">O PDF não carregou agora, mas você pode ler e assinar pelo texto acima.</p>}
 
       {canSign && (
         <div className="rounded-2xl border border-gold/40 bg-card p-4 md:p-6 space-y-3">
@@ -363,6 +369,8 @@ export default function ContractLink() {
             <Button variant="outline" className="h-11" onClick={() => setFull(false)}><X className="h-4 w-4 mr-1" />Fechar</Button>
           </div>
           <div className="p-2 space-y-2">
+            {pages.length === 0 && pdfState !== 'failed' && <div className="flex flex-col items-center gap-2 py-16 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" />Abrindo o PDF…</div>}
+            {pages.length === 0 && pdfState === 'failed' && <div className="flex flex-col items-center gap-3 py-16 text-center"><p>O PDF não abriu agora. Você pode ler e assinar pelo texto.</p><Button className="h-11" onClick={() => view && makePdf(view)}>Tentar de novo</Button></div>}
             {pages.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1} do contrato`} className="w-full max-w-4xl mx-auto h-auto border border-border" />)}
           </div>
         </div>
@@ -383,4 +391,9 @@ export default function ContractLink() {
     </div>
     </div>
   );
+}
+
+/** Tira emojis/símbolos do nome da empresa (ex.: escudo) na página de assinatura. */
+function cleanName(n: string) {
+  return n.replace(/[^\p{L}\p{N}\s.&'\-]/gu, '').replace(/\s+/g, ' ').trim();
 }

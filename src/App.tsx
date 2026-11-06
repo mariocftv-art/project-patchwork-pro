@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import UpdateBanner from "@/components/UpdateBanner";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect } from "react";
@@ -68,6 +69,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
+      <UpdateBanner />
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />

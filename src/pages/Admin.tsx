@@ -1,3 +1,4 @@
+import { APP_VERSION_LABEL } from '@/components/UpdateBanner';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
@@ -146,6 +147,7 @@ export default function Admin() {
       <div className="flex items-center justify-between gap-4 mb-8">
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
           ⚙️ Painel Administrativo
+          <span className="block text-xs font-normal text-muted-foreground mt-1">{APP_VERSION_LABEL}</span>
         </h1>
         <div className="flex items-center gap-2 shrink-0">
           <ThemeToggle variant="panel" />
