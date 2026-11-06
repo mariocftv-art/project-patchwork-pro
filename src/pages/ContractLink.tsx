@@ -203,6 +203,7 @@ export default function ContractLink() {
     setFull(true);
     if (pdfState === 'failed' && view) makePdf(view);
   };
+  useEffect(() => { document.body.dataset.signing = pad ? '1' : ''; return () => { delete document.body.dataset.signing; }; }, [pad]);
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Botão só libera depois de rolar até o fim do contrato
@@ -269,7 +270,6 @@ export default function ContractLink() {
   const signed = view.state === 'signed';
   const canSign = view.kind === 'sign' && !signed;
 
-  useEffect(() => { document.body.dataset.signing = pad ? '1' : ''; return () => { delete document.body.dataset.signing; }; }, [pad]);
   const today = new Date().toLocaleDateString('pt-BR');
   const bp = profile || { ...getBrand(), name: cleanName(getBrand().name) };
 
