@@ -129,7 +129,7 @@ export default function ContractsManagement() {
   /** Assinaturas antigas da contratada substituídas (só leitura, para o Histórico). */
   const replacedOf = (id: string) => {
     const all = signatures.filter((s) => s.quote_id === id && s.party === 'contratada').sort((a, b) => a.signed_at.localeCompare(b.signed_at));
-    return all.slice(1).map((s, i) => ({ old: all[i], now: s }));
+    return all.slice(1).map((s, i) => ({ old: all[i], now: s })).filter((p) => p.old.version === p.now.version);
   };
 
   const contentVersion = (id: string) => versions.filter((v) => v.quote_id === id && v.change_type !== 'status')[0]?.version || 1;
@@ -522,6 +522,24 @@ export default function ContractsManagement() {
       <Dialog open={!!history} onOpenChange={(v) => !v && setHistory(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Histórico — {history?.quote_number}</DialogTitle></DialogHeader>
+          {history && replacedOf(history.id).length > 0 && (
+            <div className="space-y-2">
+              {replacedOf(history.id).reverse().map(({ old, now }) => {
+                const dt = new Date(now.signed_at);
+                return (
+                  <div key={now.id} className="rounded border border-border p-3 text-sm space-y-1">
+                    <p className="font-semibold">Assinatura da contratada trocada em {dt.toLocaleDateString('pt-BR')}, às {dt.toLocaleTimeString('pt-BR')}</p>
+                    <p className="text-xs text-muted-foreground">Versão {now.version}{now.created_by_email ? ` · ${now.created_by_email}` : ''} · antes: {old.signer_name}, {new Date(old.signed_at).toLocaleString('pt-BR')}</p>
+                    <div className="flex items-center gap-2 keep-light">
+                      <img src={old.signature_image} alt="Assinatura antiga" className="h-10 max-w-[45%] object-contain bg-card rounded border border-border px-1" />
+                      <span className="text-xs">→</span>
+                      <img src={now.signature_image} alt="Assinatura nova" className="h-10 max-w-[45%] object-contain bg-card rounded border border-border px-1" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {history && (versionsOf(history.id).length === 0 ? (
             <p className="text-sm text-muted-foreground">Contrato criado antes do controle de versões. A próxima alteração gera a versão 1.</p>
           ) : (
