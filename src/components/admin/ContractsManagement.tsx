@@ -103,7 +103,8 @@ export default function ContractsManagement() {
       await (supabase.from('admin_logs' as any) as any).insert({ user_id: auth.user?.id, user_email: auth.user?.email, action: 'refazer_assinatura_contratada', entity_type: 'contrato', entity_id: q.quote_number, details: { metodo: how, em: new Date().toISOString() } });
     }
     setRedo(false);
-    toast({ title: wasRedo ? 'Assinatura da empresa refeita' : 'Assinatura registrada', description: both ? 'Contrato assinado pelas duas partes. PDF assinado salvo.' : 'PDF atualizado e salvo. Falta a outra parte.' });
+    const nowTxt = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).replace(', ', ', às ');
+    toast({ title: wasRedo ? `Assinatura trocada com sucesso — ${nowTxt}` : 'Assinatura registrada', description: both ? 'Contrato assinado pelas duas partes. PDF assinado salvo.' : 'PDF atualizado e salvo. Falta a outra parte.' });
     await Promise.all(['admin-contract-signatures', 'admin-contract-versions', 'admin-contracts'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
     const fresh = (qc.getQueryData(['admin-contracts']) as QuoteRecord[] | undefined)?.find((x) => x.id === q.id);
     if (fresh) setSigning(fresh);
