@@ -103,7 +103,7 @@ export async function buildSignedPdf(q: QuoteRecord, sigs: SignatureRow[]) {
 }
 
 /** Registra a assinatura, gera o PDF assinado e o guarda em área privada. */
-export interface SignMeta { method: 'salva' | 'desenhada'; savedName?: string | null; includesBrand?: boolean; awareness?: boolean; imageUse?: boolean | null }
+export interface SignMeta { method: 'salva' | 'desenhada' | 'foto'; savedName?: string | null; includesBrand?: boolean; awareness?: boolean; imageUse?: boolean | null }
 
 export async function signContract(q: QuoteRecord, party: Party, signer: { name: string; document?: string; role?: string }, image: string, existing: SignatureRow[], meta: SignMeta = { method: 'desenhada' }) {
   // A empresa só usa assinatura salva no próprio campo; o cliente sempre desenha

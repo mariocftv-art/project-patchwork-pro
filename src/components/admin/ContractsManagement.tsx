@@ -117,7 +117,20 @@ export default function ContractsManagement() {
       toast({ title: 'Assinatura não registrada', description: m === 'no-name' ? 'Preencha o nome do responsável em Personalização.' : 'Nada foi salvo. Tente de novo.', variant: 'destructive' });
     }
   };
-  const canRedo = (q: QuoteRecord) => !sigsOf(q.id).some((x) => x.party === 'contratante') && !linksOf(q.id).some((l) => l.kind === 'sign') && !['enviado', 'assinado', 'em_execucao', 'concluido'].includes(q.status || '');
+  const usePhoto = async (q: QuoteRecord, png: string, name: string, doc: string) => {
+    try {
+      const r = await signContract(q, 'contratada', { name, document: doc }, png, signatures, { method: 'foto' });
+      await afterSign(q, r.both, redo, 'foto da assinatura à caneta');
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Assinatura não registrada', description: 'Nada foi salvo. Tente de novo.', variant: 'destructive' });
+    }
+  };
+  /** Assinaturas antigas da contratada substituídas (só leitura, para o Histórico). */
+  const replacedOf = (id: string) => {
+    const all = signatures.filter((s) => s.quote_id === id && s.party === 'contratada').sort((a, b) => a.signed_at.localeCompare(b.signed_at));
+    return all.slice(1).map((s, i) => ({ old: all[i], now: s })).filter((p) => p.old.version === p.now.version);
+  };
 
   const contentVersion = (id: string) => versions.filter((v) => v.quote_id === id && v.change_type !== 'status')[0]?.version || 1;
   const sigsOf = (id: string) => {
@@ -466,6 +479,9 @@ export default function ContractsManagement() {
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'preview' })}><Eye className="h-4 w-4 mr-1" />Visualizar</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditor({ open: true, record: q, mode: 'edit' })}><Pencil className="h-4 w-4 mr-1" />Editar / nova versão</Button>
                   <Button size="sm" onClick={() => setSigning(q)}><PenLine className="h-4 w-4 mr-1" />Assinar</Button>
+                  {sigsOf(q.id).some((x) => x.party === 'contratada') && (
+                    <Button size="sm" variant="outline" onClick={() => { setRedo(true); setSigning(q); }}><PenLine className="h-4 w-4 mr-1" />Trocar minha assinatura</Button>
+                  )}
                   {!sigsOf(q.id).some((x) => x.party === 'contratada') && (
                     <Button size="sm" variant="outline" disabled={busyId === q.id} onClick={() => applyMine(q)}><PenLine className="h-4 w-4 mr-1" />Aplicar minha assinatura</Button>
                   )}
@@ -506,6 +522,24 @@ export default function ContractsManagement() {
       <Dialog open={!!history} onOpenChange={(v) => !v && setHistory(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Histórico — {history?.quote_number}</DialogTitle></DialogHeader>
+          {history && replacedOf(history.id).length > 0 && (
+            <div className="space-y-2">
+              {replacedOf(history.id).reverse().map(({ old, now }) => {
+                const dt = new Date(now.signed_at);
+                return (
+                  <div key={now.id} className="rounded border border-border p-3 text-sm space-y-1">
+                    <p className="font-semibold">Assinatura da contratada trocada em {dt.toLocaleDateString('pt-BR')}, às {dt.toLocaleTimeString('pt-BR')}</p>
+                    <p className="text-xs text-muted-foreground">Versão {now.version}{now.created_by_email ? ` · ${now.created_by_email}` : ''} · antes: {old.signer_name}, {new Date(old.signed_at).toLocaleString('pt-BR')}</p>
+                    <div className="flex items-center gap-2 keep-light">
+                      <img src={old.signature_image} alt="Assinatura antiga" className="h-10 max-w-[45%] object-contain bg-card rounded border border-border px-1" />
+                      <span className="text-xs">→</span>
+                      <img src={now.signature_image} alt="Assinatura nova" className="h-10 max-w-[45%] object-contain bg-card rounded border border-border px-1" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {history && (versionsOf(history.id).length === 0 ? (
             <p className="text-sm text-muted-foreground">Contrato criado antes do controle de versões. A próxima alteração gera a versão 1.</p>
           ) : (
@@ -550,17 +584,22 @@ export default function ContractsManagement() {
                       <p className="text-xs font-bold tracking-wide">{x.label}</p>
                       {x.p === 'contratante' && !x.doc.replace(/\D/g, '') && <p className="text-xs text-destructive">O cadastro do cliente não tem CPF/CNPJ. Preencha no documento antes de assinar.</p>}
                       {x.p === 'contratada' && (!done || redo) ? (
-                        <CompanySignChooser
-                          companyName={getBrand().name}
-                          onUseSaved={(sv) => useSaved(signing, sv)}
-                          onDraw={() => setPad({ q: signing, party: 'contratada', name: x.name, document: x.doc })}
-                        />
+                        <>
+                          {redo && done && <p className="text-xs text-muted-foreground">Trocando só a assinatura da contratada. A do cliente, o texto, o valor e a versão não mudam. A assinatura antiga fica guardada no Histórico. Se desistir, nada muda.</p>}
+                          <CompanySignChooser
+                            companyName={getBrand().name}
+                            onUseSaved={(sv) => useSaved(signing, sv)}
+                            onDraw={() => setPad({ q: signing, party: 'contratada', name: x.name, document: x.doc })}
+                            onPhoto={(png) => usePhoto(signing, png, x.name, x.doc)}
+                          />
+                          {redo && done && <Button size="sm" variant="ghost" onClick={() => setRedo(false)}>Desistir — manter a assinatura atual</Button>}
+                        </>
                       ) : done ? (
                         <>
                           <p className="text-sm flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-price" />{done.signer_name} — {new Date(done.signed_at).toLocaleString('pt-BR')}</p>
                           <img src={done.signature_image} alt={`Assinatura de ${done.signer_name}`} className="h-14 max-w-full object-contain bg-card rounded border border-border px-2" />
-                          {x.p === 'contratada' && canRedo(signing) && (
-                            <Button size="sm" variant="outline" onClick={() => setRedo(true)}>Refazer minha assinatura</Button>
+                          {x.p === 'contratada' && (
+                            <Button size="sm" variant="outline" onClick={() => setRedo(true)}><PenLine className="h-4 w-4 mr-1" />Assinar novamente / Trocar minha assinatura</Button>
                           )}
                         </>
                       ) : (
