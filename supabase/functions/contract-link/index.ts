@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const version = ver?.version ?? 1;
     const snapshot = ver?.snapshot ?? q;
     const { data: sigs } = await admin.from('contract_signatures').select('party, signer_name, signer_document, signer_ip, signer_role, doc_hash, signature_image, signed_at, signed_pdf_path, version, awareness_accepted, image_use_authorized')
-      .eq('quote_id', q.id).eq('version', version);
+      .eq('quote_id', q.id).eq('version', version).order('signed_at', { ascending: false });
     const signedByClient = (sigs || []).some((s) => s.party === 'contratante');
     const latestPdf = (sigs || []).filter((s) => s.signed_pdf_path).sort((a, b) => b.signed_at.localeCompare(a.signed_at))[0]?.signed_pdf_path;
 
