@@ -301,6 +301,25 @@
 }
 
 /* ===== Modo escuro premium ===== */
+.product-editor-dialog {
+  width: min(42rem, calc(100% - 2rem));
+  max-width: 42rem;
+  height: min(56rem, calc(100dvh - 2rem));
+}
+@media (max-width: 639px) {
+  .product-editor-dialog {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+    animation: none;
+  }
+}
+
 html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after {
   transition: background-color .35s ease, color .35s ease, border-color .35s ease !important;
 }

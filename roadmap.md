@@ -1,4 +1,9 @@
 # Roadmap — Atualização Master
+## Pedido 38 — somente prévia
+- [x] Compactar cartões no celular e manter lista compacta no computador
+- [x] Edição em tela inteira no celular, título completo e ações sempre visíveis
+- [x] Conferir salvar/cancelar no Kit Alarme, restaurar descrição exata e entregar prints em três tamanhos, sem publicar
+
 ## Pedido 37 — somente prévia
 - [x] Corrigir edição e preservação dos dados de produtos; descrição completa e Cancelar
 - [x] Corrigir cartões, grade e menu do painel no celular; conferir categorias-pai

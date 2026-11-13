@@ -27,4 +27,5 @@
 - Parties/payment/CPF-CNPJ text: docModel helpers only; ContractLink renders from data, not PDF text. Why: phone view merged blocks.
 - Links sent to customers (signing) use publicOrigin() from src/lib/publicUrl.ts, never window.location.origin. Why: preview hosts demand an editor login.
 - Site version = build timestamp (vite define + dist/version.json); UpdateBanner polls it and never auto-reloads, waits while body[data-signing]; service worker never precaches HTML. Why: old cached pages were being served.
-- Product edits submit only fields changed against the initial form representation (productEdit); description is independent from summary. Why: editing one field must preserve unrelated stored values, including promotion timestamps and gallery images.
+- Product edits submit only fields changed against the initial form representation (productEdit); description is independent from summary and keeps whitespace exactly. Why: editing one field must preserve unrelated stored values, including promotion timestamps and gallery images.
+- The product editor uses one scrollable fields area and a separate fixed-in-layout action footer inside a full-height mobile dialog. Why: nested scrolling hid Save/Cancel and clipped titles on phones.

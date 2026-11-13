@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { editedProductFields } from "@/lib/productEdit";
+import { editedProductFields, productDescription } from "@/lib/productEdit";
 import ProductExtrasFields, { ProductExtras, extrasFromProduct, extrasPayload, MoveBtns, move } from './ProductExtrasFields';
 import ImageUploadField from './ImageUploadField';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -130,7 +130,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
 
   const formPayload = (data: ProductFormData): Partial<Product> => ({
       title: data.title.trim(),
-      description: data.description?.trim() || null,
+      description: productDescription(data.description),
       ...extrasPayload(extras),
       price: data.price,
       original_price: data.original_price ?? null,
@@ -178,21 +178,22 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
   const err = (m?: string) => (m ? <p className="text-sm text-destructive mt-1">{m}</p> : null);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-6">
       <Accordion type="single" collapsible value={open} onValueChange={setOpen} className="space-y-2">
         <AccordionItem value="basicos" className="rounded-lg border border-border px-3">
           <AccordionTrigger className="font-semibold">1. Dados básicos</AccordionTrigger>
           <AccordionContent className="space-y-3 px-1">
             <div>
               <Label htmlFor="title">Título</Label>
-              <Input id="title" {...register('title')} className="mt-1" placeholder="Nome do produto" />
+              <Textarea id="title" rows={3} {...register('title')} className="mt-1 resize-y leading-relaxed" placeholder="Nome do produto" />
               {err(errors.title?.message)}
             </div>
             <div>
               <Label htmlFor="description">Descrição completa</Label>
               <Textarea id="description" rows={6} {...register('description')} className="mt-1 min-h-36" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="stock">Estoque</Label>
                 <Input id="stock" type="number" {...register('stock', { valueAsNumber: true })} className="mt-1" placeholder="0" />
@@ -330,10 +331,10 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-background py-2">
-        <Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={isSubmitting || promoInvalid} className="btn-security">
+      </div>
+      <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+        <Button type="button" variant="outline" className="min-h-11 flex-1 sm:flex-none" disabled={isSubmitting} onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" disabled={isSubmitting || promoInvalid} className="btn-security min-h-11 flex-1 sm:flex-none">
           {isSubmitting ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>

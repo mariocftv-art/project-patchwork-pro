@@ -254,8 +254,8 @@ export default function Admin() {
                   Novo Produto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card">
-                <DialogHeader>
+              <DialogContent className="product-editor-dialog flex flex-col gap-0 overflow-hidden bg-card p-0" aria-describedby={undefined}>
+                <DialogHeader className="shrink-0 border-b border-border px-4 py-5 pr-12 text-left sm:px-6">
                   <DialogTitle>
                     {editingProduct ? 'Editar Produto' : 'Novo Produto'}
                   </DialogTitle>
@@ -290,26 +290,26 @@ export default function Admin() {
               .map((product) => (
               <div
                 key={product.id}
-                className="admin-card grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 !p-4 sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
+                className="admin-card grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 !p-3 sm:grid-cols-[4rem_minmax(0,1fr)_13rem_auto]"
               >
                 <img src={product.image_url || '/placeholder.svg'} alt={product.title} onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} className="w-16 h-16 object-contain rounded-md" />
                 <div className="min-w-0">
                   <h3 className="font-semibold text-sm sm:text-base leading-snug break-words text-foreground">{product.title}</h3>
-                  <p className="text-sm text-muted-foreground break-words">{product.category} • Estoque: {product.stock}</p>
+                  <p className="mt-1 text-xs text-muted-foreground whitespace-nowrap">{product.category} • Estoque: {product.stock}</p>
+                  {product.description && <details className="mt-1 min-w-0 text-sm"><summary className="cursor-pointer font-medium text-muted-foreground">Descrição</summary><p className="mt-2 whitespace-pre-wrap break-words text-foreground">{product.description}</p></details>}
                 </div>
-                <div className="col-span-2 flex flex-wrap items-start justify-between gap-3 sm:col-span-1 sm:justify-end">
-                  <div className="min-w-0 space-y-1 text-sm">
-                    {isPromoActive(product) && <><p className="text-promo font-semibold">Promoção</p>{product.promo_until && <p className="text-muted-foreground">Promoção até {new Date(product.promo_until).toLocaleDateString('pt-BR')}</p>}</>}
-                    {product.includes_installation && <p className="flex items-center gap-1 text-promo"><Wrench className="h-4 w-4 shrink-0" /> Inclui instalação</p>}
-                  </div>
-                  <div className="text-right shrink-0">
+                <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:col-span-1 sm:grid-cols-1">
+                  <div className="text-right shrink-0 sm:order-1 sm:text-left">
                     {isPromoActive(product) && <p className="text-sm text-price-old line-through">R$ {Number(product.price).toFixed(2)}</p>}
-                    <p className="font-bold text-price">R$ {Number(isPromoActive(product) ? product.promo_price : product.price).toFixed(2)}</p>
+                    <p className="font-bold text-promo whitespace-nowrap">{Number(isPromoActive(product) ? product.promo_price : product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     {product.cost_price != null && <p className="text-xs text-muted-foreground">Custo: R$ {Number(product.cost_price).toFixed(2)}</p>}
                   </div>
+                  <div className="col-start-1 row-start-1 min-w-0 space-y-1 text-xs sm:row-auto sm:order-2">
+                    {isPromoActive(product) && <><p className="text-destructive font-semibold">Promoção</p>{product.promo_until && <p className="whitespace-nowrap text-muted-foreground">Promoção até {new Date(product.promo_until).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>}</>}
+                    <p className="flex items-center gap-1 text-muted-foreground"><Wrench className="h-3 w-3 shrink-0" /> Instalação: {product.includes_installation ? 'Incluída' : '—'}</p>
+                  </div>
                 </div>
-                {product.description && <details className="col-span-2 sm:col-span-3 min-w-0 text-sm"><summary className="cursor-pointer font-medium text-muted-foreground">Descrição</summary><p className="mt-2 whitespace-pre-line break-words text-foreground">{product.description}</p></details>}
-                <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                <div className="col-span-2 flex gap-2 border-t border-border pt-2 sm:col-span-1 sm:flex-col sm:border-0 sm:pt-0">
                   <Button variant="outline" size="sm" className="min-h-11 gap-2 border-primary font-semibold" onClick={() => handleEditProduct(product)}><Pencil className="w-4 h-4 shrink-0" /> Editar</Button>
                   <Button variant="destructive" size="sm" className="min-h-11" onClick={() => handleDeleteProduct(product.id)}>Excluir</Button>
                 </div>
