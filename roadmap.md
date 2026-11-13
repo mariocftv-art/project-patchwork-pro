@@ -1,4 +1,9 @@
 # Roadmap — Atualização Master
+## Pedido 37 — somente prévia
+- [ ] Corrigir edição e preservação dos dados de produtos; descrição completa e Cancelar
+- [ ] Corrigir cartões, grade e menu do painel no celular; conferir categorias-pai
+- [ ] Conferir edição real autorizada e telas no celular/computador; entregar prints sem publicar
+
 - [x] 1. Tela do celular sem arrastar para o lado
 - [x] 2/3/5. Seletor do orçamento: produtos por categoria + Serviços Técnicos Especializados separados
 - [ ] 4. Renomear galeria "Instalações" para "Serviços Realizados"
