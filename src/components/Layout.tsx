@@ -129,14 +129,17 @@ export default function Layout({ children }: LayoutProps) {
     return location.pathname === c.path;
   };
   const [catOpen, setCatOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname, location.search]);
+  const isAdminPage = location.pathname.startsWith('/admin');
   useEffect(() => { setCatOpen(false); }, [location.pathname, location.search]);
   // Esconde o botão do WhatsApp com menu/galeria abertos
   useEffect(() => {
-    const open = catOpen || servicesOpen;
+    const open = catOpen || servicesOpen || mobileMenuOpen;
     document.body.classList.toggle('overlay-open', open);
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.classList.remove('overlay-open'); document.body.style.overflow = ''; };
-  }, [catOpen, servicesOpen]);
+  }, [catOpen, servicesOpen, mobileMenuOpen]);
   // Botão voltar do celular fecha o menu de categorias
   useEffect(() => {
     if (!catOpen) return;
@@ -171,7 +174,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Header */}
-      <header className="keep-light ml-header sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
+      <header className={`keep-light ml-header ${isAdminPage ? 'relative z-30' : 'sticky top-0 z-50'} pt-[env(safe-area-inset-top)]`}>
         {/* Top Header */}
         <div className="container mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:px-4 py-2">
           {/* Desktop Layout */}
@@ -298,14 +301,14 @@ export default function Layout({ children }: LayoutProps) {
           <div className="sm:hidden">
             {/* Top row: Logo + Actions */}
             <div className="flex items-center justify-between py-1">
-              <Link to="/" className="flex-shrink-0">
+              <Link to="/" className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <img 
                     src={logoMR} 
                     alt={brand.name} 
                     className="w-9 h-9 object-contain"
                   />
-                  <span className="text-xs font-bold text-ml-dark-gray leading-none">
+                  <span className="min-w-0 break-words text-xs font-bold text-ml-dark-gray leading-snug">
                     {shortName}
                   </span>
                 </div>
@@ -337,13 +340,13 @@ export default function Layout({ children }: LayoutProps) {
                   )}
                 </Link>
 
-                <Sheet>
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
-                    <button aria-label="Abrir menu" className="p-2 text-ml-dark-gray hover:text-ml-blue transition-colors">
+                    <Button variant="ghost" size="icon" aria-label="Abrir menu" className="text-ml-dark-gray hover:text-ml-blue">
                       <Menu className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-72 bg-card p-0">
+                  <SheetContent side="right" className="w-72 max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain bg-card p-0">
                     <div className="p-4 border-b border-border">
                       <p className="font-semibold text-foreground">Menu</p>
                     </div>
@@ -365,7 +368,7 @@ export default function Layout({ children }: LayoutProps) {
                         )}
                         <Link to={user ? '/perfil' : '/auth'} className="block py-3 px-2 text-foreground hover:bg-secondary rounded">Minha conta</Link>
                         {showServicesTab && (
-                          <button type="button" onClick={() => setServicesOpen(true)} className="w-full text-left py-3 px-2 font-bold text-foreground dark:text-primary hover:bg-secondary rounded">
+                          <button type="button" onClick={() => { setMobileMenuOpen(false); setServicesOpen(true); }} className="w-full text-left py-3 px-2 font-bold text-foreground dark:text-primary hover:bg-secondary rounded">
                             NOSSOS SERVIÇOS REALIZADOS
                           </button>
                         )}
@@ -377,7 +380,7 @@ export default function Layout({ children }: LayoutProps) {
                       
                       {isAdmin ? (
                         <>
-                          <div className="px-2 py-2 text-xs text-muted-foreground">
+                          <div className="px-2 py-2 text-xs text-muted-foreground break-all">
                             Logado: {user?.email}
                           </div>
                           <Link
@@ -395,7 +398,7 @@ export default function Layout({ children }: LayoutProps) {
                         </>
                       ) : user ? (
                         <>
-                          <div className="px-2 py-2 text-xs text-muted-foreground">
+                          <div className="px-2 py-2 text-xs text-muted-foreground break-all">
                             Logado: {user?.email}
                           </div>
                           <button
@@ -524,6 +527,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-4 min-h-[100dvh]">
         {children}
+        {isAdminPage && <div className="pt-4"><WhatsAppMenu inline /></div>}
       </main>
 
       {/* Footer */}
@@ -584,7 +588,7 @@ export default function Layout({ children }: LayoutProps) {
           className="fixed left-1/2 -translate-x-1/2 z-50 rounded-full bg-primary text-primary-foreground font-bold px-5 py-3 shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 8px)' }}>🔐 Ir para o painel</Link>
       )}
-      <WhatsAppMenu />
+      {!isAdminPage && <WhatsAppMenu />}
       <OfflineScreen />
 
       {/* Floating Install App Button - Mobile Only */}

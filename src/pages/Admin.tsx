@@ -1,10 +1,10 @@
 import { APP_VERSION_LABEL } from '@/components/UpdateBanner';
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { productsApi, adminLogsApi, Product, isPromoActive } from '@/lib/supabaseApi';
 import { ADMIN_TAB_EVENT } from '@/lib/docHandoff';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays, ArrowLeft, LayoutGrid } from 'lucide-react';
+import { Package, Settings, Plus, FileText, CreditCard, Phone, HelpCircle, Info, Camera, FolderOpen, Wrench, ShoppingBag, ClipboardList, LogOut, BarChart3, Palette, CalendarDays, ArrowLeft, LayoutGrid, Pencil } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import ProductForm from '@/components/admin/ProductForm';
@@ -101,6 +101,7 @@ export default function Admin() {
   const [onlyPromo, setOnlyPromo] = useState(false);
   const [onlyInstall, setOnlyInstall] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { signOut } = useAuth();
   const { data: apts = [] } = useAppointments();
   const aptAlerts = countAlerts(apts);
@@ -143,9 +144,9 @@ export default function Admin() {
   };
 
   return (
-    <div className="admin-mobile max-w-6xl mx-auto w-full min-w-0 overflow-x-hidden">
-      <div className="flex items-center justify-between gap-4 mb-8">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+    <div className="admin-mobile pb-28 max-w-6xl mx-auto w-full min-w-0 overflow-x-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+        <h1 className="min-w-0 break-words font-display text-xl sm:text-3xl font-bold text-foreground">
           ⚙️ Painel Administrativo
           <span className="block text-xs font-normal text-muted-foreground mt-1">{APP_VERSION_LABEL}</span>
         </h1>
@@ -167,21 +168,21 @@ export default function Admin() {
                 <h2 id={`grp-${g.title}`} className="font-display text-lg font-bold text-foreground mb-3 border-l-4 border-primary pl-3">{g.title}</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {g.items.map((it) => (
-                    <button
+                    <Button
                       key={it.value}
                       type="button"
                       onClick={() => changeTab(it.value)}
-                      className="relative flex flex-col items-center text-center gap-2 rounded-xl border border-border bg-card p-4 min-h-[9rem] hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                      className="relative flex flex-col items-center text-center gap-2 h-auto min-w-0 whitespace-normal rounded-lg border border-border bg-card p-3 sm:p-4 min-h-[9rem] hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                     >
                       <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-secondary text-primary">
                         <it.icon className="w-7 h-7" aria-hidden="true" />
                       </span>
-                      <span className="font-bold text-sm sm:text-base text-foreground leading-tight break-normal hyphens-none">{it.label}</span>
-                      <span className="text-xs text-muted-foreground leading-snug">{it.desc}</span>
+                      <span className="w-full font-bold text-sm sm:text-base text-foreground leading-snug break-words hyphens-none">{it.label}</span>
+                      <span className="w-full text-xs text-muted-foreground leading-snug break-words">{it.desc}</span>
                       {it.value === 'appointments' && aptAlerts > 0 && (
                         <span className="absolute top-2 right-2 rounded-full bg-destructive text-destructive-foreground text-xs font-bold px-2" aria-label={`${aptAlerts} avisos`}>{aptAlerts}</span>
                       )}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </section>
@@ -239,7 +240,7 @@ export default function Admin() {
 
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <h2 className="text-xl font-semibold text-foreground">
               Gerenciar Produtos ({products.length})
             </h2>
@@ -253,7 +254,7 @@ export default function Admin() {
                   Novo Produto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl bg-card">
+              <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card">
                 <DialogHeader>
                   <DialogTitle>
                     {editingProduct ? 'Editar Produto' : 'Novo Produto'}
@@ -262,9 +263,12 @@ export default function Admin() {
                 <ProductForm
                   key={editingProduct?.id ?? 'new'}
                   product={editingProduct}
+                  onCancel={() => setProductDialogOpen(false)}
                   onSuccess={() => {
                     setProductDialogOpen(false);
                     refetchProducts();
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    queryClient.invalidateQueries({ queryKey: ['product', editingProduct?.id] });
                   }}
                 />
               </DialogContent>
@@ -286,59 +290,28 @@ export default function Admin() {
               .map((product) => (
               <div
                 key={product.id}
-                className="admin-card flex items-center gap-4"
+                className="admin-card grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 !p-4 sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
               >
-                <img
-                  src={product.image_url || '/placeholder.svg'}
-                  alt={product.title}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">{product.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {product.category} • Estoque: {product.stock}
-                  </p>
+                <img src={product.image_url || '/placeholder.svg'} alt={product.title} onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} className="w-16 h-16 object-contain rounded-md" />
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm sm:text-base leading-snug break-words text-foreground">{product.title}</h3>
+                  <p className="text-sm text-muted-foreground break-words">{product.category} • Estoque: {product.stock}</p>
                 </div>
-                <div className="w-28 text-xs text-center" title="Promoção">
-                  {isPromoActive(product) ? (
-                    <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-promo" /> Promoção
-                      {product.promo_until && <span className="block text-muted-foreground">até {new Date(product.promo_until).toLocaleDateString('pt-BR')}</span>}
-                    </span>
-                  ) : <span className="text-muted-foreground">—</span>}
+                <div className="col-span-2 flex flex-wrap items-start justify-between gap-3 sm:col-span-1 sm:justify-end">
+                  <div className="min-w-0 space-y-1 text-sm">
+                    {isPromoActive(product) && <><p className="text-promo font-semibold">Promoção</p>{product.promo_until && <p className="text-muted-foreground">Promoção até {new Date(product.promo_until).toLocaleDateString('pt-BR')}</p>}</>}
+                    {product.includes_installation && <p className="flex items-center gap-1 text-promo"><Wrench className="h-4 w-4 shrink-0" /> Inclui instalação</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    {isPromoActive(product) && <p className="text-sm text-price-old line-through">R$ {Number(product.price).toFixed(2)}</p>}
+                    <p className="font-bold text-price">R$ {Number(isPromoActive(product) ? product.promo_price : product.price).toFixed(2)}</p>
+                    {product.cost_price != null && <p className="text-xs text-muted-foreground">Custo: R$ {Number(product.cost_price).toFixed(2)}</p>}
+                  </div>
                 </div>
-                <div className="w-20 text-xs text-center" title="Instalação">
-                  {product.includes_installation ? <span className="inline-flex items-center gap-1"><Wrench className="w-4 h-4 text-promo" /> Inclui</span> : <span className="text-muted-foreground">—</span>}
-                </div>
-                <div className="text-right">
-                  {isPromoActive(product) ? (
-                    <>
-                      <p className="text-sm text-muted-foreground line-through">R$ {Number(product.price).toFixed(2)}</p>
-                      <p className="font-bold text-promo">R$ {Number(product.promo_price).toFixed(2)}</p>
-                    </>
-                  ) : (
-                    <p className="font-bold text-primary">R$ {Number(product.price).toFixed(2)}</p>
-                  )}
-                  {product.cost_price != null && (
-                    <p className="text-xs text-muted-foreground">
-                      Custo: R$ {Number(product.cost_price).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditProduct(product)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteProduct(product.id)}
-                  >
-                    Excluir
-                  </Button>
+                {product.description && <details className="col-span-2 sm:col-span-3 min-w-0 text-sm"><summary className="cursor-pointer font-medium text-muted-foreground">Descrição</summary><p className="mt-2 whitespace-pre-line break-words text-foreground">{product.description}</p></details>}
+                <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                  <Button variant="outline" size="sm" className="min-h-11 gap-2 border-primary font-semibold" onClick={() => handleEditProduct(product)}><Pencil className="w-4 h-4 shrink-0" /> Editar</Button>
+                  <Button variant="destructive" size="sm" className="min-h-11" onClick={() => handleDeleteProduct(product.id)}>Excluir</Button>
                 </div>
               </div>
             ))}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { editedProductFields } from "@/lib/productEdit";
 import ProductExtrasFields, { ProductExtras, extrasFromProduct, extrasPayload, MoveBtns, move } from './ProductExtrasFields';
 import ImageUploadField from './ImageUploadField';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -62,20 +63,19 @@ type ProductFormData = z.infer<typeof productSchema>;
 interface ProductFormProps {
   product?: Product | null;
   onSuccess: () => void;
+  onCancel: () => void;
 }
 
 const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-export default function ProductForm({ product, onSuccess }: ProductFormProps) {
+export default function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) {
   const [images, setImages] = useState<string[]>(() => [product?.image_url ?? '', ...(product?.gallery_urls ?? []), '', '', '', '', ''].slice(0, 5));
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [open, setOpen] = useState('basicos');
   const { toast } = useToast();
-  const [extras, setExtras] = useState<ProductExtras>(() => {
-    const e = extrasFromProduct(product);
-    return e.promo_enabled ? e : { ...e, promo_price: null };
-  });
+  const [extras, setExtras] = useState<ProductExtras>(() => extrasFromProduct(product));
+  const baseline = useRef<Partial<Product> | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -118,7 +118,8 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   const promo = extras.promo_price ?? 0;
   const normal = Number(salePrice) || 0;
-  const promoInvalid = promo > 0 && promo >= normal;
+  const promoInvalid = extras.promo_enabled && promo > 0 && promo >= normal &&
+    (!product || promo !== Number(product.promo_price) || normal !== Number(product.price) || extras.promo_enabled !== product.promo_enabled);
   const pct = normal > 0 && promo > 0 && promo < normal ? Math.round((1 - promo / normal) * 100) : 0;
   const onInvalid = (errs: Record<string, unknown>) => {
     if (errs.title || errs.stock) setOpen('basicos');
@@ -127,19 +128,12 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   };
   const setImg = (i: number, v?: string) => setImages((a) => a.map((x, j) => (j === i ? v || '' : x)));
 
-  const onSubmit = async (data: ProductFormData) => {
-    if (extras.promo_price != null && extras.promo_price > 0 && extras.promo_price >= data.price) {
-      setOpen('precos');
-      toast({ title: 'O preço promocional precisa ser menor que o preço normal.', variant: 'destructive' });
-      return;
-    }
-    const payload: Partial<Product> = {
+  const formPayload = (data: ProductFormData): Partial<Product> => ({
       title: data.title.trim(),
-      description: extras.summary.trim() || null,
-      ...extrasPayload({ ...extras, promo_enabled: (extras.promo_price ?? 0) > 0, promo_until: (extras.promo_price ?? 0) > 0 ? extras.promo_until : '' }),
-      ...((extras.promo_price ?? 0) > 0 ? {} : { promo_price: null }),
+      description: data.description?.trim() || null,
+      ...extrasPayload(extras),
       price: data.price,
-      original_price: null,
+      original_price: data.original_price ?? null,
       cost_price: data.cost_price ?? null,
       category: data.category,
       subcategory: data.subcategory?.trim() || null,
@@ -150,14 +144,20 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       gallery_urls: images.map((g) => g.trim()).filter(Boolean).slice(1, 5),
       stock: data.stock,
       featured: !!data.featured,
-      on_sale: (extras.promo_price ?? 0) > 0,
+      on_sale: !!data.on_sale,
       status: data.status || 'active',
-    };
+    });
+  if (baseline.current === null) baseline.current = formPayload(watch());
 
+  const onSubmit = async (data: ProductFormData) => {
+    const candidate = formPayload(data);
+    const payload = product ? editedProductFields(candidate, baseline.current ?? {}) : candidate;
     try {
       if (product) {
-        await productsApi.update(product.id, payload);
-        await adminLogsApi.log('update_product', 'product', product.id);
+        if (Object.keys(payload).length) {
+          await productsApi.update(product.id, payload);
+          await adminLogsApi.log('update_product', 'product', product.id);
+        }
         toast({ title: 'Produto atualizado com sucesso!' });
       } else {
         const created = await productsApi.create(payload);
@@ -187,6 +187,10 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               <Label htmlFor="title">Título</Label>
               <Input id="title" {...register('title')} className="mt-1" placeholder="Nome do produto" />
               {err(errors.title?.message)}
+            </div>
+            <div>
+              <Label htmlFor="description">Descrição completa</Label>
+              <Textarea id="description" rows={6} {...register('description')} className="mt-1 min-h-36" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -218,6 +222,10 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         <AccordionItem value="precos" className="rounded-lg border border-border px-3">
           <AccordionTrigger className="font-semibold">2. Preços</AccordionTrigger>
           <AccordionContent className="space-y-3 px-1">
+            <div className="flex items-center gap-3">
+              <Switch id="promo_enabled" checked={extras.promo_enabled} onCheckedChange={(v) => { setExtras({ ...extras, promo_enabled: v }); setValue('on_sale', v); }} />
+              <Label htmlFor="promo_enabled">Em promoção</Label>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label htmlFor="cost_price">Preço de custo (R$)</Label>
@@ -239,7 +247,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               </div>
             </div>
             {promoInvalid && <p className="text-sm text-destructive font-medium" role="alert">O preço promocional precisa ser menor que o preço normal.</p>}
-            {promo > 0 && !promoInvalid && (
+            {!promoInvalid && (
               <div>
                 <Label htmlFor="promo_until">Validade da promoção (opcional)</Label>
                 <Input id="promo_until" type="date" className="mt-1 sm:w-56" value={extras.promo_until} onChange={(ev) => setExtras({ ...extras, promo_until: ev.target.value })} />
@@ -324,8 +332,9 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       </Accordion>
 
       <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-background py-2">
+        <Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>Cancelar</Button>
         <Button type="submit" disabled={isSubmitting || promoInvalid} className="btn-security">
-          {isSubmitting ? 'Salvando...' : product ? 'Atualizar' : 'Criar Produto'}
+          {isSubmitting ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>
     </form>

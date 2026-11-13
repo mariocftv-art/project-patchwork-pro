@@ -13,7 +13,7 @@ const WaIcon = ({ className = '' }: { className?: string }) => (
 
 type Info = { customer_name: string | null; customer_address: string | null; contract_number: string | null; contract_date: string | null } | null;
 
-export default function WhatsAppMenu() {
+export default function WhatsAppMenu({ inline = false }: { inline?: boolean }) {
   const brand = useBrand();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function WhatsAppMenu() {
 
   const opt = 'w-full flex items-start gap-3 text-left rounded-lg border border-primary/40 bg-secondary/40 hover:bg-primary/15 px-3 py-3 min-h-12 transition-colors';
   return (
-    <div ref={ref} className="wa-fab fixed z-50 right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6">
+    <div ref={ref} className={inline ? 'wa-fab relative z-40 w-fit ml-auto' : 'wa-fab fixed z-50 right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6'}>
       {open && ask && (
         <form role="dialog" aria-label="Para agilizar seu atendimento" onSubmit={(e) => { e.preventDefault(); continueGuest(false); }} className="keep-light absolute bottom-full mb-2 right-0 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-foreground text-background border-2 border-primary shadow-2xl p-4 space-y-3">
           <p className="font-bold text-primary">🛡️ {companyVars(brand.name).EMPRESA_MAIUSCULA}</p>

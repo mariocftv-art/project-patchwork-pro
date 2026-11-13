@@ -32,15 +32,15 @@ function Fold({ title, children }: { title: string; children: React.ReactNode })
 }
 
 export function ProductDescription({ product, shipping }: { product: Product; shipping?: React.ReactNode }) {
-  const summary = product.summary || product.description;
+  const description = product.description ?? product.summary;
   const features = product.features ?? [];
   const specs = product.specs ?? [];
   const box = product.box_items ?? [];
   return (
     <div className="border-t border-border">
-      {summary && (
+      {description && (
         <Fold title="Descrição">
-          <p className="text-sm text-ml-gray leading-relaxed whitespace-pre-line">{summary}</p>
+          <p className="text-sm text-ml-gray leading-relaxed whitespace-pre-line break-words">{description}</p>
           {product.ideal_for && <p className="mt-3 text-sm rounded-lg border-l-4 border-primary bg-muted p-3"><strong>Ideal para:</strong> {product.ideal_for}</p>}
         </Fold>
       )}
