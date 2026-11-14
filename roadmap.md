@@ -2,7 +2,8 @@
 ## Pedido 39 — publicar somente o original
 - [x] Conferir cartões e edição em pé/deitado; salvar somente descrição do Kit e restaurar
 - [x] Proteger prévias de caches do aplicativo e preservar aviso de atualização
-- [ ] Publicar correções e conferir versão publicada
+- [x] Solicitar publicação das correções no endereço original
+- [ ] Conferir versão publicada — aguarda conclusão da publicação solicitada
 - [ ] Vídeo no aplicativo instalado do dono — depende de acesso ao celular do dono; entregar gravação de navegador equivalente
 ## Pedido 38 — somente prévia
 - [x] Compactar cartões no celular e manter lista compacta no computador
