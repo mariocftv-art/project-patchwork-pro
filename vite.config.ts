@@ -32,7 +32,8 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "script-defer",
+      injectRegister: null,
+      devOptions: { enabled: false },
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png", "pwa-maskable-512x512.png"],
       manifest: {
         name: "MR Segurança Máxima",
@@ -69,6 +70,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        importScripts: ['/notifications-worker.js'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // HTML nunca fica guardado: a página sempre vem nova da internet
         globPatterns: ["**/*.{js,css,ico,png,svg,jpg,jpeg,webp}"],
@@ -79,24 +81,13 @@ export default defineConfig(({ mode }) => ({
         globIgnores: ["**/pdf.worker*", "**/b*-tall-*.jpg", "**/b*-wide-*.jpg"],
         runtimeCaching: [
           {
-            urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
+            urlPattern: ({ request, url }: { request: Request; url: URL }) => request.mode === "navigate" && !url.pathname.startsWith('/~oauth'),
             handler: "NetworkFirst",
             options: { cacheName: "pages", networkTimeoutSeconds: 4, expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 } },
           },
           {
             urlPattern: /\/version\.json/,
             handler: "NetworkOnly",
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-            },
           },
         ],
       },

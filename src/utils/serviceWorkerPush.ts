@@ -13,7 +13,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
+    const registration = await navigator.serviceWorker.register(import.meta.env.DEV ? '/notifications-worker.js' : '/sw.js', {
       scope: '/',
     });
     console.log('[Push] Service Worker registered successfully:', registration.scope);

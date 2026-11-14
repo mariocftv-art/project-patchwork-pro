@@ -169,12 +169,12 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-[100dvh] bg-background">
       {/* Faixa de frete */}
-      <div className="keep-light bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2">
+      <div className={`${isAdminPage ? 'hidden' : ''} keep-light bg-foreground text-primary text-center text-xs sm:text-sm font-medium py-1.5 px-2`}>
         🚚 <strong>Entrega e instalação combinadas com você</strong> — agendamos data e horário pelo WhatsApp
       </div>
 
       {/* Header */}
-      <header className={`keep-light ml-header ${isAdminPage ? 'relative z-30' : 'sticky top-0 z-50'} pt-[env(safe-area-inset-top)]`}>
+      <header className={`keep-light ml-header ${isAdminPage ? 'hidden' : 'sticky top-0 z-50'} pt-[env(safe-area-inset-top)]`}>
         {/* Top Header */}
         <div className="container mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:px-4 py-2">
           {/* Desktop Layout */}

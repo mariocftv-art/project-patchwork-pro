@@ -306,7 +306,7 @@
   max-width: 42rem;
   height: min(56rem, calc(100dvh - 2rem));
 }
-@media (max-width: 639px) {
+@media (max-width: 639px), (max-height: 500px) and (pointer: coarse) {
   .product-editor-dialog {
     inset: 0;
     width: 100%;

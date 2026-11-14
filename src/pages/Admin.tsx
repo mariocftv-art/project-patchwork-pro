@@ -294,14 +294,14 @@ export default function Admin() {
               >
                 <img src={product.image_url || '/placeholder.svg'} alt={product.title} onError={(e) => { if (!e.currentTarget.src.endsWith('/placeholder.svg')) e.currentTarget.src = '/placeholder.svg'; }} className="w-16 h-16 object-contain rounded-md" />
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-sm sm:text-base leading-snug break-words text-foreground">{product.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground whitespace-nowrap">{product.category} • Estoque: {product.stock}</p>
+                  <h3 title={product.title} className="line-clamp-3 font-semibold text-sm sm:text-base leading-snug break-words text-foreground">{product.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground break-words">{product.category} • Estoque: {product.stock}</p>
                   {product.description && <details className="mt-1 min-w-0 text-sm"><summary className="cursor-pointer font-medium text-muted-foreground">Descrição</summary><p className="mt-2 whitespace-pre-wrap break-words text-foreground">{product.description}</p></details>}
                 </div>
                 <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:col-span-1 sm:grid-cols-1">
                   <div className="text-right shrink-0 sm:order-1 sm:text-left">
                     {isPromoActive(product) && <p className="text-sm text-price-old line-through">R$ {Number(product.price).toFixed(2)}</p>}
-                    <p className="font-bold text-promo whitespace-nowrap">{Number(isPromoActive(product) ? product.promo_price : product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    <p className="font-bold text-price whitespace-nowrap">{Number(isPromoActive(product) ? product.promo_price : product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     {product.cost_price != null && <p className="text-xs text-muted-foreground">Custo: R$ {Number(product.cost_price).toFixed(2)}</p>}
                   </div>
                   <div className="col-start-1 row-start-1 min-w-0 space-y-1 text-xs sm:row-auto sm:order-2">
